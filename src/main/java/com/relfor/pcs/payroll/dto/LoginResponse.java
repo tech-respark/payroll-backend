@@ -12,6 +12,24 @@ public class LoginResponse {
     private Long storeId;
     private Long tenantId;
     private Boolean active;
+    private String token;
+    private java.util.List<String> roles;
+
+    public java.util.List<String> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(java.util.List<String> roles) {
+        this.roles = roles;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
 
     public boolean isSuccess() {
         return success;

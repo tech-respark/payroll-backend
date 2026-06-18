@@ -12,7 +12,6 @@ import com.relfor.pcs.payroll.repository.PersonnelAttendanceRepository;
 import com.relfor.pcs.payroll.repository.PersonnelDetailsRepository;
 import com.relfor.pcs.payroll.repository.StoreDetailsRepository;
 import com.relfor.pcs.payroll.repository.TenantCompanyMappingRepository;
-import com.relfor.pcs.payroll.util.ApiHelper;
 import com.relfor.pcs.payroll.util.AsyncAttendanceSummaryCalculation;
 //import io.swagger.models.auth.In;
 import org.apache.commons.lang3.StringUtils;
@@ -48,8 +47,6 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 	AsyncAttendanceSummaryCalculation asyncAttendanceSummaryCalculation;
 	@Autowired
 	StoreDetailsRepository storeDetailsRepository;
-	@Autowired
-	ApiHelper apiHelper;
 
 	@Override
 	public String retrieveScheduledAttendanceDataFromVendor(List<StoreDetails> storeDetailsList,
@@ -74,7 +71,6 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 		String userName = null;
 		String password = null;
 		String vendorUrl = null;
-		HttpHeaders headers = apiHelper.getDefaultHeaders();
 		for (StoreDetails storeDetails: storeDetailsList) {
 			logger.info("Inside Team Office Handler for TenantId: {} & StoreId: {}", storeDetails.getTenantCompanyMapping().getTenantId(), storeDetails.getStoreId());
 			corporateId = storeDetails.getTenantCompanyMapping().getVendorCorporateId();
@@ -129,7 +125,7 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 						.collect(Collectors.groupingBy(PersonnelAttendance::getStoreId));
 				for (Map.Entry<Long, List<PersonnelAttendance>> entry: attendanceByStoreId.entrySet()) {
 					if (!ObjectUtils.isEmpty(entry.getValue())) {
-						asyncAttendanceSummaryCalculation.syncCalculateAttendanceSummaryForApprovalOrRejection(entry.getValue(), null, headers);
+						asyncAttendanceSummaryCalculation.syncCalculateAttendanceSummaryForApprovalOrRejection(entry.getValue(), null);
 					}
 				}
 			}
@@ -168,8 +164,7 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 					.collect(Collectors.groupingBy(PersonnelAttendance::getStoreId));
 			for (Map.Entry<Long, List<PersonnelAttendance>> entry : attendanceByStoreId.entrySet()) {
 				if (!ObjectUtils.isEmpty(entry.getValue())) {
-					HttpHeaders headers = apiHelper.getDefaultHeaders();
-					asyncAttendanceSummaryCalculation.syncCalculateAttendanceSummaryForApprovalOrRejection(entry.getValue(), null, headers);
+								asyncAttendanceSummaryCalculation.syncCalculateAttendanceSummaryForApprovalOrRejection(entry.getValue(), null);
 				}
 			}
 		}
@@ -239,7 +234,7 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 						personnelDetails = null;
 						if (!personnelAttendanceList.isEmpty() && !ObjectUtils.isEmpty(storeDetails)) {
 							personnelAttendanceRepository.saveAll(personnelAttendanceList);
-//							asyncAttendanceSummaryCalculation.syncCalculateAttendanceSummaryForApprovalOrRejection(new ArrayList<>(personnelAttendanceList), storeDetails.getIsActualTimeBasedAttendance(), headers);
+//							asyncAttendanceSummaryCalculation.syncCalculateAttendanceSummaryForApprovalOrRejection(new ArrayList<>(personnelAttendanceList), storeDetails.getIsActualTimeBasedAttendance());
 							personnelAttendanceListForProcessing.addAll(personnelAttendanceList);
 							personnelAttendanceList = new ArrayList<>();
 						}
@@ -283,7 +278,7 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 				personnelAttendanceRepository.saveAll(personnelAttendanceList);
 				personnelAttendanceListForProcessing.addAll(personnelAttendanceList);
 //				if (!ObjectUtils.isEmpty(storeDetails)) {
-//					asyncAttendanceSummaryCalculation.syncCalculateAttendanceSummaryForApprovalOrRejection(personnelAttendanceList, storeDetails.getIsActualTimeBasedAttendance(), headers);
+//					asyncAttendanceSummaryCalculation.syncCalculateAttendanceSummaryForApprovalOrRejection(personnelAttendanceList, storeDetails.getIsActualTimeBasedAttendance());
 //				}
 			}
 		}

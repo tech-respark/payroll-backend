@@ -32,7 +32,8 @@ public class StoreSettingsController {
             @RequestParam Long tenantId,
             @RequestParam Long storeId) {
         
-        Optional<StoreDetails> optStore = storeDetailsRepository.fetchStoreAndTenantDetails("sk", tenantId, storeId);
+        Optional<StoreDetails> optStore = storeDetailsRepository.fetchStoreAndTenantDetails("RESPARK", tenantId,
+				storeId);
         if (optStore.isPresent()) {
             StoreDetails store = optStore.get();
             Map<String, String> data = new HashMap<>();
@@ -50,7 +51,8 @@ public class StoreSettingsController {
             @RequestHeader("Storeid") Long storeId,
             @RequestBody Map<String, String> payload) {
 
-        Optional<StoreDetails> optStore = storeDetailsRepository.fetchStoreAndTenantDetails("sk", tenantId, storeId);
+        Optional<StoreDetails> optStore = storeDetailsRepository.fetchStoreAndTenantDetails("RESPARK", tenantId,
+				storeId);
         if (optStore.isPresent()) {
             StoreDetails store = optStore.get();
             store.setStoreOpenTime(payload.get("storeOpenTime"));

@@ -4,8 +4,9 @@ import com.relfor.pcs.payroll.dto.PrintBillDetailsDTO;
 import com.lowagie.text.DocumentException;
 import com.relfor.pcs.payroll.dto.SalaryComponentsDTO;
 import com.relfor.pcs.payroll.entity.PersonnelPayslipHistory;
+import com.relfor.pcs.payroll.entity.StoreProfileConfig;
 import com.relfor.pcs.payroll.repository.PersonnelPayslipHistoryRepository;
-import com.relfor.pcs.payroll.util.ApiHelper;
+import com.relfor.pcs.payroll.repository.StoreProfileConfigRepository;
 //import org.apache.velocity.runtime.RuntimeConstants;
 import org.jsoup.Jsoup;
 import org.slf4j.Logger;
@@ -32,7 +33,7 @@ public class VelocityService {
 	private PersonnelPayslipHistoryRepository personnelPayslipHistoryRepository;
 	
 	@Autowired
-	ApiHelper apiHelper;
+	private StoreProfileConfigRepository storeProfileConfigRepository;
 	
 	@Autowired
 	SalaryCalculation salaryCalculation;
@@ -49,7 +50,6 @@ public class VelocityService {
 
 		try {
 
-			HttpHeaders headers = apiHelper.getDefaultHeaders();
 
 			//this template has to be tenant-wise and path should be given accordingly, since every tenant might have different payslip format
 			Template template = velocity.getTemplate("/templates/paySlip.vm");
@@ -59,7 +59,15 @@ public class VelocityService {
 			PersonnelPayslipHistory paySlipData = personnelPayslipHistory.get();
 			SalaryComponentsDTO salarySlip = salaryCalculation.convertToSalaryComponentDTO(personnelPayslipHistory.get());
 
-			billDetails = apiHelper.getBillDetails(paySlipData.getTenantId(), paySlipData.getStoreId(), headers);
+			Optional<StoreProfileConfig> configOpt = storeProfileConfigRepository.findByTenantIdAndStoreId(paySlipData.getTenantId(), paySlipData.getStoreId());
+			if (configOpt.isPresent()) {
+				StoreProfileConfig config = configOpt.get();
+				billDetails = new PrintBillDetailsDTO();
+				billDetails.setLogoPath(config.getLogoPath());
+				billDetails.setAddress(config.getAddress());
+			} else {
+				billDetails = new PrintBillDetailsDTO();
+			}
 
 			VelocityContext context = buildPayslipContext(salarySlip, billDetails);
 

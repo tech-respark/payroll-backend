@@ -15,7 +15,9 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    // Use a static 256-bit (32 byte) key so it survives application restarts!
+    private final String SECRET = "mySuperSecretKeyThatIsAtLeast32BytesLongForHS256";
+    private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
     private final long expirationTime = 1000 * 60 * 60 * 10; // 10 hours
 
     public String extractUsername(String token) {

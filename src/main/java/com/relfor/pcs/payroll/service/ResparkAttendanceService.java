@@ -10,7 +10,6 @@ import com.relfor.pcs.payroll.entity.StoreDetails;
 import com.relfor.pcs.payroll.model.*;
 import com.relfor.pcs.payroll.projection.TenantStoreProjection;
 import com.relfor.pcs.payroll.repository.*;
-import com.relfor.pcs.payroll.util.ApiHelper;
 import com.relfor.pcs.payroll.util.AsyncAttendanceSummaryCalculation;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -45,15 +44,12 @@ public class ResparkAttendanceService {
 	@PersistenceContext
 	private EntityManager entityManager;
 	@Autowired
-	private ApiHelper apiHelper;
-	@Autowired
 	StoreDetailsRepository storeDetailsRepository;
 	
 	public ResponseModel regularizeAttendance(AttendanceRegularizationInputModel attendanceRegularizationInputModel){
 		ResponseModel responseModel = new ResponseModel();
 		try{
-			HttpHeaders headers = apiHelper.getDefaultHeaders();
-			Optional<TenantStoreProjection> tenantStoreProjectionOptional =
+						Optional<TenantStoreProjection> tenantStoreProjectionOptional =
 					tenantCompanyMappingRepository.getTenantStoreMapping(attendanceRegularizationInputModel.getTenantId(),
 							attendanceRegularizationInputModel.getStoreId(), BiometricApplicationNames.RESPARK.name());
 			boolean isActualTimeBasedAttendance = false;
@@ -95,7 +91,7 @@ public class ResparkAttendanceService {
 			}
 
 			if (!approvedOrRejectedAttendanceList.isEmpty()) {
-				asyncAttendanceSummaryCalculation.asyncCalculateAttendanceSummaryForApprovalOrRejection(approvedOrRejectedAttendanceList, isActualTimeBasedAttendance, headers);
+				asyncAttendanceSummaryCalculation.asyncCalculateAttendanceSummaryForApprovalOrRejection(approvedOrRejectedAttendanceList, isActualTimeBasedAttendance);
 			}
 
 			responseModel.setData(attendanceRegularizationInputModel);
@@ -349,8 +345,7 @@ public class ResparkAttendanceService {
 	public ResponseModel flagRegularizationRequests(List<AttendanceRequestsDTO> inputAttendanceRequestsDTOList){
 		ResponseModel responseModel = new ResponseModel();
 		try {
-			HttpHeaders headers = apiHelper.getDefaultHeaders();
-			if (!inputAttendanceRequestsDTOList.isEmpty()) {
+						if (!inputAttendanceRequestsDTOList.isEmpty()) {
 				List<PersonnelAttendance> approvedOrRejectedPersonnelAttendanceList = new ArrayList<>();
 
 				List<Long> personnelAttendanceIdList = inputAttendanceRequestsDTOList.stream()
@@ -383,7 +378,7 @@ public class ResparkAttendanceService {
 					}
 
 					if (!approvedOrRejectedPersonnelAttendanceList.isEmpty()) {
-						asyncAttendanceSummaryCalculation.syncCalculateAttendanceSummaryForApprovalOrRejection(approvedOrRejectedPersonnelAttendanceList, null, headers);
+						asyncAttendanceSummaryCalculation.syncCalculateAttendanceSummaryForApprovalOrRejection(approvedOrRejectedPersonnelAttendanceList, null);
 					}
 				}
 				responseModel.setData(inputAttendanceRequestsDTOList);
@@ -421,6 +416,10 @@ public class ResparkAttendanceService {
 				tenantStoreDTO.setTimestampOfLastAttendanceRetrieval(storeDetails.getTimestampOfLastAttendanceRetrieval());
 				tenantStoreDTO.setRecentSummaryCalculatedMonth(storeDetails.getRecentSummaryCalculatedMonth());
 				tenantStoreDTO.setRetrieveAttendanceWithOtherStores(storeDetails.getRetrieveAttendanceWithOtherStores());
+				tenantStoreDTO.setStoreOpenTime(storeDetails.getStoreOpenTime());
+				tenantStoreDTO.setStoreCloseTime(storeDetails.getStoreCloseTime());
+				tenantStoreDTO.setFinancialYearStartMonth(storeDetails.getFinancialYearStartMonth());
+				tenantStoreDTO.setPayrollLockedUpToDate(storeDetails.getPayrollLockedUpToDate());
 				tenantStoreDTO.setPenaltyAbsentDays(storeDetails.getTenantCompanyMapping().getPenaltyAbsentDays());
 				tenantStoreDTO.setIsPaidLeaveApplicable(storeDetails.getTenantCompanyMapping().getIsPaidLeaveApplicable());
 

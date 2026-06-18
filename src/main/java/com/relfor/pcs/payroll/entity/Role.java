@@ -40,4 +40,7 @@ public class Role {
     
     @Column(name = "restriction_days")
     private Long restrictionDays;
+
+    @Column(name = "permissions", columnDefinition = "TEXT")
+    private String permissions;
 }

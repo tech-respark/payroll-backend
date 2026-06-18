@@ -7,7 +7,6 @@ import com.relfor.pcs.payroll.dto.SalaryComponentResponseDTO;
 import com.relfor.pcs.payroll.dto.SalaryComponentsDTO;
 import com.relfor.pcs.payroll.entity.*;
 import com.relfor.pcs.payroll.repository.*;
-import com.relfor.pcs.payroll.util.ApiHelper;
 import org.apache.commons.lang3.StringUtils;
 import org.mvel2.MVEL;
 import org.slf4j.Logger;
@@ -40,8 +39,6 @@ public class SalaryCalculation {
     private MonthWiseAttendanceSummaryRepository monthWiseAttendanceSummaryRepository;
     @Autowired
     PersonnelDetailsRepository personnelDetailsRepository;
-    @Autowired
-    ApiHelper apiHelper;
     @Autowired
     StoreDetailsRepository storeDetailsRepository;
     @Autowired
@@ -434,9 +431,8 @@ public class SalaryCalculation {
         } else if (!ObjectUtils.isEmpty(storeDetails)) {
             dto.setStoreId(storeDetails.getStoreId());
         }
-        if (!ObjectUtils.isEmpty(dto.getStoreId())) {
-            STenantStore store = apiHelper.getTenantStore(personnelDetails.getApplicationTenantId(), dto.getStoreId());
-            dto.setStoreName(store.getName());
+        if (!ObjectUtils.isEmpty(dto.getStoreId()) && storeDetails != null) {
+            dto.setStoreName(storeDetails.getStoreName());
         }
         dto.setPersonnelId(personnelDetails.getPersonnelCode());
         dto.setDesignation(personnelDetails.getDesignation());

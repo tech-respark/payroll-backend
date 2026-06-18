@@ -9,7 +9,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Optional;
+
+import com.relfor.pcs.payroll.security.CustomUserDetails;
+import com.relfor.pcs.payroll.security.CustomUserDetailsService;
+import com.relfor.pcs.payroll.security.JwtUtil;
 
 @RestController
 @RequestMapping("/payroll-management/v1")
@@ -17,6 +22,12 @@ public class AuthController {
 
     @Autowired
     private PersonnelDetailsRepository personnelDetailsRepository;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
@@ -40,8 +51,17 @@ public class AuthController {
             PersonnelDetails personnel = personnelOptional.get();
             // Validate password matching
             if (loginRequest.getPassword().equals(personnel.getPassword())) {
+                CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(personnel.getUsername());
+                
+                String token = jwtUtil.generateToken(userDetails);
+                List<String> roles = userDetails.getAuthorities().stream()
+                        .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                        .collect(java.util.stream.Collectors.toList());
+
                 response.setSuccess(true);
                 response.setMessage("Login successful.");
+                response.setToken(token);
+                response.setRoles(roles);
                 response.setPersonnelCode(personnel.getPersonnelCode());
                 response.setUsername(personnel.getUsername());
                 response.setFirstName(personnel.getFirstName());
@@ -50,7 +70,8 @@ public class AuthController {
                 response.setEmail(personnel.getEmail());
                 response.setStoreId(personnel.getStoreId());
                 response.setTenantId(personnel.getApplicationTenantId());
-                response.setActive(personnel.getActive());
+                response.setActive(personnel.getActive() != null ? personnel.getActive() : true);
+                
                 return ResponseEntity.ok(response);
             }
         }

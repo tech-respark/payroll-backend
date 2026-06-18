@@ -16,8 +16,8 @@ public interface TenantCompanyMappingRepository extends JpaRepository<TenantComp
 			"FROM tenant_company_mapping tcm \n" +
 			"JOIN store_details sd ON tcm.id = sd.tenant_company_mapping_id \n" +
 			"WHERE tcm.tenant_id = :tenantId \n" +
-			"AND sd.store_id = :storeId " +
-			"AND tcm.application_name = :applicationName ;", nativeQuery = true)
+			"AND (:storeId = 0 OR sd.store_id = :storeId) " +
+			"AND tcm.application_name = :applicationName LIMIT 1;", nativeQuery = true)
 	Optional<TenantStoreProjection> getTenantStoreMapping(Long tenantId, Long storeId, String applicationName);
 
 	Optional<TenantCompanyMapping> findByApplicationNameAndTenantId(String applicationName, Long tenantId);

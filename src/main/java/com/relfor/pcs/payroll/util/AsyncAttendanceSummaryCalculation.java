@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ObjectUtils;
@@ -39,14 +38,12 @@ public class AsyncAttendanceSummaryCalculation {
 	DayWiseAttendanceSummaryRepository dayWiseAttendanceSummaryRepository;
 	@PersistenceContext
 	private EntityManager entityManager;
-	@Autowired
-	private ApiHelper apiHelper;
 
 	@Async
 	@Transactional
-	public void asyncCalculateAttendanceSummaryForApprovalOrRejection(List<PersonnelAttendance> approvedOrRejectedPersonnelAttendanceList, Boolean isActualTimeBasedAttendance, HttpHeaders headers) {
+	public void asyncCalculateAttendanceSummaryForApprovalOrRejection(List<PersonnelAttendance> approvedOrRejectedPersonnelAttendanceList, Boolean isActualTimeBasedAttendance) {
 		try {
-			this.calculateAttendanceSummaryForApprovalOrRejection(approvedOrRejectedPersonnelAttendanceList, isActualTimeBasedAttendance, headers);
+			this.calculateAttendanceSummaryForApprovalOrRejection(approvedOrRejectedPersonnelAttendanceList, isActualTimeBasedAttendance);
 		} catch (Exception ex) {
 			logger.error("Exception inside async method calculateAttendanceSummaryForApproval: {}", ex.getMessage());
 		} finally {
@@ -54,16 +51,15 @@ public class AsyncAttendanceSummaryCalculation {
 		}
 	}
 
-	public void syncCalculateAttendanceSummaryForApprovalOrRejection(List<PersonnelAttendance> approvedOrRejectedPersonnelAttendanceList, Boolean isActualTimeBasedAttendance, HttpHeaders headers) {
+	public void syncCalculateAttendanceSummaryForApprovalOrRejection(List<PersonnelAttendance> approvedOrRejectedPersonnelAttendanceList, Boolean isActualTimeBasedAttendance) {
 		try {
-			this.calculateAttendanceSummaryForApprovalOrRejection(approvedOrRejectedPersonnelAttendanceList, isActualTimeBasedAttendance, headers);
+			this.calculateAttendanceSummaryForApprovalOrRejection(approvedOrRejectedPersonnelAttendanceList, isActualTimeBasedAttendance);
 		} catch (Exception ex) {
 			logger.error("Exception inside sync method calculateAttendanceSummaryForApproval: {}", ex.getMessage());
 		}
 	}
 
-	private void calculateAttendanceSummaryForApprovalOrRejection(List<PersonnelAttendance> approvedOrRejectedPersonnelAttendanceList, Boolean isActualTimeBasedAttendance, HttpHeaders headers) {
-		apiHelper.setHeaderInMDC(headers);
+	private void calculateAttendanceSummaryForApprovalOrRejection(List<PersonnelAttendance> approvedOrRejectedPersonnelAttendanceList, Boolean isActualTimeBasedAttendance) {
 		Long tenantId = approvedOrRejectedPersonnelAttendanceList.get(0).getTenantId();
 		Long storeId = approvedOrRejectedPersonnelAttendanceList.get(0).getStoreId();
 

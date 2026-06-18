@@ -7,5 +7,4 @@ import com.relfor.pcs.payroll.entity.DayWiseShiftsTiming;
 
 @Repository
 public interface DayWiseShiftsTimingRepository extends JpaRepository<DayWiseShiftsTiming, Long> {
-
 }

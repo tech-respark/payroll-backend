@@ -22,6 +22,9 @@ public class StoreDetails {
 	private Integer recentSummaryCalculatedMonth;
 	private String storeOpenTime;
 	private String storeCloseTime;
+	private Integer financialYearStartMonth;
+	private LocalDate payrollLockedUpToDate;
+	
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "tenant_company_mapping_id", referencedColumnName = "id")
 	private TenantCompanyMapping tenantCompanyMapping;
@@ -124,5 +127,21 @@ public class StoreDetails {
 
 	public void setStoreCloseTime(String storeCloseTime) {
 		this.storeCloseTime = storeCloseTime;
+	}
+
+	public Integer getFinancialYearStartMonth() {
+		return financialYearStartMonth;
+	}
+
+	public void setFinancialYearStartMonth(Integer financialYearStartMonth) {
+		this.financialYearStartMonth = financialYearStartMonth;
+	}
+
+	public LocalDate getPayrollLockedUpToDate() {
+		return payrollLockedUpToDate;
+	}
+
+	public void setPayrollLockedUpToDate(LocalDate payrollLockedUpToDate) {
+		this.payrollLockedUpToDate = payrollLockedUpToDate;
 	}
 }

@@ -35,6 +35,12 @@ public class ResparkAttendanceController {
 		return ResponseHandler.generateResponseModel(responseModel);
 	}
 
+	@PostMapping("/advancedInOutHistoryInformation")
+	public ResponseEntity<?> getAdvancedInOutHistoryInformation(@RequestBody InOutHistoryInputModel inOutHistoryInputModel){
+		ResponseModel responseModel = resparkInOutHistoryService.getAdvancedInOutHistoryInformation(inOutHistoryInputModel);
+		return ResponseHandler.generateResponseModel(responseModel);
+	}
+
 	@PostMapping("/regularizationRequests")
 	public ResponseEntity<?> getRegularizationRequests(@RequestBody InOutHistoryInputModel inOutHistoryInputModel){
 		ResponseModel responseModel = resparkAttendanceService.getRegularizationRequests(inOutHistoryInputModel);

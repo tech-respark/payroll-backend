@@ -18,6 +18,10 @@ public class TenantStoreDTO {
 	private Boolean retrieveAttendanceWithOtherStores;
 	private String penaltyAbsentDays;
 	private Boolean isPaidLeaveApplicable;
+	private String storeOpenTime;
+	private String storeCloseTime;
+	private Integer financialYearStartMonth;
+	private LocalDate payrollLockedUpToDate;
 
 	public Long getTenantId() {
 		return tenantId;
@@ -129,5 +133,37 @@ public class TenantStoreDTO {
 
 	public void setIsPaidLeaveApplicable(Boolean paidLeaveApplicable) {
 		isPaidLeaveApplicable = paidLeaveApplicable;
+	}
+
+	public String getStoreOpenTime() {
+		return storeOpenTime;
+	}
+
+	public void setStoreOpenTime(String storeOpenTime) {
+		this.storeOpenTime = storeOpenTime;
+	}
+
+	public String getStoreCloseTime() {
+		return storeCloseTime;
+	}
+
+	public void setStoreCloseTime(String storeCloseTime) {
+		this.storeCloseTime = storeCloseTime;
+	}
+
+	public Integer getFinancialYearStartMonth() {
+		return financialYearStartMonth;
+	}
+
+	public void setFinancialYearStartMonth(Integer financialYearStartMonth) {
+		this.financialYearStartMonth = financialYearStartMonth;
+	}
+
+	public LocalDate getPayrollLockedUpToDate() {
+		return payrollLockedUpToDate;
+	}
+
+	public void setPayrollLockedUpToDate(LocalDate payrollLockedUpToDate) {
+		this.payrollLockedUpToDate = payrollLockedUpToDate;
 	}
 }

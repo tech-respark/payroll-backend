@@ -6,7 +6,6 @@ import com.relfor.pcs.payroll.projection.MonthlySummaryCalculationProjection;
 import com.relfor.pcs.payroll.projection.PersonnelAttendanceSummaryProjection;
 import com.relfor.pcs.payroll.projection.TenantStoreProjection;
 import com.relfor.pcs.payroll.repository.*;
-import com.relfor.pcs.payroll.util.ApiHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +31,6 @@ public class AttendanceManagementService {
 	DayWiseAttendanceSummaryRepository dayWiseAttendanceSummaryRepository;
 	@Autowired
 	TenantCompanyMappingRepository tenantCompanyMappingRepository;
-	@Autowired
-	ApiHelper apiHelper;
 	@PersistenceContext
 	private EntityManager entityManager;
 	@Autowired

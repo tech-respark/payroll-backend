@@ -35,7 +35,9 @@ import com.relfor.pcs.payroll.dto.ShiftSlotDTO;
 import com.relfor.pcs.payroll.dto.StaffShiftDTO;
 import com.relfor.pcs.payroll.entity.*;
 import com.relfor.pcs.payroll.repository.*;
-import com.relfor.pcs.payroll.util.ApiHelper;
+import com.relfor.pcs.payroll.repository.StoreProfileConfigRepository;
+import com.relfor.pcs.payroll.entity.StoreProfileConfig;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 
 import org.slf4j.Logger;
@@ -60,14 +62,14 @@ public class StaffShiftsService {
 	StaffBreakTimeRepository staffBreakTimeRepo;
 	@Autowired
 	private SStaffShiftsRepository staffShiftsRepository;
+	// @Autowired
+	// ApiHelper apiHelper;
 	@Autowired
-	ApiHelper apiHelper;
+	StoreProfileConfigRepository storeProfileConfigRepository;
 	@Autowired
 	StaffBookedRepository staffBookedRepo;
 	@Autowired
 	SShiftsSlotsRepository shiftSlotRepo;
-	@Autowired
-	DayWiseShiftsTimingRepository dayWiseShiftsTimingRepo;
 	@Autowired
 	RosterSummaryService rosterSummaryService;
 	@Autowired
@@ -655,7 +657,7 @@ public class StaffShiftsService {
 	public String createStaffBookedShift(String startDate) throws ParseException {
 
 		try {
-			List<ShiftSlotDTO> slots = apiHelper.getStaffBookedSlots(startDate);
+			List<ShiftSlotDTO> slots = new ArrayList<>(); // apiHelper.getStaffBookedSlots(startDate);
 
 			List<StaffBookedSlots> staffList = new ArrayList<>();
 			if (!ObjectUtils.isEmpty(slots)) {
@@ -691,8 +693,8 @@ public class StaffShiftsService {
 			timeZone = "Asia/Kolkata";
 		}
 		try {
-			ConfigDTO configDTO = apiHelper.getConfigForPostOrder(tenantId, storeId, "defaultSlotTime");
-			int defaultSlotTime = (configDTO != null && configDTO.getDefaultSlotTime() != null && configDTO.getDefaultSlotTime() > 0) ? configDTO.getDefaultSlotTime() : 30;
+			Optional<StoreProfileConfig> configOpt = storeProfileConfigRepository.findByTenantIdAndStoreId(tenantId, storeId);
+			int defaultSlotTime = configOpt.map(StoreProfileConfig::getDefaultSlotTime).orElse(30);
 
 			List<StaffBreakTime> breaks = staffBreakTimeRepo.getStaffBreakTimeByStaffIdAndDate(staffId, startDate);
 			List<String> staffSlots = staffBookedRepo.findByAppointmentDateAndStaffId(startDate, staffId);
@@ -829,9 +831,19 @@ public class StaffShiftsService {
 		}
 		try {
 			logger.info("Generating slots for all active staffs on date: {} for storeId: {} and tenantId: {}", startDate, storeId, tenantId);
-			List<SStaff> staffList = apiHelper.getStaffsByTenantIdAndStoreId(tenantId, storeId);
-			ConfigDTO configDTO = apiHelper.getConfigForPostOrder(tenantId, storeId, "defaultSlotTime");
-			int defaultSlotTime = (configDTO != null && configDTO.getDefaultSlotTime() != null && configDTO.getDefaultSlotTime() > 0) ? configDTO.getDefaultSlotTime() : 30;
+			List<PersonnelDetails> pdList = personnelDetailsRepository.findByApplicationTenantIdAndStoreId(tenantId, storeId);
+			List<SStaff> staffList = pdList.stream().map(pd -> {
+				SStaff s = new SStaff();
+				s.setId(pd.getPersonnelCode());
+				s.setFirstName(pd.getFirstName());
+				s.setLastName(pd.getLastName());
+				s.setTenantId(pd.getApplicationTenantId());
+				s.setActive(pd.getActive() != null && pd.getActive() ? 1 : 0);
+				if (pd.getWeeklyOff() != null) s.setWeeklyOff(pd.getWeeklyOff().split(","));
+				return s;
+			}).collect(Collectors.toList());
+			Optional<StoreProfileConfig> configOpt = storeProfileConfigRepository.findByTenantIdAndStoreId(tenantId, storeId);
+			int defaultSlotTime = configOpt.map(StoreProfileConfig::getDefaultSlotTime).orElse(30);
 
 			staffList = staffList.stream().filter(staff -> staff.getActive() == 1).collect(Collectors.toList());
 			Map<String, LocalTime> storeTiming = getStoreTimingForDate(startDate, tenantId, storeId);
@@ -1070,7 +1082,8 @@ public class StaffShiftsService {
 			List<Object[]> list4 = nativeQuery4.getResultList();
 
 			// GET CONFIG FOR PRODUCTIVITY OF STYLIST
-			ConfigDTO configDTO = apiHelper.getConfigForPostOrder(tenantId, storeId, "stylistProductivity");
+			Optional<StoreProfileConfig> configOptStylist = storeProfileConfigRepository.findByTenantIdAndStoreId(tenantId, storeId);
+			boolean stylistProductivity = configOptStylist.map(StoreProfileConfig::getStylistProductivity).orElse(false);
 
 			double breakTimeTotal = 0;
 
@@ -1082,7 +1095,7 @@ public class StaffShiftsService {
 			inputPersonnelAttendanceModel.setApplicationName(BiometricApplicationNames.RESPARK.name());
 
 			List<PersonnelAttendanceModel> personnelAttendanceModelList = new ArrayList<>();
-			if (configDTO.getBiometric()) {
+			if (true) {
 				ResponseModel responseModel = attendanceManagementService.getPersonnelAttendanceSummary(inputPersonnelAttendanceModel);
 				if (!ObjectUtils.isEmpty(responseModel)
 						&& responseModel.getCode().is2xxSuccessful()
@@ -1267,7 +1280,7 @@ public class StaffShiftsService {
 					}
 
 					// CALCULATE PRODUCTIVITY OF STAFF
-					if (configDTO.isStylistProductivity()) {
+					if (stylistProductivity) {
 						double productiveTime = 0;
 						double productivity = 0;
 
@@ -1301,8 +1314,22 @@ public class StaffShiftsService {
 	}
 
 	private Map<String, LocalTime> getStoreTimingForDate(String startDate, long tenantId, long storeId) {
-		ConfigDTO configDTO = apiHelper.getConfigForPostOrder(tenantId, storeId, "dayWiseTimings");
-		List<Map<String, Object>> dayWiseTiming = configDTO.getDayWiseTiming();
+		List<SShiftsSlots> shiftSlotsList = shiftSlotRepo.findByTenantIdAndStoreId(tenantId, storeId);
+		List<DayWiseShiftsTiming> dayWiseTimingsList = new ArrayList<>();
+		if (shiftSlotsList != null && !shiftSlotsList.isEmpty()) {
+			SShiftsSlots activeSlot = shiftSlotsList.stream().filter(SShiftsSlots::isActive).findFirst().orElse(shiftSlotsList.get(0));
+			if (activeSlot.getDayWiseShiftsTiming() != null) {
+				dayWiseTimingsList.addAll(activeSlot.getDayWiseShiftsTiming());
+			}
+		}
+		List<Map<String, Object>> dayWiseTiming = new ArrayList<>();
+		for(DayWiseShiftsTiming timing : dayWiseTimingsList) {
+			Map<String, Object> map = new HashMap<>();
+			map.put("day", timing.getDay());
+			map.put("startTime", timing.getStartTime());
+			map.put("closureTime", timing.getClosureTime());
+			dayWiseTiming.add(map);
+		}
 		LocalDate date = LocalDate.parse(startDate);
 		String[] days = {"MON","TUE","WED","THU","FRI","SAT","SUN"};
 		//String dayShort = days[date.getDayOfWeek() - 1];
@@ -1459,7 +1486,8 @@ public class StaffShiftsService {
 			@SuppressWarnings("unchecked")
 			List<Object[]> list4 = nativeQuery4.getResultList();
 
-			ConfigDTO configDTO = apiHelper.getConfigForPostOrder(request.tenantId, request.storeId, "stylistProductivity");
+			Optional<StoreProfileConfig> configOptStylist = storeProfileConfigRepository.findByTenantIdAndStoreId(request.tenantId, request.storeId);
+			boolean stylistProductivity = configOptStylist.map(StoreProfileConfig::getStylistProductivity).orElse(false);
 			Map<String, String> breaktimeByStaffId = new HashMap<>();
 			Map<String, Double> totalBreaktimeHoursByStaffId = new HashMap<>();
 			if (list4 != null && !list4.isEmpty()) {
@@ -1481,7 +1509,7 @@ public class StaffShiftsService {
 			inputPersonnelAttendanceModel.setToDate(end);
 
 			List<PersonnelAttendanceModel> personnelAttendanceModelList = new ArrayList<>();
-			if (configDTO.getBiometric()) {
+			if (true) {
 				ResponseModel responseModel = attendanceManagementService.getPersonnelAttendanceSummary(inputPersonnelAttendanceModel);
 				if (!ObjectUtils.isEmpty(responseModel)
 						&& responseModel.getCode().is2xxSuccessful()
