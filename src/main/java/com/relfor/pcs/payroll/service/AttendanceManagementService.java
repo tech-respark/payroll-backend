@@ -46,19 +46,22 @@ public class AttendanceManagementService {
 	public ResponseModel enrollPersonnelForAttendanceManagement(StaffDTO staffDTO) {
 		ResponseModel responseModel = new ResponseModel();
 		try {
-			if (staffDTO.getId() == 0) {
-				staffDTO.setId(System.currentTimeMillis());
-			}
-			if (staffDTO.getId() != 0) {
+			PersonnelDetails personnelDetails;
+			
+			if (staffDTO.getId() != null && staffDTO.getId() != 0) {
 				Optional<PersonnelDetails> personnelDetailsOptional = personnelDetailsRepository
-						.findByPersonnelCodeAndApplicationName(staffDTO.getId(), staffDTO.getApplicationName());
-				PersonnelDetails personnelDetails = personnelDetailsOptional.orElseGet(PersonnelDetails::new);
-				this.convertToPersonnelDetails(staffDTO, personnelDetails);
-				personnelDetails.setActive(safeGetActive(staffDTO) == 1);
-				personnelDetailsRepository.save(personnelDetails);
-				this.convertToStaffDTO(personnelDetails, staffDTO);
-				responseModel.setData(staffDTO);
+						.findByIdAndApplicationName(staffDTO.getId(), staffDTO.getApplicationName());
+				personnelDetails = personnelDetailsOptional.orElseGet(PersonnelDetails::new);
+			} else {
+				personnelDetails = new PersonnelDetails();
 			}
+
+			this.convertToPersonnelDetails(staffDTO, personnelDetails);
+			personnelDetails.setActive(safeGetActive(staffDTO) == 1);
+			personnelDetails = personnelDetailsRepository.save(personnelDetails);
+
+			this.convertToStaffDTO(personnelDetails, staffDTO);
+			responseModel.setData(staffDTO);
 			responseModel.setCode(HttpStatus.OK);
 			responseModel.setMessage(SUCCESS);
 		} catch (Exception ex) {
@@ -93,7 +96,7 @@ public class AttendanceManagementService {
 	}
 
 	private PersonnelDetails convertToPersonnelDetails(StaffDTO staffDTO, PersonnelDetails personnelDetails) {
-		personnelDetails.setPersonnelCode(staffDTO.getId());
+		personnelDetails.setId(staffDTO.getId());
 		personnelDetails.setFirstName(staffDTO.getFirstName());
 		personnelDetails.setLastName(staffDTO.getLastName());
 		personnelDetails.setGender(staffDTO.getGender());
@@ -180,7 +183,7 @@ public class AttendanceManagementService {
 	}
 
 	private void convertToStaffDTO(PersonnelDetails personnelDetails, StaffDTO staffDTO) {
-		staffDTO.setId(personnelDetails.getPersonnelCode());
+		staffDTO.setId(personnelDetails.getId());
 		staffDTO.setFirstName(personnelDetails.getFirstName());
 		staffDTO.setLastName(personnelDetails.getLastName());
 		staffDTO.setGender(personnelDetails.getGender());
@@ -245,8 +248,8 @@ public class AttendanceManagementService {
 		staffDTO.setIsSyncedWithBiometricDevice(personnelDetails.getTenantCompanyMappingId() != null);
 	}
 
-	private PersonnelBankAccountDetails convertToBankAccountDetailsEntity(PersonnelBankAccountDetailsDTO dto, Long personnelCode, PersonnelBankAccountDetails personnelBankAccountDetails) {
-		personnelBankAccountDetails.setPersonnelCode(personnelCode);
+	private PersonnelBankAccountDetails convertToBankAccountDetailsEntity(PersonnelBankAccountDetailsDTO dto, Long personnelId, PersonnelBankAccountDetails personnelBankAccountDetails) {
+		personnelBankAccountDetails.setPersonnelId(personnelId);
 		personnelBankAccountDetails.setBankName(dto.getBankName());
 		personnelBankAccountDetails.setBankBranch(dto.getBankBranch());
 		personnelBankAccountDetails.setIfscCode(dto.getIfscCode());
@@ -255,10 +258,10 @@ public class AttendanceManagementService {
 		return personnelBankAccountDetails;
 	}
 
-	private PersonnelWorkExperienceDetails convertToWorkExperienceDetailsEntity(PersonnelWorkExperienceDetailsDTO dto, Long personnelCode) {
+	private PersonnelWorkExperienceDetails convertToWorkExperienceDetailsEntity(PersonnelWorkExperienceDetailsDTO dto, Long personnelId) {
 		PersonnelWorkExperienceDetails personnelWorkExperienceDetails = new PersonnelWorkExperienceDetails();
 		personnelWorkExperienceDetails.setId(dto.getId());
-		personnelWorkExperienceDetails.setPersonnelCode(personnelCode);
+		personnelWorkExperienceDetails.setPersonnelId(personnelId);
 		personnelWorkExperienceDetails.setDesignation(dto.getDesignation());
 		personnelWorkExperienceDetails.setCompanyName(dto.getCompanyName());
 		personnelWorkExperienceDetails.setFromDate(dto.getFromDate());
@@ -267,10 +270,10 @@ public class AttendanceManagementService {
 		return personnelWorkExperienceDetails;
 	}
 
-	private PersonnelEmergencyContactDetails convertToEmergencyContactsEntity(PersonnelEmergencyContactsDTO dto, Long personnelCode) {
+	private PersonnelEmergencyContactDetails convertToEmergencyContactsEntity(PersonnelEmergencyContactsDTO dto, Long personnelId) {
 		PersonnelEmergencyContactDetails personnelEmergencyContactDetails = new PersonnelEmergencyContactDetails();
 		personnelEmergencyContactDetails.setId(dto.getId());
-		personnelEmergencyContactDetails.setPersonnelCode(personnelCode);
+		personnelEmergencyContactDetails.setPersonnelId(personnelId);
 		personnelEmergencyContactDetails.setContactPersonName(dto.getContactPersonName());
 		personnelEmergencyContactDetails.setContactPersonMobile(dto.getContactPersonMobile());
 		personnelEmergencyContactDetails.setRelation(dto.getRelation());
@@ -278,10 +281,10 @@ public class AttendanceManagementService {
 		return personnelEmergencyContactDetails;
 	}
 
-	private PersonnelDocumentDetails convertToDocumentDetailsEntity(PersonnelDocumentDetailsDTO dto, Long personnelCode) {
+	private PersonnelDocumentDetails convertToDocumentDetailsEntity(PersonnelDocumentDetailsDTO dto, Long personnelId) {
 		PersonnelDocumentDetails personnelDocumentDetails = new PersonnelDocumentDetails();
 		personnelDocumentDetails.setId(dto.getId());
-		personnelDocumentDetails.setPersonnelCode(personnelCode);
+		personnelDocumentDetails.setPersonnelId(personnelId);
 		personnelDocumentDetails.setDocumentName(dto.getDocumentName());
 		personnelDocumentDetails.setDocumentNumber(dto.getDocumentNumber());
 
@@ -291,7 +294,7 @@ public class AttendanceManagementService {
 	private PersonnelBankAccountDetailsDTO convertToBankAccountDetailsDTO(PersonnelBankAccountDetails personnelBankAccountDetails) {
 		PersonnelBankAccountDetailsDTO dto = new PersonnelBankAccountDetailsDTO();
 		dto.setId(personnelBankAccountDetails.getId());
-		dto.setPersonnelCode(personnelBankAccountDetails.getPersonnelCode());
+		dto.setPersonnelId(personnelBankAccountDetails.getPersonnelId());
 		dto.setBankName(personnelBankAccountDetails.getBankName());
 		dto.setBankBranch(personnelBankAccountDetails.getBankBranch());
 		dto.setIfscCode(personnelBankAccountDetails.getIfscCode());
@@ -303,7 +306,7 @@ public class AttendanceManagementService {
 	private PersonnelWorkExperienceDetailsDTO convertToWorkExperienceDetailsDTO(PersonnelWorkExperienceDetails personnelWorkExperienceDetails) {
 		PersonnelWorkExperienceDetailsDTO dto = new PersonnelWorkExperienceDetailsDTO();
 		dto.setId(personnelWorkExperienceDetails.getId());
-		dto.setPersonnelCode(personnelWorkExperienceDetails.getPersonnelCode());
+		dto.setPersonnelId(personnelWorkExperienceDetails.getPersonnelId());
 		dto.setDesignation(personnelWorkExperienceDetails.getDesignation());
 		dto.setCompanyName(personnelWorkExperienceDetails.getCompanyName());
 		dto.setFromDate(personnelWorkExperienceDetails.getFromDate());
@@ -315,7 +318,7 @@ public class AttendanceManagementService {
 	private PersonnelEmergencyContactsDTO convertToEmergencyContactsDTO(PersonnelEmergencyContactDetails personnelEmergencyContactDetails) {
 		PersonnelEmergencyContactsDTO dto = new PersonnelEmergencyContactsDTO();
 		dto.setId(personnelEmergencyContactDetails.getId());
-		dto.setPersonnelCode(personnelEmergencyContactDetails.getPersonnelCode());
+		dto.setPersonnelId(personnelEmergencyContactDetails.getPersonnelId());
 		dto.setContactPersonName(personnelEmergencyContactDetails.getContactPersonName());
 		dto.setContactPersonMobile(personnelEmergencyContactDetails.getContactPersonMobile());
 		dto.setRelation(personnelEmergencyContactDetails.getRelation());
@@ -326,7 +329,7 @@ public class AttendanceManagementService {
 	private PersonnelDocumentDetailsDTO convertToDocumentDetailsDTO(PersonnelDocumentDetails personnelDocumentDetails) {
 		PersonnelDocumentDetailsDTO dto = new PersonnelDocumentDetailsDTO();
 		dto.setId(personnelDocumentDetails.getId());
-		dto.setPersonnelCode(personnelDocumentDetails.getPersonnelCode());
+		dto.setPersonnelId(personnelDocumentDetails.getPersonnelId());
 		dto.setDocumentName(personnelDocumentDetails.getDocumentName());
 		dto.setDocumentNumber(personnelDocumentDetails.getDocumentNumber());
 
@@ -354,7 +357,7 @@ public class AttendanceManagementService {
 							isActualTimeBasedAttendance);
 			if (!personnelAttendanceSummaryProjectionList.isEmpty()) {
 				Map<Long, List<PersonnelAttendanceSummaryProjection>> personnelWiseAttendance = personnelAttendanceSummaryProjectionList.stream()
-						.collect(Collectors.groupingBy(PersonnelAttendanceSummaryProjection::getPersonnelCode));
+						.collect(Collectors.groupingBy(PersonnelAttendanceSummaryProjection::getPersonnelId));
 				for (Map.Entry<Long, List<PersonnelAttendanceSummaryProjection>> personnelWiseAttendanceEntry : personnelWiseAttendance.entrySet()) {
 					PersonnelAttendanceModel outputPersonnelAttendanceModel =
 							this.buildPersonnelAttendanceModel(inputPersonnelAttendanceModel, personnelWiseAttendanceEntry);
@@ -384,7 +387,7 @@ public class AttendanceManagementService {
 		model.setApplicationName(inputPersonnelAttendanceModel.getApplicationName());
 		model.setFromDate(inputPersonnelAttendanceModel.getFromDate());
 		model.setToDate(inputPersonnelAttendanceModel.getToDate());
-		model.setPersonnelCode(personnelWiseAttendanceEntry.getKey());
+		model.setPersonnelId(personnelWiseAttendanceEntry.getKey());
 
 		List<PersonnelAttendanceSummaryProjection> individualPersonnelAttendanceList = personnelWiseAttendanceEntry.getValue();
 		if (!individualPersonnelAttendanceList.isEmpty()) {
@@ -430,12 +433,12 @@ public class AttendanceManagementService {
 				.reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 
-	public ResponseModel getPersonnelDetailsForListOfPersonnelCodes(List<Long> personnelCodes) {
+	public ResponseModel getPersonnelDetailsForListOfPersonnelIds(List<Long> personnelIds) {
 		ResponseModel responseModel = new ResponseModel();
 		try {
-			logger.info("Inside getPersonnelDetailsForListOfPersonnelCodes for {} staffIds", personnelCodes.size());
+			logger.info("Inside getPersonnelDetailsForListOfPersonnelIds for {} staffIds", personnelIds.size());
 			List<PersonnelDetails> personnelDetailsList = personnelDetailsRepository
-					.getPersonnelByPersonnelCode(personnelCodes);
+					.getPersonnelById(personnelIds);
 
 			if (!personnelDetailsList.isEmpty()) {
 				List<StaffDTO> staffDTOList = new ArrayList<>();
@@ -452,7 +455,7 @@ public class AttendanceManagementService {
 				responseModel.setCode(HttpStatus.NOT_FOUND);
 			}
 		} catch (Exception ex) {
-			logger.error("Exception inside getPersonnelDetailsForListOfPersonnelCodes");
+			logger.error("Exception inside getPersonnelDetailsForListOfPersonnelIds");
 			throw ex;
 		}
 		return responseModel;
@@ -466,7 +469,7 @@ public class AttendanceManagementService {
 		personnelDetailsRequestModel.setGender(personnelDetail.getGender());
 		personnelDetailsRequestModel.setApplicationTenantId(personnelDetail.getApplicationTenantId());
 		personnelDetailsRequestModel.setApplicationName(personnelDetail.getApplicationName());
-		personnelDetailsRequestModel.setPersonnelCode(personnelDetail.getPersonnelCode());
+		personnelDetailsRequestModel.setPersonnelId(personnelDetail.getId());
 		personnelDetailsRequestModel.setPersonnelMobileNumber(personnelDetail.getPersonnelMobileNumber());
 		personnelDetailsRequestModel.setActive(personnelDetail.getActive() != null ? personnelDetail.getActive() : false);
 		return personnelDetailsRequestModel;
@@ -586,7 +589,7 @@ public class AttendanceManagementService {
 		monthWiseAttendanceSummary.setApplicationName(applicationName);
 		monthWiseAttendanceSummary.setTenantId(tenantId);
 		monthWiseAttendanceSummary.setStoreId(storeId);
-		monthWiseAttendanceSummary.setPersonnelCode(summary.getPersonnelCode());
+		monthWiseAttendanceSummary.setPersonnelId(summary.getPersonnelId());
 		monthWiseAttendanceSummary.setSalaryCycleFromDate(fromDate);
 		monthWiseAttendanceSummary.setSalaryCycleToDate(toDate);
 		monthWiseAttendanceSummary.setSalaryMonth(fromDate.getMonth().name());
@@ -612,7 +615,7 @@ public class AttendanceManagementService {
 		try {
 			if (staffDTO.getId() != 0) {
 				Optional<PersonnelDetails> personnelDetailsOptional = personnelDetailsRepository
-						.findByPersonnelCodeAndApplicationName(staffDTO.getId(), staffDTO.getApplicationName());
+						.findByIdAndApplicationName(staffDTO.getId(), staffDTO.getApplicationName());
 				if (personnelDetailsOptional.isPresent()) {
 					PersonnelDetails personnelDetails = personnelDetailsOptional.get();
 					personnelDetails.setPassword(staffDTO.getPwd());

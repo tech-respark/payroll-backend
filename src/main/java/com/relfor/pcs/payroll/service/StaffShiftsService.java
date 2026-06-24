@@ -124,6 +124,29 @@ public class StaffShiftsService {
 				dayMap.put("Saturday", "SAT");
 
 				boolean deleteBreakTimeOrphans = false;
+
+				// BULK FETCHING TO FIX N+1 QUERIES
+				List<Long> allStaffIds = createStaffShiftInput.getStaffShiftsList().stream()
+						.map(SStaffShifts::getStaffId).collect(Collectors.toList());
+
+				List<SStaffShifts> allExistingShiftsList = new ArrayList<>();
+				Map<Long, List<SStaffShifts>> existingShiftsMap = new HashMap<>();
+				if (!allStaffIds.isEmpty()) {
+					allExistingShiftsList = staffShiftsRepository.findByTenantIdAndStoreIdAndStaffIdInAndShiftDate(
+							createStaffShiftInput.getTenantId(), createStaffShiftInput.getStoreId(),
+							allStaffIds, createStaffShiftInput.getStartDate(), endDate.format(formatter));
+					existingShiftsMap = allExistingShiftsList.stream()
+							.collect(Collectors.groupingBy(SStaffShifts::getStaffId));
+				}
+
+				List<PersonnelDetails> allPersonnelDetailsList = new ArrayList<>();
+				Map<Long, PersonnelDetails> personnelMap = new HashMap<>();
+				if (!allStaffIds.isEmpty()) {
+					allPersonnelDetailsList = personnelDetailsRepository.getPersonnelById(allStaffIds);
+					personnelMap = allPersonnelDetailsList.stream()
+							.collect(Collectors.toMap(PersonnelDetails::getId, p -> p));
+				}
+
 				// THIS LOOP RUN TO COVER EVERY STAFF
 				for (SStaffShifts staffShift : createStaffShiftInput.getStaffShiftsList()) {
 					List<StaffBreakTime> incomingStaffBreakTimeList = staffShift.getStaffBreakTime();
@@ -134,14 +157,11 @@ public class StaffShiftsService {
 						}
 					}
 					List<String> weekOff = new ArrayList<>();
-					List<SStaffShifts> existingStaffShiftList = staffShiftsRepository
-							.findByTenantIdAndStoreIdAndStaffIdAndShiftDate(createStaffShiftInput.getTenantId(),
-									createStaffShiftInput.getStoreId(), staffShift.getStaffId(),
-									createStaffShiftInput.getStartDate(), endDate.format(formatter));
-//					SStaff staff = apiHelper.getStaffById(staffShift.getStaffId());
-					Optional<PersonnelDetails> personnelDetailsOptional = personnelDetailsRepository.findByPersonnelCode(staffShift.getStaffId());
-					if (personnelDetailsOptional.isPresent() && !StringUtils.isEmpty(personnelDetailsOptional.get().getWeeklyOff())) {
-						weekOff = new ArrayList<>(Arrays.asList(personnelDetailsOptional.get().getWeeklyOff().split(",")));
+					List<SStaffShifts> existingStaffShiftList = existingShiftsMap.getOrDefault(staffShift.getStaffId(), new ArrayList<>());
+					PersonnelDetails personnelDetails = personnelMap.get(staffShift.getStaffId());
+					
+					if (personnelDetails != null && !StringUtils.isEmpty(personnelDetails.getWeeklyOff())) {
+						weekOff = new ArrayList<>(Arrays.asList(personnelDetails.getWeeklyOff().split(",")));
 					}
 					// UPDATE EXISTING STAFF-SHIFT DETAILS
 					boolean isThatDay = true;
@@ -289,8 +309,8 @@ public class StaffShiftsService {
 
 								newStaffDetail.setEarlyOutTime(staffShift.getEarlyOutTime());
 
-								if (personnelDetailsOptional.isPresent() && !StringUtils.isEmpty(personnelDetailsOptional.get().getWeeklyOff())) {
-									weekOff = new ArrayList<>(Arrays.asList(personnelDetailsOptional.get().getWeeklyOff().split(",")));
+								if (personnelDetails != null && !StringUtils.isEmpty(personnelDetails.getWeeklyOff())) {
+									weekOff = new ArrayList<>(Arrays.asList(personnelDetails.getWeeklyOff().split(",")));
 									for (String weekDay : weekOff) {
 										if (weekDay.equalsIgnoreCase(staffShift.getDay())) {
 											isPaylodeContainsWeekOff = true;
@@ -834,7 +854,7 @@ public class StaffShiftsService {
 			List<PersonnelDetails> pdList = personnelDetailsRepository.findByApplicationTenantIdAndStoreId(tenantId, storeId);
 			List<SStaff> staffList = pdList.stream().map(pd -> {
 				SStaff s = new SStaff();
-				s.setId(pd.getPersonnelCode());
+				s.setId(pd.getId());
 				s.setFirstName(pd.getFirstName());
 				s.setLastName(pd.getLastName());
 				s.setTenantId(pd.getApplicationTenantId());
@@ -977,7 +997,7 @@ public class StaffShiftsService {
 			long tenantId = Long.parseLong(staff.get("tenantId").toString());
 			long storeId = Long.parseLong(staff.get("storeId").toString());
 			Optional<PersonnelDetails> personnelDetailsOptional = personnelDetailsRepository
-					.findByPersonnelCodeAndApplicationName(id, BiometricApplicationNames.RESPARK.name());
+					.findByIdAndApplicationName(id, BiometricApplicationNames.RESPARK.name());
 
 			if(personnelDetailsOptional.isPresent()){
 				java.time.LocalDate shiftDate = java.time.LocalDate.now();
@@ -1028,29 +1048,29 @@ public class StaffShiftsService {
 		List<Map<String, Object>> tmp = new ArrayList<Map<String, Object>>();
 		ObjectMapper objectMapper = new ObjectMapper();
 		try {
-			String query = "select s.personnel_code, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
+			String query = "select s.personnel_id, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
 					"ROUND((TIMEDIFF(SUBSTRING(ss.slot, 7, 11), SUBSTRING(ss.slot, 1, 5)))/10000,2) AS hours, ss.shift_date as shiftDate " +
-					"from personnel_details s join staff_shifts ss on s.personnel_code = ss.staff_id " +
+					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
 					"where ss.tenant_id = " + tenantId +
 					" and ss.store_id = " + storeId +
 					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "'";
 
-			String query1 = "select s.personnel_code, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
+			String query1 = "select s.personnel_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
 					"CONCAT(FLOOR((sum(productive_minutes))/60), '.', LPAD(MOD((sum(productive_minutes)), 60), 2, '0')) as productiveMinutes " +
-					"from personnel_details s join staff_shifts ss on s.personnel_code = ss.staff_id " +
+					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
 					"where ss.tenant_id = " + tenantId +
 					" and ss.store_id = " + storeId +
 					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "' group by ss.staff_id";
 
-			String query2 = "select s.personnel_code, round(sum(timediff(substring(ss.slot,7,11),substring(ss.slot,1,5)))/10000,2) as total_hours, ss.slot " +
-					"from personnel_details s join staff_shifts ss on s.personnel_code = ss.staff_id " +
+			String query2 = "select s.personnel_id, round(sum(timediff(substring(ss.slot,7,11),substring(ss.slot,1,5)))/10000,2) as total_hours, ss.slot " +
+					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
 					"where ss.tenant_id = " + tenantId +
 					" and ss.store_id = " + storeId +
 					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "' " +
 					"and ss.on_leave = 0 and ss.weekly_off = 0 group by ss.staff_id";
 
-			String query3 = "select s.personnel_code, count(ss.on_leave) as leaves " +
-					"from personnel_details s join staff_shifts ss on s.personnel_code = ss.staff_id " +
+			String query3 = "select s.personnel_id, count(ss.on_leave) as leaves " +
+					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
 					"where ss.tenant_id = " + tenantId +
 					" and ss.store_id = " + storeId +
 					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "' and ss.on_leave = 1 group by ss.staff_id";
@@ -1122,7 +1142,7 @@ public class StaffShiftsService {
 
 					PersonnelAttendanceModel personnelAttendanceModel = null;
 					if (!personnelAttendanceModelList.isEmpty()) {
-						Optional<PersonnelAttendanceModel> personnelAttendanceModelOptional = personnelAttendanceModelList.stream().filter(item -> StringUtils.equalsIgnoreCase(String.valueOf(r[0]), String.valueOf(item.getPersonnelCode()))).findFirst();
+						Optional<PersonnelAttendanceModel> personnelAttendanceModelOptional = personnelAttendanceModelList.stream().filter(item -> StringUtils.equalsIgnoreCase(String.valueOf(r[0]), String.valueOf(item.getPersonnelId()))).findFirst();
 						if (personnelAttendanceModelOptional.isPresent()) {
 							personnelAttendanceModel = personnelAttendanceModelOptional.get();
 						}
@@ -1427,29 +1447,29 @@ public class StaffShiftsService {
 			java.sql.Date fromSql = java.sql.Date.valueOf(start);
 			java.sql.Date toSql = java.sql.Date.valueOf(end);
 
-			String query = "select s.personnel_code, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
+			String query = "select s.personnel_id, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
 					"ROUND((TIMEDIFF(SUBSTRING(ss.slot, 7, 11), SUBSTRING(ss.slot, 1, 5)))/10000,2) AS hours, ss.shift_date as shiftDate " +
-					"from personnel_details s join staff_shifts ss on s.personnel_code = ss.staff_id " +
+					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate";
 
-			String query1 = "select s.personnel_code, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
+			String query1 = "select s.personnel_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
 					"CONCAT(FLOOR((sum(productive_minutes))/60), '.', LPAD(MOD((sum(productive_minutes)), 60), 2, '0')) as productiveMinutes " +
-					"from personnel_details s join staff_shifts ss on s.personnel_code = ss.staff_id " +
+					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate group by ss.staff_id";
 
-			String query2 = "select s.personnel_code, round(sum(timediff(substring(ss.slot,7,11),substring(ss.slot,1,5)))/10000,2) as total_hours, ss.slot " +
-					"from personnel_details s join staff_shifts ss on s.personnel_code = ss.staff_id " +
+			String query2 = "select s.personnel_id, round(sum(timediff(substring(ss.slot,7,11),substring(ss.slot,1,5)))/10000,2) as total_hours, ss.slot " +
+					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate " +
 					"and ss.on_leave = 0 and ss.weekly_off = 0 group by ss.staff_id";
 
-			String query3 = "select s.personnel_code, count(ss.on_leave) as leaves " +
-					"from personnel_details s join staff_shifts ss on s.personnel_code = ss.staff_id " +
+			String query3 = "select s.personnel_id, count(ss.on_leave) as leaves " +
+					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate and ss.on_leave = 1 group by ss.staff_id";
@@ -1534,7 +1554,7 @@ public class StaffShiftsService {
 					PersonnelAttendanceModel personnelAttendanceModel = null;
 					if (!personnelAttendanceModelList.isEmpty()) {
 						Optional<PersonnelAttendanceModel> personnelAttendanceModelOptional = personnelAttendanceModelList.stream()
-								.filter(item -> StringUtils.equalsIgnoreCase(String.valueOf(r[0]), String.valueOf(item.getPersonnelCode())))
+								.filter(item -> StringUtils.equalsIgnoreCase(String.valueOf(r[0]), String.valueOf(item.getPersonnelId())))
 								.findFirst();
 						if (personnelAttendanceModelOptional.isPresent()) {
 							personnelAttendanceModel = personnelAttendanceModelOptional.get();

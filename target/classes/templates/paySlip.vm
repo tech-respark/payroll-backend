@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Payslip - $!salaryMonth $!salaryYear</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .top {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 24px;
+        }
+
+        #logo img {
+          width: 100px;
+          height: 100px;
+          border: 2px solid #ccc;
+        }
+
+        #address {
+          font-size: 16px;
+          color: #333;
+          font-weight: 500;
+          text-align: right;
+        }
+        .payslip-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        .header-table .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #d63384; /* GlamOn Pink, adjust as needed */
+            vertical-align: middle;
+        }
+        .header-table .address {
+            text-align: right;
+            font-size: 12px;
+            color: #555;
+            vertical-align: middle;
+            line-height: 1.4;
+        }
+        .payslip-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+        .details-table td {
+            padding: 6px 4px;
+            vertical-align: top;
+        }
+        .details-table .label {
+            font-weight: normal; /* Image uses normal weight for labels */
+            color: #333;
+            width: 16%;
+        }
+        .details-table .value {
+            color: #555;
+            width: 34%;
+        }
+        .details-table .label-right {
+            font-weight: normal;
+            color: #333;
+            width: 20%;
+        }
+        .details-table .value-right {
+            color: #555;
+            width: 30%;
+        }
+
+        .earnings-deductions-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 12px;
+            border: 1px solid #ccc;
+        }
+        .earnings-deductions-table th {
+            color: black;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #ccc;
+        }
+        .earnings-deductions-table td {
+            padding: 8px;
+            border: 1px solid #eee;
+            vertical-align: top;
+        }
+        .earnings-deductions-table .item-name {
+            color: #333;
+        }
+        .earnings-deductions-table .amount {
+            text-align: right;
+            color: #555;
+        }
+        .earnings-deductions-table .total-label {
+            font-weight: bold;
+            color: #333;
+        }
+        .earnings-deductions-table .total-amount {
+            font-weight: bold;
+            text-align: right;
+            color: #333;
+        }
+        .net-salary-bar {
+            color: black;
+            padding: 12px;
+            text-align: left; /* Image shows left alignment for text */
+            font-weight: bold;
+            font-size: 14px; /* Slightly larger */
+            margin-top: 20px;
+        }
+        .net-salary-bar .amount-in-words {
+            font-size: 12px;
+            font-weight: normal;
+        }
+    </style>
+</head>
+<body>
+    <div class="payslip-container">
+
+        <div class="payslip-title">
+            $billInvoice
+        </div>
+
+        <div class = "top">
+            <div id= "logo">
+                <img width="100" height="100" src="$logo" />
+            </div>
+            <div id="address">
+              Address: $address
+            </div>
+        </div>
+        <hr>
+        <table class="details-table">
+            <tr>
+                <td class="label">Employee Name</td>
+                <td class="value">: $!personnelName</td>
+                <td class="label-right">Salary Date</td>
+                <td class="value-right">: $!salaryDate</td>
+            </tr>
+            <tr>
+                <td class="label">Employee Code</td>
+                <td class="value">: $!employeeCode</td>
+                <td class="label-right">Salary Period</td>
+                <td class="value-right">: $!salaryPeriod</td>
+            </tr>
+            <tr>
+                <td class="label">Job Location</td>
+                <td class="value">: $!storeName</td>
+                <td class="label-right">Financial Year</td>
+                ## Please ensure $financialYear is in context, or hardcode/calculate as needed. Example: 2024-2025
+                <td class="value-right">: $!salaryYear </td>
+            </tr>
+            <tr>
+                <td class="label-right">Fixed Salary</td>
+                ## Assuming Fixed Salary is represented by Total Earning. Adjust if there's a specific variable.
+                <td class="value-right">: $!salaryAmount</td>
+                <td class="label-right">Total Days</td>
+                <td class="value-right">: $!totalDays</td>
+            </tr>
+
+            <tr>
+                <td class="label">Designation</td>
+                <td class="value">: $!designation</td>
+                <td class="label-right">Total Working Days</td>
+                <td class="value-right">: $!totalWorkingDays</td>
+            </tr>
+            <tr>
+                <td class="label">Bank</td>
+                <td class="value">: $!bankName</td>
+                <td class="label-right">Total Holidays</td>
+                <td class="value-right">: $!totalHolidays</td>
+            </tr>
+            <tr>
+                <td class="label">Account Number</td>
+                <td class="value">: $!accountNumber</td>
+                <td class="label-right">Absent days</td>
+                <td class="value-right">: $!absentDays</td>
+            </tr>
+            <tr>
+                <td class="label">IFSC Code</td>
+                <td class="value">: $!IfscCode</td>
+                 <td class="label-right">Total Paid Days</td>
+                 <td class="value-right">: $!totalPaidDays</td>
+            </tr>
+            <tr>
+                <td class="label">PAN Number</td>
+                <td class="value">: $!panNo</td>
+                #if($totalPaidLeaves && $totalPaidLeaves != 0)
+                                    <td class="label-right">Paid Leaves</td>
+                                    <td class="value-right">: $!totalPaidLeaves</td>
+                #end
+            </tr>
+            <tr>
+                <td class="label">UAN Number</td>
+                <td class="value">: $!uanNumber</td>
+            </tr>
+        </table>
+
+        #if($earnings)
+            #set($earningKeys = $earnings.keySet().toArray())
+	    #else
+            #set($earningKeys = [])
+        #end
+
+        #if($deductions)
+            #set($deductionKeys = $deductions.keySet().toArray())
+	    #else
+            #set($deductionKeys = [])
+        #end
+
+        #set ($earningSize = $earningKeys.size())
+        #set ($deductionSize = $deductionKeys.size())
+
+        #if ($earningSize > $deductionSize)
+            #set ($maxRows = $earningSize)
+        #else
+            #set ($maxRows = $deductionSize)
+        #end
+
+        #set ($loopEnd = $maxRows - 1)
+
+        <table class="earnings-deductions-table">
+            <thead>
+                <tr>
+                    <th style="width: 35%;">Pay & Allowances</th>
+                    <th style="width: 15%; text-align: right;">Amount (INR)</th>
+                    <th style="width: 35%;">Deductions</th>
+                    <th style="width: 15%; text-align: right;">Amount (INR)</th>
+                </tr>
+            </thead>
+            <tbody>
+                #if ($maxRows > 0)
+                    #set($loopEnd = $maxRows - 1)
+                    #foreach($i in [0..$loopEnd])
+                    <tr>
+                        #if($i < $earningSize)
+                            #set($earningName = $earningKeys[$i])
+                            <td class="item-name">$!earningName</td>
+                            <td class="amount">$!earnings.get($earningName)</td>
+                        #else
+                            <td> </td><td> </td>
+                        #end
+
+                        #if($i < $deductionSize)
+                            #set($deductionName = $deductionKeys[$i])
+                            <td class="item-name">$!deductionName</td>
+                            <td class="amount">$!deductions.get($deductionName)</td>
+                        #else
+                            <td> </td><td> </td>
+                        #end
+                    </tr>
+                    #end
+                #else ## Show at least one empty row if no earnings/deductions items
+                     <tr>
+                        <td> </td><td> </td>
+                        <td> </td><td> </td>
+                     </tr>
+                #end
+                <tr>
+                    <td class="total-label">Total Earnings</td>
+                    <td class="total-amount">$!totalEarning</td>
+                    <td class="total-label">Total Deductions</td>
+                    <td class="total-amount">$!totalDeduction</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="net-salary-bar">
+            Salary in words: $!salaryAmountInWords Rupees Only
+        </div>
+
+        <div style="text-align: center; font-size: 10px; color: #777; margin-top: 20px;">
+            This is a computer-generated payslip and does not require a signature.
+        </div>
+
+    </div>
+</body>
+</html>

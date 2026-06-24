@@ -7,6 +7,7 @@ com\relfor\pcs\payroll\repository\TenantCompanyMappingRepository.class
 com\relfor\pcs\payroll\controller\StoreSettingsController.class
 com\relfor\pcs\payroll\entity\PersonnelDocumentDetails.class
 com\relfor\pcs\payroll\config\RequestContext.class
+com\relfor\pcs\payroll\repository\RoleRepository.class
 com\relfor\pcs\payroll\entity\StaffBookedSlots.class
 com\relfor\pcs\payroll\model\AttendanceRegularizationInputModel.class
 com\relfor\pcs\payroll\dto\CreateStaffShiftInput.class
@@ -69,14 +70,17 @@ com\relfor\pcs\payroll\security\JwtAuthFilter.class
 com\relfor\pcs\payroll\util\ApiHelper$3.class
 com\relfor\pcs\payroll\repository\MonthWiseAttendanceSummaryRepository.class
 com\relfor\pcs\payroll\service\StaffShiftsService$1.class
+com\relfor\pcs\payroll\repository\StoreStaffRoleRepository.class
 com\relfor\pcs\payroll\util\ApiHelper.class
 com\relfor\pcs\payroll\repository\PayrollSchedulerInfoRepo.class
 com\relfor\pcs\payroll\controller\ResparkAttendanceController.class
+com\relfor\pcs\payroll\controller\RoleController.class
 com\relfor\pcs\payroll\PayrollManagementApplication.class
 com\relfor\pcs\payroll\controller\PayrollTriggerController.class
 com\relfor\pcs\payroll\scheduler\AttendanceSchedulerService.class
 com\relfor\pcs\payroll\dto\PersonnelWorkExperienceDetailsDTO.class
 com\relfor\pcs\payroll\model\InOutHistoryInputModel.class
+com\relfor\pcs\payroll\dto\RoleAssignRequest.class
 com\relfor\pcs\payroll\entity\PersonnelEmergencyContactDetails.class
 com\relfor\pcs\payroll\dto\PersonnelAttendanceModel.class
 com\relfor\pcs\payroll\dto\PersonnelBankAccountDetailsDTO.class
@@ -85,6 +89,7 @@ com\relfor\pcs\payroll\projection\PersonnelAttendanceProjectionForInOutHistory.c
 com\relfor\pcs\payroll\service\VelocityService.class
 com\relfor\pcs\payroll\service\AttendanceRetrievalRoutingService.class
 com\relfor\pcs\payroll\dto\StaffShiftDTO.class
+com\relfor\pcs\payroll\dto\RoleCreateRequest.class
 com\relfor\pcs\payroll\entity\TenantCompanyMapping.class
 com\relfor\pcs\payroll\dto\IndividualPunches.class
 com\relfor\pcs\payroll\repository\PersonnelSalaryComponentsRepository.class

@@ -7,6 +7,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class IndividualPunches {
 //	private Long personnelAttendanceRequestId;
 	private Long personnelAttendanceId;
@@ -22,7 +24,8 @@ public class IndividualPunches {
 	private Instant modifiedTimestamp;
 	private Long modifiedBy;
 	private Integer punchDateOffset;
-	private Long personnelCode;
+	@JsonAlias({"personnelCode", "personnelId"})
+	private Long personnelId;
 	private LocalDate attendanceDate;
 	private String uploadSource;
 	private String remark;
@@ -131,12 +134,12 @@ public class IndividualPunches {
 		this.attendanceDate = attendanceDate;
 	}
 
-	public Long getPersonnelCode() {
-		return personnelCode;
+	public Long getPersonnelId() {
+		return personnelId;
 	}
 
-	public void setPersonnelCode(Long personnelCode) {
-		this.personnelCode = personnelCode;
+	public void setPersonnelId(Long personnelId) {
+		this.personnelId = personnelId;
 	}
 
 	public String getRemark() {
@@ -169,7 +172,7 @@ public class IndividualPunches {
 				", modifiedTimestamp=" + modifiedTimestamp +
 				", modifiedBy=" + modifiedBy +
 				", punchDateOffset=" + punchDateOffset +
-				", personnelCode=" + personnelCode +
+				", personnelId=" + personnelId +
 				", attendanceDate=" + attendanceDate +
 				", uploadSource='" + uploadSource + '\'' +
 				", remark='" + remark + '\'' +

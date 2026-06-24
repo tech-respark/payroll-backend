@@ -7,13 +7,16 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class AttendanceRequestsDTO {
 //	private Long personnelAttendanceRequestId;
 	private Long personnelAttendanceId;
 	private Long tenantId;
 	private Long storeId;
 	private String applicationName;
-	private Long personnelCode;
+	@JsonAlias({"personnelCode", "personnelId"})
+	private Long personnelId;
 	private String personnelName;
 	private String personnelDesignation;
 	private String personnelGender;
@@ -111,12 +114,12 @@ public class AttendanceRequestsDTO {
 		this.attendanceDate = attendanceDate;
 	}
 
-	public Long getPersonnelCode() {
-		return personnelCode;
+	public Long getPersonnelId() {
+		return personnelId;
 	}
 
-	public void setPersonnelCode(Long personnelCode) {
-		this.personnelCode = personnelCode;
+	public void setPersonnelId(Long personnelId) {
+		this.personnelId = personnelId;
 	}
 
 	public String getApplicationName() {

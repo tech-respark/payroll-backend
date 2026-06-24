@@ -6,6 +6,7 @@ import com.relfor.pcs.payroll.entity.Role;
 import com.relfor.pcs.payroll.entity.StoreStaffRole;
 import com.relfor.pcs.payroll.repository.RoleRepository;
 import com.relfor.pcs.payroll.repository.StoreStaffRoleRepository;
+import com.relfor.pcs.payroll.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -31,6 +32,8 @@ public class RoleController {
 
     @GetMapping("/permissions/modules")
     public ResponseEntity<Map<String, Object>> getModules(@RequestParam Long tenantId, @RequestParam Long storeId) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
         List<com.relfor.pcs.payroll.entity.AccessModule> modules = accessModuleRepository.findByTenantIdAndStoreId(tenantId, storeId);
         if (modules.isEmpty() && (tenantId != 0 || storeId != 0)) {
             modules = accessModuleRepository.findByTenantIdAndStoreId(0L, 0L);
@@ -43,6 +46,7 @@ public class RoleController {
 
     @GetMapping
     public ResponseEntity<Map<String, Object>> getAllRoles(@RequestParam Long tenantId) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
         List<Role> roles = roleRepository.findByActiveAndTenantId(1, tenantId);
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -52,21 +56,26 @@ public class RoleController {
 
     @PostMapping("/create")
     public ResponseEntity<Map<String, Object>> createRole(@RequestBody RoleCreateRequest request) {
+        request.setTenantId(SecurityUtils.getTenantId(request.getTenantId()));
+        request.setStoreId(SecurityUtils.getStoreId(request.getStoreId()));
         Role newRole = new Role();
         newRole.setName(request.getName());
         newRole.setDescription(request.getDescription());
         newRole.setTenantId(request.getTenantId());
-        newRole.setActive(1);
-        newRole.setHideFromUi(false);
         
+        // Use request values or default if null
+        newRole.setActive(request.getActive() != null ? request.getActive() : 1);
+        newRole.setHideFromUi(request.getHideFromUi() != null ? request.getHideFromUi() : false);
+//        newRole.setRIndex(request.getRIndex() != null ? request.getRIndex() : 0);
+//        newRole.setRValue(request.getRValue() != null ? request.getRValue() : 0);
+        newRole.setRestrictionDays(request.getRestrictionDays() != null ? request.getRestrictionDays() : 0L);
+
         if (request.getPermissions() != null) {
             newRole.setPermissions(String.join(",", request.getPermissions()));
         }
-        
-        // Give some default integer values based on existing DB design if required
-        newRole.setRIndex(0);
-        newRole.setRValue(0);
-        newRole.setRestrictionDays(0L);
+        if (request.getAssignedReports() != null) {
+            newRole.setAssignedReports(String.join(",", request.getAssignedReports()));
+        }
 
         Role savedRole = roleRepository.save(newRole);
 
@@ -97,6 +106,24 @@ public class RoleController {
         if (request.getPermissions() != null) {
             existingRole.setPermissions(String.join(",", request.getPermissions()));
         }
+        if (request.getAssignedReports() != null) {
+            existingRole.setAssignedReports(String.join(",", request.getAssignedReports()));
+        }
+        if (request.getActive() != null) {
+            existingRole.setActive(request.getActive());
+        }
+        if (request.getHideFromUi() != null) {
+            existingRole.setHideFromUi(request.getHideFromUi());
+        }
+//        if (request.getRIndex() != null) {
+//            existingRole.setRIndex(request.getRIndex());
+//        }
+//        if (request.getRValue() != null) {
+//            existingRole.setRValue(request.getRValue());
+//        }
+        if (request.getRestrictionDays() != null) {
+            existingRole.setRestrictionDays(request.getRestrictionDays());
+        }
 
         Role savedRole = roleRepository.save(existingRole);
 
@@ -108,7 +135,10 @@ public class RoleController {
 
     @PostMapping("/assign")
     public ResponseEntity<Map<String, Object>> assignRole(@RequestBody RoleAssignRequest request) {
-        Map<String, Object> response = new HashMap<>();
+        request.setTenantId(SecurityUtils.getTenantId(request.getTenantId()));
+        request.setStoreId(SecurityUtils.getStoreId(request.getStoreId()));
+        
+        StoreStaffRole assignment = new StoreStaffRole();
 
         // Deactivate existing roles for this staff
         List<StoreStaffRole> existingAssignments = storeStaffRoleRepository.findByStaffIdAndActive(request.getStaffId(), 1);
@@ -120,7 +150,6 @@ public class RoleController {
             storeStaffRoleRepository.saveAll(existingAssignments);
         }
 
-        StoreStaffRole assignment = new StoreStaffRole();
         assignment.setStaffId(request.getStaffId());
         assignment.setRoleId(request.getRoleId());
         assignment.setStoreId(request.getStoreId());
@@ -132,7 +161,8 @@ public class RoleController {
 
         storeStaffRoleRepository.save(assignment);
 
-        response.put("success", true);
+		Map<String, Object> response = new HashMap<>();
+		response.put("success", true);
         response.put("message", "Role assigned successfully");
         return ResponseEntity.ok(response);
     }

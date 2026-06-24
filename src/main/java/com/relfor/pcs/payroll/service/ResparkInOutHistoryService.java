@@ -52,9 +52,9 @@ public class ResparkInOutHistoryService {
 			List<PersonnelAttendanceProjectionForInOutHistory> personnelAttendanceData =
 					personnelAttendanceRepository.getInOutHistoryBetweenDates(inOutHistoryInputModel.getFromDate(),
 							inOutHistoryInputModel.getToDate(), BiometricApplicationNames.RESPARK.name(), inOutHistoryInputModel.getTenantId(),
-							inOutHistoryInputModel.getStoreId(), inOutHistoryInputModel.getPersonnelCodes());
-			Set<Long> personnelCodesFromInput = new HashSet<>(inOutHistoryInputModel.getPersonnelCodes());
-			Set<Long> personnelCodesWithAttendance = new HashSet<>();
+							inOutHistoryInputModel.getStoreId(), inOutHistoryInputModel.getPersonnelIds());
+			Set<Long> personnelIdsFromInput = new HashSet<>(inOutHistoryInputModel.getPersonnelIds());
+			Set<Long> personnelIdsWithAttendance = new HashSet<>();
 			if (!personnelAttendanceData.isEmpty()) {
 				Optional<TenantStoreProjection> tenantStoreProjectionOptional =
 						tenantCompanyMappingRepository.getTenantStoreMapping(inOutHistoryInputModel.getTenantId(),
@@ -65,7 +65,7 @@ public class ResparkInOutHistoryService {
 				}
 
 				Map<Long, List<PersonnelAttendanceProjectionForInOutHistory>> personnelWiseAttendance = personnelAttendanceData.stream()
-						.collect(Collectors.groupingBy(PersonnelAttendanceProjectionForInOutHistory::getPersonnelCode));
+						.collect(Collectors.groupingBy(PersonnelAttendanceProjectionForInOutHistory::getPersonnelId));
 				if (!personnelWiseAttendance.isEmpty()) {
 					for (Map.Entry<Long, List<PersonnelAttendanceProjectionForInOutHistory>> entry : personnelWiseAttendance.entrySet()) {
 						PersonnelAttendanceModel personnelAttendanceModel = this.processPersonnelAttendance(
@@ -78,18 +78,18 @@ public class ResparkInOutHistoryService {
 								zoneId
 						);
 						personnelAttendanceModelList.add(personnelAttendanceModel);
-						personnelCodesWithAttendance.add(entry.getKey());
+						personnelIdsWithAttendance.add(entry.getKey());
 					}
 				}
 			}
 
-			personnelCodesFromInput.removeAll(personnelCodesWithAttendance);
-			if (!personnelCodesFromInput.isEmpty()) {
-				List<PersonnelDetails> personnelListWithoutAttendance = personnelDetailsRepository.getPersonnelByPersonnelCode(new ArrayList<>(personnelCodesFromInput));
+			personnelIdsFromInput.removeAll(personnelIdsWithAttendance);
+			if (!personnelIdsFromInput.isEmpty()) {
+				List<PersonnelDetails> personnelListWithoutAttendance = personnelDetailsRepository.getPersonnelById(new ArrayList<>(personnelIdsFromInput));
 				if (!personnelListWithoutAttendance.isEmpty()) {
 					for (PersonnelDetails personnel: personnelListWithoutAttendance) {
 						PersonnelAttendanceModel personnelAttendanceModel =
-								this.createPersonnelAttendanceModel(personnel.getPersonnelCode(),
+								this.createPersonnelAttendanceModel(personnel.getId(),
 										inOutHistoryInputModel.getTenantId(), inOutHistoryInputModel.getStoreId(),
 										inOutHistoryInputModel.getApplicationName(), inOutHistoryInputModel.getFromDate(),
 										inOutHistoryInputModel.getToDate());
@@ -112,13 +112,13 @@ public class ResparkInOutHistoryService {
 		return responseModel;
 	}
 
-	public ResponseModel getPersonnelAttendanceForADay(Long tenantId, Long storeId, Long personnelCode, LocalDate attendanceDate) {
+	public ResponseModel getPersonnelAttendanceForADay(Long tenantId, Long storeId, Long personnelId, LocalDate attendanceDate) {
 		ResponseModel responseModel = new ResponseModel();
 		try {
 			PersonnelAttendanceModel personnelAttendanceModel = null;
 			List<PersonnelAttendanceProjectionForInOutHistory> personnelAttendanceData =
 					personnelAttendanceRepository.getInOutHistoryBetweenDates(attendanceDate, attendanceDate,
-							BiometricApplicationNames.RESPARK.name(), tenantId, storeId, List.of(personnelCode));
+							BiometricApplicationNames.RESPARK.name(), tenantId, storeId, List.of(personnelId));
 			if (!personnelAttendanceData.isEmpty()) {
 				Optional<TenantStoreProjection> tenantStoreProjectionOptional =
 						tenantCompanyMappingRepository.getTenantStoreMapping(tenantId, storeId,
@@ -129,7 +129,7 @@ public class ResparkInOutHistoryService {
 				}
 
 				personnelAttendanceModel = this.processPersonnelAttendance(
-						personnelCode, personnelAttendanceData,
+						personnelId, personnelAttendanceData,
 						tenantId, storeId,
 						BiometricApplicationNames.RESPARK.name(),
 						attendanceDate,
@@ -148,12 +148,12 @@ public class ResparkInOutHistoryService {
 	}
 
 	private PersonnelAttendanceModel processPersonnelAttendance(
-			Long personnelCode,
+			Long personnelId,
 			List<PersonnelAttendanceProjectionForInOutHistory> individualPersonnelAttendanceList,
 			Long tenantId, Long storeId, String applicationName,
 			LocalDate fromDate, LocalDate toDate, ZoneId zoneId) {
 		PersonnelAttendanceModel personnelModel = this.createPersonnelAttendanceModel(
-				personnelCode, tenantId, storeId, applicationName, fromDate, toDate);
+				personnelId, tenantId, storeId, applicationName, fromDate, toDate);
 		if (!individualPersonnelAttendanceList.isEmpty()) {
 			this.populatePersonnelDetails(personnelModel,
 					individualPersonnelAttendanceList.get(0).getPersonnelGender(),
@@ -177,7 +177,7 @@ public class ResparkInOutHistoryService {
 		return personnelModel;
 	}
 
-	private PersonnelAttendanceModel createPersonnelAttendanceModel(Long personnelCode, Long tenantId,
+	private PersonnelAttendanceModel createPersonnelAttendanceModel(Long personnelId, Long tenantId,
 																	Long storeId, String applicationName,
 																	LocalDate fromDate, LocalDate toDate) {
 		PersonnelAttendanceModel model = new PersonnelAttendanceModel();
@@ -186,7 +186,7 @@ public class ResparkInOutHistoryService {
 		model.setApplicationName(applicationName);
 		model.setFromDate(fromDate);
 		model.setToDate(toDate);
-		model.setPersonnelCode(personnelCode);
+		model.setPersonnelId(personnelId);
 		return model;
 	}
 
@@ -252,9 +252,9 @@ public class ResparkInOutHistoryService {
 			List<PersonnelAttendanceProjectionForInOutHistory> personnelAttendanceData =
 					personnelAttendanceRepository.getInOutHistoryBetweenDates(inOutHistoryInputModel.getFromDate(),
 							inOutHistoryInputModel.getToDate(), BiometricApplicationNames.RESPARK.name(), inOutHistoryInputModel.getTenantId(),
-							inOutHistoryInputModel.getStoreId(), inOutHistoryInputModel.getPersonnelCodes());
-			Set<Long> personnelCodesFromInput = new HashSet<>(inOutHistoryInputModel.getPersonnelCodes());
-			Set<Long> personnelCodesWithAttendance = new HashSet<>();
+							inOutHistoryInputModel.getStoreId(), inOutHistoryInputModel.getPersonnelIds());
+			Set<Long> personnelIdsFromInput = new HashSet<>(inOutHistoryInputModel.getPersonnelIds());
+			Set<Long> personnelIdsWithAttendance = new HashSet<>();
 			if (!personnelAttendanceData.isEmpty()) {
 				Optional<TenantStoreProjection> tenantStoreProjectionOptional =
 						tenantCompanyMappingRepository.getTenantStoreMapping(inOutHistoryInputModel.getTenantId(),
@@ -265,7 +265,7 @@ public class ResparkInOutHistoryService {
 				}
 
 				Map<Long, List<PersonnelAttendanceProjectionForInOutHistory>> personnelWiseAttendance = personnelAttendanceData.stream()
-						.collect(Collectors.groupingBy(PersonnelAttendanceProjectionForInOutHistory::getPersonnelCode));
+						.collect(Collectors.groupingBy(PersonnelAttendanceProjectionForInOutHistory::getPersonnelId));
 				if (!personnelWiseAttendance.isEmpty()) {
 					for (Map.Entry<Long, List<PersonnelAttendanceProjectionForInOutHistory>> entry : personnelWiseAttendance.entrySet()) {
 						ResparkPersonnelAttendanceDTO personnelAttendanceModel = this.processAdvancedPersonnelAttendance(
@@ -278,18 +278,18 @@ public class ResparkInOutHistoryService {
 								zoneId
 						);
 						personnelAttendanceModelList.add(personnelAttendanceModel);
-						personnelCodesWithAttendance.add(entry.getKey());
+						personnelIdsWithAttendance.add(entry.getKey());
 					}
 				}
 			}
 
-			personnelCodesFromInput.removeAll(personnelCodesWithAttendance);
-			if (!personnelCodesFromInput.isEmpty()) {
-				List<PersonnelDetails> personnelListWithoutAttendance = personnelDetailsRepository.getPersonnelByPersonnelCode(new ArrayList<>(personnelCodesFromInput));
+			personnelIdsFromInput.removeAll(personnelIdsWithAttendance);
+			if (!personnelIdsFromInput.isEmpty()) {
+				List<PersonnelDetails> personnelListWithoutAttendance = personnelDetailsRepository.getPersonnelById(new ArrayList<>(personnelIdsFromInput));
 				if (!personnelListWithoutAttendance.isEmpty()) {
 					for (PersonnelDetails personnel: personnelListWithoutAttendance) {
 						ResparkPersonnelAttendanceDTO personnelAttendanceModel =
-								this.createAdvancedPersonnelAttendanceModel(personnel.getPersonnelCode(),
+								this.createAdvancedPersonnelAttendanceModel(personnel.getId(),
 										inOutHistoryInputModel.getTenantId(), inOutHistoryInputModel.getStoreId(),
 										inOutHistoryInputModel.getApplicationName(), inOutHistoryInputModel.getFromDate(),
 										inOutHistoryInputModel.getToDate());
@@ -313,12 +313,12 @@ public class ResparkInOutHistoryService {
 	}
 
 	private ResparkPersonnelAttendanceDTO processAdvancedPersonnelAttendance(
-			Long personnelCode,
+			Long personnelId,
 			List<PersonnelAttendanceProjectionForInOutHistory> individualPersonnelAttendanceList,
 			Long tenantId, Long storeId, String applicationName,
 			LocalDate fromDate, LocalDate toDate, ZoneId zoneId) {
 		ResparkPersonnelAttendanceDTO personnelModel = this.createAdvancedPersonnelAttendanceModel(
-				personnelCode, tenantId, storeId, applicationName, fromDate, toDate);
+				personnelId, tenantId, storeId, applicationName, fromDate, toDate);
 		if (!individualPersonnelAttendanceList.isEmpty()) {
 			this.populateAdvancedPersonnelDetails(personnelModel,
 					individualPersonnelAttendanceList.get(0).getPersonnelGender(),
@@ -330,7 +330,7 @@ public class ResparkInOutHistoryService {
 					.collect(Collectors.groupingBy(PersonnelAttendanceProjectionForInOutHistory::getAttendanceDate));
 			List<ResparkDayWiseAttendanceDTO> dayWiseAttendanceList = new ArrayList<>();
 			if (!dateWisePersonnelAttendance.isEmpty()) {
-			    List<SStaffShifts> shifts = staffShiftsRepository.findByTenantIdAndStoreIdAndStaffIdAndShiftDateBetween(tenantId, storeId, personnelCode, fromDate, toDate);
+			    List<SStaffShifts> shifts = staffShiftsRepository.findByTenantIdAndStoreIdAndStaffIdAndShiftDateBetween(tenantId, storeId, personnelId, fromDate, toDate);
 			    
 				for (Map.Entry<LocalDate, List<PersonnelAttendanceProjectionForInOutHistory>> entry : dateWisePersonnelAttendance.entrySet()) {
 				    SStaffShifts dailyShift = shifts.stream().filter(s -> s.getShiftDate() != null && s.getShiftDate().equals(entry.getKey())).findFirst().orElse(null);
@@ -345,7 +345,7 @@ public class ResparkInOutHistoryService {
 		return personnelModel;
 	}
 
-	private ResparkPersonnelAttendanceDTO createAdvancedPersonnelAttendanceModel(Long personnelCode, Long tenantId,
+	private ResparkPersonnelAttendanceDTO createAdvancedPersonnelAttendanceModel(Long personnelId, Long tenantId,
 																	Long storeId, String applicationName,
 																	LocalDate fromDate, LocalDate toDate) {
 		ResparkPersonnelAttendanceDTO model = new ResparkPersonnelAttendanceDTO();
@@ -354,7 +354,7 @@ public class ResparkInOutHistoryService {
 		model.setApplicationName(applicationName);
 		model.setFromDate(fromDate);
 		model.setToDate(toDate);
-		model.setPersonnelCode(personnelCode);
+		model.setPersonnelId(personnelId);
 		return model;
 	}
 

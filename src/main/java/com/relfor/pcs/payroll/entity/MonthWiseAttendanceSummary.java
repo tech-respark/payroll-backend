@@ -16,7 +16,7 @@ public class MonthWiseAttendanceSummary extends BaseEntity{
 	private Long tenantId;
 	private Long storeId;
 	private String applicationName;
-	private Long personnelCode;
+	private Long personnelId;
 	private LocalDate salaryCycleFromDate;
 	private LocalDate salaryCycleToDate;
 	private String salaryMonth;
@@ -41,9 +41,9 @@ public class MonthWiseAttendanceSummary extends BaseEntity{
 
 	public void setId(Long id) { this.id = id; }
 
-	public Long getPersonnelCode() { return personnelCode; }
+	public Long getPersonnelId() { return personnelId; }
 
-	public void setPersonnelCode(Long personnelCode) { this.personnelCode = personnelCode; }
+	public void setPersonnelId(Long personnelId) { this.personnelId = personnelId; }
 
 	public LocalDate getSalaryCycleFromDate() { return salaryCycleFromDate; }
 

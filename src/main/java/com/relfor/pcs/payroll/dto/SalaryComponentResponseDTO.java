@@ -1,5 +1,6 @@
 package com.relfor.pcs.payroll.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 import java.math.BigDecimal;
@@ -9,7 +10,8 @@ import java.util.List;
 public class SalaryComponentResponseDTO {
     private Long tenantId;
     private Long storeId;
-    private Long personnelCode;
+    @JsonAlias({"personnelCode", "personnelId"})
+	private Long personnelId;
     private List<SalaryComponentDTO> earningsList;
     private List<SalaryComponentDTO> deductionsList;
     private String salaryMonth;
@@ -34,12 +36,12 @@ public class SalaryComponentResponseDTO {
         this.storeId = storeId;
     }
 
-    public Long getPersonnelCode() {
-        return personnelCode;
+    public Long getPersonnelId() {
+        return personnelId;
     }
 
-    public void setPersonnelCode(Long personnelCode) {
-        this.personnelCode = personnelCode;
+    public void setPersonnelId(Long personnelId) {
+        this.personnelId = personnelId;
     }
 
     public List<SalaryComponentDTO> getEarningsList() {

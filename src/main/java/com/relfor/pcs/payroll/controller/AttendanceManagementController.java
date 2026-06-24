@@ -6,6 +6,7 @@ import com.relfor.pcs.payroll.dto.PersonnelDetailsRequestModel;
 import com.relfor.pcs.payroll.dto.StaffDTO;
 import com.relfor.pcs.payroll.service.AttendanceManagementService;
 import com.relfor.pcs.payroll.util.ResponseHandler;
+import com.relfor.pcs.payroll.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,9 +32,9 @@ public class AttendanceManagementController {
 		return ResponseHandler.generateResponseModel(responseModel);
 	}
 
-	@PostMapping("/personnelDetailsForListOfPersonnelCodes")
-	public ResponseEntity<?> getPersonnelDetailsForListOfPersonnelCodes(@RequestBody List<Long> personnelCodes) {
-		ResponseModel responseModel = attendanceManagementService.getPersonnelDetailsForListOfPersonnelCodes(personnelCodes);
+	@PostMapping("/personnelDetailsForListOfPersonnelIds")
+	public ResponseEntity<?> getPersonnelDetailsForListOfPersonnelIds(@RequestBody List<Long> personnelIds) {
+		ResponseModel responseModel = attendanceManagementService.getPersonnelDetailsForListOfPersonnelIds(personnelIds);
 		return ResponseHandler.generateResponseModel(responseModel);
 	}
 
@@ -44,6 +45,8 @@ public class AttendanceManagementController {
 
 	@GetMapping("/personnel/all")
 	public ResponseEntity<?> getAllPersonnel(@RequestParam Long tenantId, @RequestParam Long storeId) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
 		try {
 			List<StaffDTO> result = attendanceManagementService.getAllPersonnelByTenantAndStore(tenantId, storeId);
 			return ResponseHandler.generateResponse("OK", null, HttpStatus.OK, result);

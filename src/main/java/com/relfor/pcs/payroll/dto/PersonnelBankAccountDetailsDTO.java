@@ -1,8 +1,11 @@
 package com.relfor.pcs.payroll.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class PersonnelBankAccountDetailsDTO {
 	private Long id;
-	private Long personnelCode;
+	@JsonAlias({"personnelCode", "personnelId"})
+	private Long personnelId;
 	private String bankName;
 	private String bankBranch;
 	private String ifscCode;
@@ -48,19 +51,19 @@ public class PersonnelBankAccountDetailsDTO {
 		this.id = id;
 	}
 
-	public Long getPersonnelCode() {
-		return personnelCode;
+	public Long getPersonnelId() {
+		return personnelId;
 	}
 
-	public void setPersonnelCode(Long personnelCode) {
-		this.personnelCode = personnelCode;
+	public void setPersonnelId(Long personnelId) {
+		this.personnelId = personnelId;
 	}
 
 	@Override
 	public String toString() {
 		return "PersonnelBankAccountDetailsDTO{" +
 				"id=" + id +
-				", personnelCode=" + personnelCode +
+				", personnelId=" + personnelId +
 				", bankName='" + bankName + '\'' +
 				", bankBranch='" + bankBranch + '\'' +
 				", ifscCode='" + ifscCode + '\'' +

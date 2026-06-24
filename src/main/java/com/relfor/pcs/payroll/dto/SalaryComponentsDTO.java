@@ -6,12 +6,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonAlias;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SalaryComponentsDTO {
 
 	private Long tenantId;
 	private Long storeId;
+	@JsonAlias({"personnelCode", "personnelId"})
 	private Long personnelId;
 	private String personnelName;
 	private LocalDate salaryDate;

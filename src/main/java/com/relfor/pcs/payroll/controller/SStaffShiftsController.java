@@ -11,6 +11,7 @@ import com.relfor.pcs.payroll.repository.SShiftsSlotsRepository;
 import com.relfor.pcs.payroll.repository.SStaffShiftsRepository;
 import com.relfor.pcs.payroll.service.StaffShiftsService;
 import com.relfor.pcs.payroll.util.ResponseHandler;
+import com.relfor.pcs.payroll.util.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -65,6 +66,8 @@ public class SStaffShiftsController {
 	@PostMapping("/staffshifts")
 	public ResponseEntity<?> createStaffShifts(@RequestBody CreateStaffShiftInput createStaffShiftInput) {
 		try {
+            createStaffShiftInput.setTenantId(SecurityUtils.getTenantId(createStaffShiftInput.getTenantId()));
+            createStaffShiftInput.setStoreId(SecurityUtils.getStoreId(createStaffShiftInput.getStoreId()));
 
 			List<SStaffShifts> result = staffShiftsService.createStaffShiftNewInput(createStaffShiftInput);
 			return ResponseHandler.generateResponse("OK", null, HttpStatus.OK, result);
@@ -93,6 +96,8 @@ public class SStaffShiftsController {
     public ResponseEntity<?> getStaffShiftsByStoreId(@RequestParam long tenantId, @RequestParam long storeId,
                                                      @RequestParam(required = false) String date,
                                                      @RequestParam(required = false) Long staffId) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
         List<SStaffShifts> staffShifts;
         try {
             if (staffId != null && date != null)
@@ -119,6 +124,8 @@ public class SStaffShiftsController {
 	@PostMapping("/shiftslots")
 	public ResponseEntity<?> createShiftSlots(@RequestBody SShiftsSlots obj) {
 		try {
+            obj.setTenantId(SecurityUtils.getTenantId(obj.getTenantId()));
+            obj.setStoreId(SecurityUtils.getStoreId(obj.getStoreId()));
 			SShiftsSlots staffShift = shStRepo.save(obj);
 			return ResponseEntity.ok().body(staffShift);
 		} catch (Exception e) {
@@ -157,6 +164,8 @@ public class SStaffShiftsController {
 	 */
 	@GetMapping("/shiftslots")
 	public ResponseEntity<?> getShiftSlotsByStoreId(@RequestParam long tenantId, @RequestParam long storeId) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
 		try {
 			List<SShiftsSlots> shiftSlots = shStRepo.findByTenantIdAndStoreId(tenantId, storeId);
 			return ResponseEntity.ok().body(shiftSlots);
@@ -171,6 +180,8 @@ public class SStaffShiftsController {
 	@PostMapping("/staffProductivity")
 	public ResponseEntity<?> postStaffProductivity(@RequestParam Long tenantId, @RequestParam Long storeId,
 			@RequestParam String shiftDate, @RequestBody List<Map<String, Object>> result) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
 		try {
 			staffShiftsService.postStaffProductivity(tenantId, storeId, shiftDate, result);
 			return ResponseHandler.generateResponse("Ok", null, HttpStatus.OK, null);
@@ -185,6 +196,8 @@ public class SStaffShiftsController {
 	@PostMapping("/staffProductivityForUpdatedOrder")
 	public ResponseEntity<?> postStaffProductivityForUpdatedOrder(@RequestParam Long tenantId,
 			@RequestParam Long storeId, @RequestParam String shiftDate, @RequestBody List<Map<String, Object>> result) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
 		try {
 			staffShiftsService.postStaffProductivityForUpdatedOrder(tenantId, storeId, shiftDate, result);
 			return ResponseHandler.generateResponse("Ok", null, HttpStatus.OK, null);
@@ -224,6 +237,8 @@ public class SStaffShiftsController {
 	@GetMapping("/availableStaffSlots")
 	public ResponseEntity<?> fetchAvailableStaffSlots(@RequestParam String startDate, @RequestParam long staffId,
 			@RequestParam long tenantId, @RequestParam long storeId, @RequestParam String timeZone) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
 		try {
 
 			List<Map<String, Object>> result = staffShiftsService.getAvailableStaffSlots(startDate, staffId, tenantId,
@@ -239,6 +254,8 @@ public class SStaffShiftsController {
 	@GetMapping("/allStaffsSlots")
 	public ResponseEntity<?> fetchAllStaffsSlots(@RequestParam String startDate, @RequestParam long tenantId,
 			@RequestParam long storeId, @RequestParam String timeZone) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
 		try {
 
 			List<StaffShiftDTO> result = staffShiftsService.getAllStaffsSlots(startDate, tenantId, storeId, timeZone);
@@ -254,6 +271,8 @@ public class SStaffShiftsController {
 	@GetMapping("/staffShifts/stylistRevenue")
 	public ResponseEntity<?> getStaffShiftsForStylistRevenueReport(@RequestParam String fromDate,
 			@RequestParam String toDate, @RequestParam long storeId, @RequestParam long tenantId) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
 		List<Object[]> staffShifts = new ArrayList<>();
 		try {
 			staffShifts = staffShiftsService.getStaffShiftsForStylistRevenueReport(
@@ -276,6 +295,8 @@ public class SStaffShiftsController {
     public ResponseEntity<?> fetchStaffAttendanceByTenantIdAndStoreIdAndShiftDateInBetween(
             @RequestBody ReportRequestDTO reportRequestDTO) {
         try {
+            reportRequestDTO.setTenantId(SecurityUtils.getTenantId(reportRequestDTO.getTenantId()));
+            reportRequestDTO.setStoreId(SecurityUtils.getStoreId(reportRequestDTO.getStoreId()));
             List<Map<String, Object>> attendance = staffShiftsService.getAttendenceByTenantIdStoreIdInBetween(reportRequestDTO.getTenantId(),
                     reportRequestDTO.getStoreId(), reportRequestDTO.getFromDateStr(), reportRequestDTO.getToDateStr());
             return ResponseHandler.generateResponse("Ok", "", HttpStatus.OK, attendance);
@@ -289,6 +310,8 @@ public class SStaffShiftsController {
 	@GetMapping("/availableStaffIds")
 	public ResponseEntity<?> fetchAvailableStaffIds(@RequestParam String startDate,
 													  @RequestParam long tenantId, @RequestParam long storeId) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
 		try {
 
 			List<Long> result = staffShiftsService.getAvailableStaffIds(tenantId,

@@ -1,14 +1,10 @@
 package com.relfor.pcs.payroll.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "s_store_staff_role")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class StoreStaffRole {
 
     @Id
@@ -38,4 +34,76 @@ public class StoreStaffRole {
     
     @Column(name = "enable_appointments")
     private Integer enableAppointments = 0;
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public Long getStoreId() {
+		return storeId;
+	}
+
+	public void setStoreId(Long storeId) {
+		this.storeId = storeId;
+	}
+
+	public Long getStaffId() {
+		return staffId;
+	}
+
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
+	}
+
+	public Long getTenantId() {
+		return tenantId;
+	}
+
+	public void setTenantId(Long tenantId) {
+		this.tenantId = tenantId;
+	}
+
+	public Long getRoleId() {
+		return roleId;
+	}
+
+	public void setRoleId(Long roleId) {
+		this.roleId = roleId;
+	}
+
+	public Integer getActive() {
+		return active;
+	}
+
+	public void setActive(Integer active) {
+		this.active = active;
+	}
+
+	public LocalDateTime getSystemCreatedOn() {
+		return systemCreatedOn;
+	}
+
+	public void setSystemCreatedOn(LocalDateTime systemCreatedOn) {
+		this.systemCreatedOn = systemCreatedOn;
+	}
+
+	public LocalDateTime getSystemUpdatedOn() {
+		return systemUpdatedOn;
+	}
+
+	public void setSystemUpdatedOn(LocalDateTime systemUpdatedOn) {
+		this.systemUpdatedOn = systemUpdatedOn;
+	}
+
+	public Integer getEnableAppointments() {
+		return enableAppointments;
+	}
+
+	public void setEnableAppointments(Integer enableAppointments) {
+		this.enableAppointments = enableAppointments;
+	}
 }

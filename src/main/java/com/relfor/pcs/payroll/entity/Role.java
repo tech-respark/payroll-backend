@@ -1,13 +1,8 @@
 package com.relfor.pcs.payroll.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-
 @Entity
 @Table(name = "s_role")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class Role {
     
     @Id
@@ -43,4 +38,92 @@ public class Role {
 
     @Column(name = "permissions", columnDefinition = "TEXT")
     private String permissions;
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public Integer getrIndex() {
+		return rIndex;
+	}
+
+	public void setrIndex(Integer rIndex) {
+		this.rIndex = rIndex;
+	}
+
+	public Integer getrValue() {
+		return rValue;
+	}
+
+	public void setrValue(Integer rValue) {
+		this.rValue = rValue;
+	}
+
+	public Integer getActive() {
+		return active;
+	}
+
+	public void setActive(Integer active) {
+		this.active = active;
+	}
+
+	public Long getTenantId() {
+		return tenantId;
+	}
+
+	public void setTenantId(Long tenantId) {
+		this.tenantId = tenantId;
+	}
+
+	public Boolean getHideFromUi() {
+		return hideFromUi;
+	}
+
+	public void setHideFromUi(Boolean hideFromUi) {
+		this.hideFromUi = hideFromUi;
+	}
+
+	public String getAssignedReports() {
+		return assignedReports;
+	}
+
+	public void setAssignedReports(String assignedReports) {
+		this.assignedReports = assignedReports;
+	}
+
+	public Long getRestrictionDays() {
+		return restrictionDays;
+	}
+
+	public void setRestrictionDays(Long restrictionDays) {
+		this.restrictionDays = restrictionDays;
+	}
+
+	public String getPermissions() {
+		return permissions;
+	}
+
+	public void setPermissions(String permissions) {
+		this.permissions = permissions;
+	}
 }

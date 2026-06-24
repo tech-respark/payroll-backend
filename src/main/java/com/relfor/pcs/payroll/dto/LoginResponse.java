@@ -1,9 +1,12 @@
 package com.relfor.pcs.payroll.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class LoginResponse {
     private boolean success;
     private String message;
-    private Long personnelCode;
+    @JsonAlias({"personnelCode", "personnelId"})
+	private Long personnelId;
     private String username;
     private String firstName;
     private String lastName;
@@ -47,12 +50,12 @@ public class LoginResponse {
         this.message = message;
     }
 
-    public Long getPersonnelCode() {
-        return personnelCode;
+    public Long getPersonnelId() {
+        return personnelId;
     }
 
-    public void setPersonnelCode(Long personnelCode) {
-        this.personnelCode = personnelCode;
+    public void setPersonnelId(Long personnelId) {
+        this.personnelId = personnelId;
     }
 
     public String getUsername() {

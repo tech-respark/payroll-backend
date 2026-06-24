@@ -42,20 +42,22 @@ public class SalaryCalculation {
     @Autowired
     StoreDetailsRepository storeDetailsRepository;
     @Autowired
+    StoreProfileConfigRepository storeProfileConfigRepository;
+    @Autowired
     private  PersonnelPayslipHistoryRepository personnelPayslipHistoryRepository;
 
     public ResponseModel processSalaryComponents(SalaryComponentResponseDTO personnelComponents) {
         ResponseModel responseModel = new ResponseModel();
         try {
             if (!ObjectUtils.isEmpty(personnelComponents)){
-                Long personnelCode = personnelComponents.getPersonnelCode();
+                Long personnelId = personnelComponents.getPersonnelId();
                 Long tenantId = personnelComponents.getTenantId();
                 Long storeId = personnelComponents.getStoreId();
-                logger.info("Processing salary components for PersonnelCode={} ", personnelCode);
+                logger.info("Processing salary components for PersonnelId={} ", personnelId);
                 List<PersonnelSalaryComponents> existingPersonnelComponents =
-                        personnelSalaryComponentsRepository.findByPersonnelCode(personnelCode);
-                if(!ObjectUtils.isEmpty(existingPersonnelComponents)){
-                    personnelSalaryComponentsRepository.deleteAll(existingPersonnelComponents);
+                        personnelSalaryComponentsRepository.findByPersonnelId(personnelId);
+                if(existingPersonnelComponents == null) {
+                    existingPersonnelComponents = new ArrayList<>();
                 }
 
                 List<SalaryComponentDefinitions> salaryComponentDefinitions = definitionsRepository.findAllByTenantIdAndStoreId(tenantId, storeId);
@@ -67,7 +69,7 @@ public class SalaryCalculation {
 
                 List<SalaryComponentDefinitions> computableComponents = salaryComponentDefinitions.stream()
                                 .filter(SalaryComponentDefinitions::getComputable).collect(Collectors.toList());
-                List<PersonnelSalaryComponents> personnelSalaryComponents = getPersonnelSalaryComponentsList(personnelComponents, salaryComponentDefinitions);
+                List<PersonnelSalaryComponents> personnelSalaryComponents = getPersonnelSalaryComponentsList(personnelComponents, salaryComponentDefinitions, existingPersonnelComponents);
                 List<PersonnelSalaryComponents> fixedComponents = personnelSalaryComponents.stream()
                         .filter(component -> component.getSalaryComponentDefinitions().getComponentType().equalsIgnoreCase("FIXED")).collect(Collectors.toList());
 
@@ -93,8 +95,11 @@ public class SalaryCalculation {
                                 evaluateCondition(rule.getConditionExpression(), context)) {
                             BigDecimal result = evaluateFormula(rule.getFormula(), context);
 
-                            PersonnelSalaryComponents component = new PersonnelSalaryComponents();
-                            component.setPersonnelCode(personnelCode);
+                            PersonnelSalaryComponents component = existingPersonnelComponents.stream()
+                                    .filter(ex -> ex.getSalaryComponentDefinitions().getId() == definition.getId())
+                                    .findFirst()
+                                    .orElse(new PersonnelSalaryComponents());
+                            component.setPersonnelId(personnelId);
                             component.setTenantId(definition.getTenantId());
                             component.setStoreId(storeId);
                             component.setComponentName(definition.getComponentName());
@@ -109,8 +114,17 @@ public class SalaryCalculation {
                 }
                 responseData = responseData.stream().map(this::calculateValues).collect(Collectors.toList());
                 personnelSalaryComponentsRepository.saveAll(responseData);
-                logger.info("Successfully saved {} salary components for PersonnelCode={}",
-                        responseData.size(), personnelCode);
+                
+                List<PersonnelSalaryComponents> finalResponseData = responseData;
+                List<PersonnelSalaryComponents> toDelete = existingPersonnelComponents.stream()
+                        .filter(ex -> finalResponseData.stream().noneMatch(res -> res.getId() != null && res.getId().equals(ex.getId())))
+                        .collect(Collectors.toList());
+                if (!toDelete.isEmpty()) {
+                    personnelSalaryComponentsRepository.deleteAll(toDelete);
+                }
+                
+                logger.info("Successfully saved {} salary components for PersonnelId={}",
+                        responseData.size(), personnelId);
 
                 SalaryComponentResponseDTO salaryResponse = getSalaryResponse(responseData, true);
                 responseModel.setData(salaryResponse);
@@ -124,11 +138,11 @@ public class SalaryCalculation {
         return responseModel;
     }
 
-    private List<PersonnelSalaryComponents> getPersonnelSalaryComponentsList(SalaryComponentResponseDTO personnelComponents, List<SalaryComponentDefinitions> salaryComponentDefinitions) {
+    private List<PersonnelSalaryComponents> getPersonnelSalaryComponentsList(SalaryComponentResponseDTO personnelComponents, List<SalaryComponentDefinitions> salaryComponentDefinitions, List<PersonnelSalaryComponents> existingComponents) {
         List<PersonnelSalaryComponents> personnelSalaryComponents = new ArrayList<>();
         Long tenantId = personnelComponents.getTenantId();
         Long storeId = personnelComponents.getStoreId();
-        Long personnelCode = personnelComponents.getPersonnelCode();
+        Long personnelId = personnelComponents.getPersonnelId();
 
         List<SalaryComponentDTO> allComponentsList = new ArrayList<>();
         if (personnelComponents.getEarningsList() != null) {
@@ -141,26 +155,36 @@ public class SalaryCalculation {
         for(SalaryComponentDTO dto : allComponentsList) {
             Optional<SalaryComponentDefinitions> salaryDefinition = salaryComponentDefinitions.stream().filter(definition -> definition.getId() == dto.getSalaryComponentDefinitionsId()).findFirst();
 
-            PersonnelSalaryComponents salaryComponent = new PersonnelSalaryComponents();
+            PersonnelSalaryComponents salaryComponent = existingComponents.stream()
+                    .filter(ex -> ex.getSalaryComponentDefinitions().getId() == salaryDefinition.get().getId())
+                    .findFirst()
+                    .orElse(new PersonnelSalaryComponents());
             salaryComponent.setTenantId(tenantId);
             salaryComponent.setStoreId(storeId);
-            salaryComponent.setPersonnelCode(personnelCode);
+            salaryComponent.setPersonnelId(personnelId);
             salaryComponent.setAnnualValue(dto.getAnnualValue());
             salaryComponent.setSalaryComponentDefinitions(salaryDefinition.get());
             salaryComponent.setComponentName(salaryDefinition.get().getComponentName());
 
             personnelSalaryComponents.add(salaryComponent);
         }
-        logger.info("Generated {} personnel salary components for PersonnelCode={}",
-                personnelSalaryComponents.size(), personnelCode);
+        logger.info("Generated {} personnel salary components for PersonnelId={}",
+                personnelSalaryComponents.size(), personnelId);
 
         return personnelSalaryComponents;
     }
 
-    private  PersonnelSalaryComponents calculateValues(PersonnelSalaryComponents component) {
+    private PersonnelSalaryComponents calculateValues(PersonnelSalaryComponents component) {
         Double DaysInMonths = 30D;
         Double HoursInDay = 9.5;
-        Float workingHours = personnelDetailsRepository.getPersonnelWorkingHours(component.getPersonnelCode());
+        
+        Optional<StoreProfileConfig> configOpt = storeProfileConfigRepository.findByTenantIdAndStoreId(component.getTenantId(), component.getStoreId());
+        if (configOpt.isPresent()) {
+            if (configOpt.get().getWorkingDaysPerMonth() != null) DaysInMonths = configOpt.get().getWorkingDaysPerMonth();
+            if (configOpt.get().getWorkingHoursPerDay() != null) HoursInDay = configOpt.get().getWorkingHoursPerDay();
+        }
+
+        Float workingHours = personnelDetailsRepository.getPersonnelWorkingHours(component.getPersonnelId());
         if (workingHours != null && workingHours > 0f) {
             HoursInDay = Double.valueOf(workingHours);
         }
@@ -197,15 +221,15 @@ public class SalaryCalculation {
         }
     }
 
-    public ResponseModel processSalary(Long personnelCode, String  month, Long year, Long tenantId, Long storeId) {
+    public ResponseModel processSalary(Long personnelId, String  month, Long year, Long tenantId, Long storeId) {
         ResponseModel responseModel = new ResponseModel();
         try {
-            MonthWiseAttendanceSummary staffMonthWiseSummary = monthWiseAttendanceSummaryRepository.getSummaryByPersonnelCodeAndMonth(personnelCode, month, year);
+            MonthWiseAttendanceSummary staffMonthWiseSummary = monthWiseAttendanceSummaryRepository.getSummaryByPersonnelIdAndMonth(personnelId, month, year);
             List<SalaryComponentDefinitions> salaryComponentDefinitionsList = definitionsRepository.findByTenantIdAndStoreId(tenantId, storeId);
             if (ObjectUtils.isEmpty(salaryComponentDefinitionsList)) {
                 salaryComponentDefinitionsList = definitionsRepository.findByTenantIdAndStoreId(tenantId, 0L);
             }
-            PersonnelPayslipHistory responseData =  this.calculateSalaryComponents(staffMonthWiseSummary, salaryComponentDefinitionsList, personnelCode, null);
+            PersonnelPayslipHistory responseData =  this.calculateSalaryComponents(staffMonthWiseSummary, salaryComponentDefinitionsList, personnelId, null);
             responseModel.setCode(HttpStatus.OK);
             if(!ObjectUtils.isEmpty(responseData)) {
                 responseModel.setData(responseData);
@@ -233,7 +257,7 @@ public class SalaryCalculation {
                     salaryComponentDefinitionsList = this.findSalaryCompenentDefinitionsList(monthWiseAttendanceSummary, currentStoreId);
                 }
                 if (!ObjectUtils.isEmpty(salaryComponentDefinitionsList)) {
-                    this.calculateSalaryComponents(monthWiseAttendanceSummary, salaryComponentDefinitionsList, monthWiseAttendanceSummary.getPersonnelCode(), storeDetailsListForMonthlySummary);
+                    this.calculateSalaryComponents(monthWiseAttendanceSummary, salaryComponentDefinitionsList, monthWiseAttendanceSummary.getPersonnelId(), storeDetailsListForMonthlySummary);
                 }
             }
         } catch (Exception ex) {
@@ -256,19 +280,28 @@ public class SalaryCalculation {
     public PersonnelPayslipHistory calculateSalaryComponents(
             MonthWiseAttendanceSummary attendanceSummary,
             List<SalaryComponentDefinitions> componentDefinitions,
-            Long personnelCode,
+            Long personnelId,
             List<StoreDetails> storeDetailsListForMonthlySummary) {
 
         SalaryComponentsDTO salaryComponents = null;
 
         if(!ObjectUtils.isEmpty(attendanceSummary)){
             Map<String, BigDecimal> context = this.convertToContext(attendanceSummary);
-            Float workingHours = personnelDetailsRepository.getPersonnelWorkingHours(personnelCode);
-            BigDecimal hours = workingHours != null ? BigDecimal.valueOf(workingHours) : BigDecimal.valueOf(9.5);
+            Float workingHours = personnelDetailsRepository.getPersonnelWorkingHours(personnelId);
+            Double dbWorkingHours = 9.5;
+            if (workingHours != null && workingHours > 0f) {
+                dbWorkingHours = Double.valueOf(workingHours);
+            } else {
+                Optional<StoreProfileConfig> configOpt = storeProfileConfigRepository.findByTenantIdAndStoreId(attendanceSummary.getTenantId(), attendanceSummary.getStoreId());
+                if (configOpt.isPresent() && configOpt.get().getWorkingHoursPerDay() != null) {
+                    dbWorkingHours = configOpt.get().getWorkingHoursPerDay();
+                }
+            }
+            BigDecimal hours = BigDecimal.valueOf(dbWorkingHours);
             context.put("workingHours", hours);
 
             List<PersonnelSalaryComponents> existingComponents =
-                    personnelSalaryComponentsRepository.findByPersonnelCode(personnelCode);
+                    personnelSalaryComponentsRepository.findByPersonnelId(personnelId);
             if (!existingComponents.isEmpty()) {
                 existingComponents.forEach(component -> {
                     context.put(
@@ -277,7 +310,7 @@ public class SalaryCalculation {
                     );
                 });
 
-                salaryComponents =  setSalaryComponents(personnelCode, attendanceSummary, componentDefinitions, existingComponents, context, storeDetailsListForMonthlySummary);
+                salaryComponents =  setSalaryComponents(personnelId, attendanceSummary, componentDefinitions, existingComponents, context, storeDetailsListForMonthlySummary);
                 return saveOrUpdateSalaryComponents(salaryComponents, componentDefinitions);
             }
         }
@@ -341,7 +374,7 @@ public class SalaryCalculation {
     }
 
     private SalaryComponentsDTO setSalaryComponents(
-            Long personnelCode,
+            Long personnelId,
             MonthWiseAttendanceSummary attendanceSummary,
             List<SalaryComponentDefinitions> componentDefinitions,
             List<PersonnelSalaryComponents> existingComponents,
@@ -349,7 +382,7 @@ public class SalaryCalculation {
             List<StoreDetails> storeDetailsListForMonthlySummary) {
 
         SalaryComponentsDTO dto = null;
-        Optional<PersonnelDetails> personnelDetailsOptional = personnelDetailsRepository.findByPersonnelCode(personnelCode);
+        Optional<PersonnelDetails> personnelDetailsOptional = personnelDetailsRepository.findById(personnelId);
         if (personnelDetailsOptional.isPresent()) {
             PersonnelDetails personnelDetails = personnelDetailsOptional.get();
             dto = new SalaryComponentsDTO();
@@ -434,7 +467,7 @@ public class SalaryCalculation {
         if (!ObjectUtils.isEmpty(dto.getStoreId()) && storeDetails != null) {
             dto.setStoreName(storeDetails.getStoreName());
         }
-        dto.setPersonnelId(personnelDetails.getPersonnelCode());
+        dto.setPersonnelId(personnelDetails.getId());
         dto.setDesignation(personnelDetails.getDesignation());
         dto.setEmployeeCode(personnelDetails.getEmployeeCode());
         dto.setUanNumber(personnelDetails.getUanNumber());
@@ -596,7 +629,7 @@ public class SalaryCalculation {
     public ResponseModel setMonthlyComponents(SalaryComponentResponseDTO salaryComponent) {
         ResponseModel responseModel = new ResponseModel();
         PersonnelPayslipHistory payslipHistory = new PersonnelPayslipHistory();
-        payslipHistory.setPersonnelId(salaryComponent.getPersonnelCode());
+        payslipHistory.setPersonnelId(salaryComponent.getPersonnelId());
         payslipHistory.setTenantId(salaryComponent.getTenantId());
         payslipHistory.setStoreId(salaryComponent.getStoreId());
         payslipHistory.setSalaryMonth(salaryComponent.getSalaryMonth());
@@ -609,7 +642,7 @@ public class SalaryCalculation {
         }
 
         Optional<PersonnelPayslipHistory> personnelPayslipHistoryOptional =
-                personnelPayslipHistoryRepository.findByPersonnelIdAndSalaryMonthAndSalaryYear(salaryComponent.getPersonnelCode(), salaryComponent.getSalaryMonth(), salaryComponent.getSalaryYear());
+                personnelPayslipHistoryRepository.findByPersonnelIdAndSalaryMonthAndSalaryYear(salaryComponent.getPersonnelId(), salaryComponent.getSalaryMonth(), salaryComponent.getSalaryYear());
 
 
         if (!ObjectUtils.isEmpty(salaryComponent.getEarningsList())) {
@@ -650,10 +683,10 @@ public class SalaryCalculation {
                     deductionsList.add(salaryComponentDTO);
                 }
             }
-            logger.info("Updating existing payslip history for PersonnelCode: {}, Month: {}, Year: {}",
-                    salaryComponent.getPersonnelCode(), salaryComponent.getSalaryMonth(), salaryComponent.getSalaryYear());
+            logger.info("Updating existing payslip history for PersonnelId: {}, Month: {}, Year: {}",
+                    salaryComponent.getPersonnelId(), salaryComponent.getSalaryMonth(), salaryComponent.getSalaryYear());
         } else {
-            SalaryComponentResponseDTO salaryComponentResponseDTO = this.constructSalaryComponentResponseDTO(salaryComponent.getPersonnelCode(), false);
+            SalaryComponentResponseDTO salaryComponentResponseDTO = this.constructSalaryComponentResponseDTO(salaryComponent.getPersonnelId(), false);
             if (salaryComponentResponseDTO != null) {
                 earningsList = salaryComponentResponseDTO.getEarningsList();
                 deductionsList = salaryComponentResponseDTO.getDeductionsList();
@@ -667,8 +700,8 @@ public class SalaryCalculation {
             if (!ObjectUtils.isEmpty(salaryComponent.getDeductionsList())) {
                 deductionsList.addAll(salaryComponent.getDeductionsList());
             }
-            logger.info("Creating new payslip history for PersonnelCode: {}, Month: {}, Year: {}",
-                    salaryComponent.getPersonnelCode(), salaryComponent.getSalaryMonth(), salaryComponent.getSalaryYear());
+            logger.info("Creating new payslip history for PersonnelId: {}, Month: {}, Year: {}",
+                    salaryComponent.getPersonnelId(), salaryComponent.getSalaryMonth(), salaryComponent.getSalaryYear());
         }
         payslipHistory.setEarnings(earningsList);
         payslipHistory.setDeductions(deductionsList);
@@ -689,8 +722,8 @@ public class SalaryCalculation {
         payslipHistory.setTotalDeduction(totalDeduction);
         payslipHistory.setSalaryAmount(totalEarning.subtract(totalDeduction));
         personnelPayslipHistoryRepository.save(payslipHistory);
-        logger.info("Payslip history saved for PersonnelCode: {}, Month: {}, Year: {}",
-                salaryComponent.getPersonnelCode(), salaryComponent.getSalaryMonth(), salaryComponent.getSalaryYear());
+        logger.info("Payslip history saved for PersonnelId: {}, Month: {}, Year: {}",
+                salaryComponent.getPersonnelId(), salaryComponent.getSalaryMonth(), salaryComponent.getSalaryYear());
 
         SalaryComponentResponseDTO salaryResponse = new SalaryComponentResponseDTO();
         salaryResponse.setTenantId(payslipHistory.getTenantId());
@@ -710,9 +743,9 @@ public class SalaryCalculation {
         return responseModel;
     }
 
-    public ResponseModel getPayslipData(Long personnelCode, String month, Integer year) {
+    public ResponseModel getPayslipData(Long personnelId, String month, Integer year) {
         ResponseModel responseModel = new ResponseModel();
-        Optional<PersonnelPayslipHistory> personnelPayslipHistory = personnelPayslipHistoryRepository.findByPersonnelIdAndSalaryMonthAndSalaryYear(personnelCode, month, year);
+        Optional<PersonnelPayslipHistory> personnelPayslipHistory = personnelPayslipHistoryRepository.findByPersonnelIdAndSalaryMonthAndSalaryYear(personnelId, month, year);
 
         responseModel.setCode(HttpStatus.OK);
         if(personnelPayslipHistory.isPresent()){
@@ -743,20 +776,20 @@ public class SalaryCalculation {
         return responseModel;
     }
 
-    public ResponseModel getPersonnelSalaryComponents(Long personnelCode) {
+    public ResponseModel getPersonnelSalaryComponents(Long personnelId) {
         ResponseModel responseModel = new ResponseModel();
 
         responseModel.setMessage(SUCCESS);
         responseModel.setCode(HttpStatus.OK);
-        SalaryComponentResponseDTO responseDTO = this.constructSalaryComponentResponseDTO(personnelCode, true);
+        SalaryComponentResponseDTO responseDTO = this.constructSalaryComponentResponseDTO(personnelId, true);
         responseModel.setData(responseDTO);
         return responseModel;
     }
 
-    private SalaryComponentResponseDTO constructSalaryComponentResponseDTO(Long personnelCode, Boolean isAnnual) {
+    private SalaryComponentResponseDTO constructSalaryComponentResponseDTO(Long personnelId, Boolean isAnnual) {
         SalaryComponentResponseDTO responseDTO = null;
         List<PersonnelSalaryComponents> existingComponents =
-                personnelSalaryComponentsRepository.findByPersonnelCode(personnelCode);
+                personnelSalaryComponentsRepository.findByPersonnelId(personnelId);
         if(!ObjectUtils.isEmpty(existingComponents)){
             responseDTO = getSalaryResponse(existingComponents, isAnnual);
         }
@@ -770,10 +803,10 @@ public class SalaryCalculation {
         BigDecimal totalEarning = BigDecimal.ZERO;
         BigDecimal totalDeduction = BigDecimal.ZERO;
 
-        PersonnelSalaryComponents base = salaryComponents.get(0); // assume tenantId, storeId, personnelCode are same for all
+        PersonnelSalaryComponents base = salaryComponents.get(0); // assume tenantId, storeId, personnelId are same for all
         responseDTO.setTenantId(base.getTenantId());
         responseDTO.setStoreId(base.getStoreId());
-        responseDTO.setPersonnelCode(base.getPersonnelCode());
+        responseDTO.setPersonnelId(base.getPersonnelId());
 
         for (PersonnelSalaryComponents comp : salaryComponents) {
             SalaryComponentDefinitions def = comp.getSalaryComponentDefinitions();
@@ -819,9 +852,9 @@ public class SalaryCalculation {
         return responseDTO;
     }
 
-    public ResponseModel getPersonnelSalaryComponentsForMonth(Long personnelCode, String month, Integer year) {
+    public ResponseModel getPersonnelSalaryComponentsForMonth(Long personnelId, String month, Integer year) {
         ResponseModel responseModel = new ResponseModel();
-        Optional<PersonnelPayslipHistory> paySlipDataOptional = personnelPayslipHistoryRepository.findByPersonnelIdAndSalaryMonthAndSalaryYear(personnelCode, month, year);
+        Optional<PersonnelPayslipHistory> paySlipDataOptional = personnelPayslipHistoryRepository.findByPersonnelIdAndSalaryMonthAndSalaryYear(personnelId, month, year);
         SalaryComponentResponseDTO salaryComponentResponseDTO = new SalaryComponentResponseDTO();
         if(paySlipDataOptional.isPresent()) {
             PersonnelPayslipHistory payslipHistory = paySlipDataOptional.get();
@@ -834,7 +867,7 @@ public class SalaryCalculation {
             salaryComponentResponseDTO.setSalaryAmount(payslipHistory.getSalaryAmount());
         } else {
             List<PersonnelSalaryComponents> existingComponents =
-                    personnelSalaryComponentsRepository.findByPersonnelCode(personnelCode);
+                    personnelSalaryComponentsRepository.findByPersonnelId(personnelId);
             if(!ObjectUtils.isEmpty(existingComponents)){
                 salaryComponentResponseDTO = getSalaryResponse(existingComponents, false);
             }

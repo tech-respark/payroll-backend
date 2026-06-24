@@ -62,7 +62,6 @@ public class AuthController {
                 response.setMessage("Login successful.");
                 response.setToken(token);
                 response.setRoles(roles);
-                response.setPersonnelCode(personnel.getPersonnelCode());
                 response.setUsername(personnel.getUsername());
                 response.setFirstName(personnel.getFirstName());
                 response.setLastName(personnel.getLastName());

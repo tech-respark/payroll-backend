@@ -43,7 +43,7 @@ public class VelocityService {
 
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-	public String postPersonnelPayslipData(Long personnelCode, String salaryMonth, Integer salaryYear) {
+	public String postPersonnelPayslipData(Long personnelId, String salaryMonth, Integer salaryYear) {
 		String result = null;
 
 		PrintBillDetailsDTO billDetails = null;
@@ -54,7 +54,7 @@ public class VelocityService {
 			//this template has to be tenant-wise and path should be given accordingly, since every tenant might have different payslip format
 			Template template = velocity.getTemplate("/templates/paySlip.vm");
 
-			Optional<PersonnelPayslipHistory> personnelPayslipHistory = personnelPayslipHistoryRepository.findByPersonnelIdAndSalaryMonthAndSalaryYear(personnelCode, salaryMonth, salaryYear);
+			Optional<PersonnelPayslipHistory> personnelPayslipHistory = personnelPayslipHistoryRepository.findByPersonnelIdAndSalaryMonthAndSalaryYear(personnelId, salaryMonth, salaryYear);
 
 			PersonnelPayslipHistory paySlipData = personnelPayslipHistory.get();
 			SalaryComponentsDTO salarySlip = salaryCalculation.convertToSalaryComponentDTO(personnelPayslipHistory.get());

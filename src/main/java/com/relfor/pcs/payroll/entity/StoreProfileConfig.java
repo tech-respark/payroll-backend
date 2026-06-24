@@ -40,6 +40,8 @@ public class StoreProfileConfig {
     // Configuration Fields
     private Integer defaultSlotTime = 30;
     private Boolean stylistProductivity = false;
+    private Double workingDaysPerMonth = 30D;
+    private Double workingHoursPerDay = 9.5;
 
     // Getters and Setters
 
@@ -209,5 +211,21 @@ public class StoreProfileConfig {
 
     public void setStylistProductivity(Boolean stylistProductivity) {
         this.stylistProductivity = stylistProductivity;
+    }
+
+    public Double getWorkingDaysPerMonth() {
+        return workingDaysPerMonth;
+    }
+
+    public void setWorkingDaysPerMonth(Double workingDaysPerMonth) {
+        this.workingDaysPerMonth = workingDaysPerMonth;
+    }
+
+    public Double getWorkingHoursPerDay() {
+        return workingHoursPerDay;
+    }
+
+    public void setWorkingHoursPerDay(Double workingHoursPerDay) {
+        this.workingHoursPerDay = workingHoursPerDay;
     }
 }

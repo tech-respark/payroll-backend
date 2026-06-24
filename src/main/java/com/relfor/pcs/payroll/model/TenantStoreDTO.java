@@ -22,6 +22,9 @@ public class TenantStoreDTO {
 	private String storeCloseTime;
 	private Integer financialYearStartMonth;
 	private LocalDate payrollLockedUpToDate;
+	private String companyName;
+	private String address;
+	private String storeName;
 
 	public Long getTenantId() {
 		return tenantId;
@@ -165,5 +168,29 @@ public class TenantStoreDTO {
 
 	public void setPayrollLockedUpToDate(LocalDate payrollLockedUpToDate) {
 		this.payrollLockedUpToDate = payrollLockedUpToDate;
+	}
+
+	public String getCompanyName() {
+		return companyName;
+	}
+
+	public void setCompanyName(String companyName) {
+		this.companyName = companyName;
+	}
+
+	public String getAddress() {
+		return address;
+	}
+
+	public void setAddress(String address) {
+		this.address = address;
+	}
+
+	public String getStoreName() {
+		return storeName;
+	}
+
+	public void setStoreName(String storeName) {
+		this.storeName = storeName;
 	}
 }

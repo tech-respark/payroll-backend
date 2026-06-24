@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public interface PersonnelAttendanceSummaryProjection {
-	Long getPersonnelCode();
+	Long getPersonnelId();
 	String getPersonnelName();
 	String getPersonnelDesignation();
 	String getPersonnelGender();

@@ -4,13 +4,16 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class PersonnelAttendanceModel {
 	private Long tenantId;
 	private Long storeId;
 	private LocalDate fromDate;
 	private LocalDate toDate;
 	private String applicationName;
-	private Long personnelCode;
+	@JsonAlias({"personnelCode", "personnelId"})
+	private Long personnelId;
 	private String personnelDesignation;
 	private String personnelName;
 	private String personnelGender;
@@ -28,12 +31,12 @@ public class PersonnelAttendanceModel {
 		this.dayWiseAttendanceList = dayWiseAttendanceList;
 	}
 
-	public Long getPersonnelCode() {
-		return personnelCode;
+	public Long getPersonnelId() {
+		return personnelId;
 	}
 
-	public void setPersonnelCode(Long personnelCode) {
-		this.personnelCode = personnelCode;
+	public void setPersonnelId(Long personnelId) {
+		this.personnelId = personnelId;
 	}
 
 	public String getApplicationName() {
@@ -140,7 +143,7 @@ public class PersonnelAttendanceModel {
 				", fromDate=" + fromDate +
 				", toDate=" + toDate +
 				", applicationName='" + applicationName + '\'' +
-				", personnelCode=" + personnelCode +
+				", personnelId=" + personnelId +
 				", personnelDesignation='" + personnelDesignation + '\'' +
 				", personnelName='" + personnelName + '\'' +
 				", personnelGender='" + personnelGender + '\'' +

@@ -2,6 +2,7 @@ package com.relfor.pcs.payroll.controller;
 
 import com.relfor.pcs.payroll.entity.StoreDetails;
 import com.relfor.pcs.payroll.repository.StoreDetailsRepository;
+import com.relfor.pcs.payroll.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,7 +32,9 @@ public class StoreSettingsController {
     public ResponseEntity<Map<String, Object>> getStoreSettings(
             @RequestParam Long tenantId,
             @RequestParam Long storeId) {
-        
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
+
         Optional<StoreDetails> optStore = storeDetailsRepository.fetchStoreAndTenantDetails("RESPARK", tenantId,
 				storeId);
         if (optStore.isPresent()) {
@@ -50,6 +53,8 @@ public class StoreSettingsController {
             @RequestHeader("Tenantid") Long tenantId,
             @RequestHeader("Storeid") Long storeId,
             @RequestBody Map<String, String> payload) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
 
         Optional<StoreDetails> optStore = storeDetailsRepository.fetchStoreAndTenantDetails("RESPARK", tenantId,
 				storeId);

@@ -45,6 +45,8 @@ public class ResparkAttendanceService {
 	private EntityManager entityManager;
 	@Autowired
 	StoreDetailsRepository storeDetailsRepository;
+	@Autowired
+	StoreProfileConfigRepository storeProfileConfigRepository;
 	
 	public ResponseModel regularizeAttendance(AttendanceRegularizationInputModel attendanceRegularizationInputModel){
 		ResponseModel responseModel = new ResponseModel();
@@ -152,7 +154,7 @@ public class ResparkAttendanceService {
 		personnelAttendance.setModifiedBy(individualPunch.getCreatedBy());
 		personnelAttendance.setModifiedTimestamp(Instant.now());
 		personnelAttendance.setCurrentStatus(individualPunch.getCurrentStatus());
-		personnelAttendance.setPersonnelCode(attendanceRegularizationInputModel.getPersonnelCode());
+		personnelAttendance.setPersonnelId(attendanceRegularizationInputModel.getPersonnelId());
 		personnelAttendance.setPunchTimestamp(this.getPunchTimestamp(individualPunch, dateOfAttendance, zoneId));
 		personnelAttendance.setPunchEvent(individualPunch.getPunchEvent());
 		personnelAttendance.setUploadSource(BiometricEntryUploadSource.REGULARIZATION.name());
@@ -220,7 +222,7 @@ public class ResparkAttendanceService {
 				regularizationRequests = attendanceRequestsDTOPage.getContent();
 				List<AttendanceRequestsDTO> modifiableRegularizationRequestsList = new ArrayList<>(regularizationRequests);
 				modifiableRegularizationRequestsList.sort(Comparator
-						.comparing(AttendanceRequestsDTO::getPersonnelCode)
+						.comparing(AttendanceRequestsDTO::getPersonnelId)
 						.thenComparing(AttendanceRequestsDTO::getAttendanceDate));
 				pageModel.setTotalNumberOfRecords(attendanceRequestsDTOPage.getTotalElements());
 
@@ -229,7 +231,7 @@ public class ResparkAttendanceService {
 				if (!individualPunchesList.isEmpty()) {
 					for (AttendanceRequestsDTO attendanceRequest: regularizationRequests) {
 						attendanceRequest.setIndividualPunchesList(individualPunchesList.stream()
-								.filter(req -> Objects.equals(req.getPersonnelCode(), attendanceRequest.getPersonnelCode())
+								.filter(req -> Objects.equals(req.getPersonnelId(), attendanceRequest.getPersonnelId())
 										&& req.getAttendanceDate().isEqual(attendanceRequest.getAttendanceDate())).collect(Collectors.toList()));
 					}
 				}
@@ -258,26 +260,26 @@ public class ResparkAttendanceService {
 		int index = 0;
 		Map<String, Object> personnelAndDatesParameters = new HashMap<>();
 
-		Long personnelCode = null;
+		Long personnelId = null;
 		List<LocalDate> attendanceDates = new ArrayList<>();
 		String personnelParam = null;
 		String dateParam = null;
 		for (int i = 0; i < regularizationRequests.size(); i++) {
 			AttendanceRequestsDTO attendanceRequest = regularizationRequests.get(i);
-			Long currentCode = attendanceRequest.getPersonnelCode();
+			Long currentCode = attendanceRequest.getPersonnelId();
 
-			// First iteration or new personnelCode detected
-			if (i == 0 || !currentCode.equals(personnelCode)) {
+			// First iteration or new personnelId detected
+			if (i == 0 || !currentCode.equals(personnelId)) {
 				// Save the previous personnel data before switching to a new one
 				if (i > 0) {
-					personnelAndDatesConditions.add("(p.personnelCode = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
-					personnelAndDatesParameters.put(personnelParam, personnelCode);
+					personnelAndDatesConditions.add("(p.personnelId = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
+					personnelAndDatesParameters.put(personnelParam, personnelId);
 					personnelAndDatesParameters.put(dateParam, new ArrayList<>(attendanceDates));
 				}
 
 				// Initialize new personnel tracking
-				personnelCode = currentCode;
-				personnelParam = "personnelCode" + index;
+				personnelId = currentCode;
+				personnelParam = "personnelId" + index;
 				dateParam = "attendanceDates" + index;
 				attendanceDates = new ArrayList<>();
 				index++;
@@ -291,9 +293,9 @@ public class ResparkAttendanceService {
 		}
 
 		//Save the last personnel's data
-		if (personnelCode != null) {
-			personnelAndDatesConditions.add("(p.personnelCode = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
-			personnelAndDatesParameters.put(personnelParam, personnelCode);
+		if (personnelId != null) {
+			personnelAndDatesConditions.add("(p.personnelId = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
+			personnelAndDatesParameters.put(personnelParam, personnelId);
 			personnelAndDatesParameters.put(dateParam, attendanceDates);
 		}
 
@@ -337,7 +339,7 @@ public class ResparkAttendanceService {
 			individualPunch.setCurrentStatus(personnelAttendance.getCurrentStatus());
 			individualPunch.setUploadSource(personnelAttendance.getUploadSource());
 			individualPunch.setAttendanceDate(personnelAttendance.getAttendanceDate());
-			individualPunch.setPersonnelCode(personnelAttendance.getPersonnelCode());
+			individualPunch.setPersonnelId(personnelAttendance.getPersonnelId());
 		}
 		return individualPunch;
 	}
@@ -422,6 +424,13 @@ public class ResparkAttendanceService {
 				tenantStoreDTO.setPayrollLockedUpToDate(storeDetails.getPayrollLockedUpToDate());
 				tenantStoreDTO.setPenaltyAbsentDays(storeDetails.getTenantCompanyMapping().getPenaltyAbsentDays());
 				tenantStoreDTO.setIsPaidLeaveApplicable(storeDetails.getTenantCompanyMapping().getIsPaidLeaveApplicable());
+				tenantStoreDTO.setStoreName(storeDetails.getStoreName());
+
+				Optional<com.relfor.pcs.payroll.entity.StoreProfileConfig> profileConfigOptional = storeProfileConfigRepository.findByTenantIdAndStoreId(tenantId, storeId);
+				if (profileConfigOptional.isPresent()) {
+					tenantStoreDTO.setCompanyName(profileConfigOptional.get().getCompanyName());
+					tenantStoreDTO.setAddress(profileConfigOptional.get().getAddress());
+				}
 
 				responseModel.setData(tenantStoreDTO);
 			}

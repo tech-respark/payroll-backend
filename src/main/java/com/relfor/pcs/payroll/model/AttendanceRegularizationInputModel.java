@@ -6,10 +6,13 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class AttendanceRegularizationInputModel {
 	private Long tenantId;
 	private Long storeId;
-	private Long personnelCode;
+	@JsonAlias({"personnelCode", "personnelId"})
+	private Long personnelId;
 	@JsonFormat(pattern = "yyyy-MM-dd")
 	private LocalDate fromDate;
 	@JsonFormat(pattern = "yyyy-MM-dd")
@@ -32,12 +35,12 @@ public class AttendanceRegularizationInputModel {
 		this.storeId = storeId;
 	}
 
-	public Long getPersonnelCode() {
-		return personnelCode;
+	public Long getPersonnelId() {
+		return personnelId;
 	}
 
-	public void setPersonnelCode(Long personnelCode) {
-		this.personnelCode = personnelCode;
+	public void setPersonnelId(Long personnelId) {
+		this.personnelId = personnelId;
 	}
 
 	public List<IndividualPunches> getIndividualPunchesList() {

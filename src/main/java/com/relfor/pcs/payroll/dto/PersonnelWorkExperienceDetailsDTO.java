@@ -2,9 +2,12 @@ package com.relfor.pcs.payroll.dto;
 
 import java.time.LocalDate;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class PersonnelWorkExperienceDetailsDTO {
 	private Long id;
-	private Long personnelCode;
+	@JsonAlias({"personnelCode", "personnelId"})
+	private Long personnelId;
 	private String companyName;
 	private String designation;
 	private LocalDate fromDate;
@@ -50,19 +53,19 @@ public class PersonnelWorkExperienceDetailsDTO {
 		this.id = id;
 	}
 
-	public Long getPersonnelCode() {
-		return personnelCode;
+	public Long getPersonnelId() {
+		return personnelId;
 	}
 
-	public void setPersonnelCode(Long personnelCode) {
-		this.personnelCode = personnelCode;
+	public void setPersonnelId(Long personnelId) {
+		this.personnelId = personnelId;
 	}
 
 	@Override
 	public String toString() {
 		return "PersonnelWorkExperienceDetailsDTO{" +
 				"id=" + id +
-				", personnelCode=" + personnelCode +
+				", personnelId=" + personnelId +
 				", companyName='" + companyName + '\'' +
 				", designation='" + designation + '\'' +
 				", fromDate=" + fromDate +

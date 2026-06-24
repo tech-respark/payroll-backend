@@ -5,6 +5,7 @@ D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\controller\
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\controller\AuthController.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\controller\PayrollTriggerController.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\controller\ResparkAttendanceController.java
+D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\controller\RoleController.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\controller\SalaryCalculationController.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\controller\SStaffShiftsController.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\controller\StaffBookedSlotController.java
@@ -32,6 +33,8 @@ D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\dto\Personn
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\dto\PrintBillDetailsDTO.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\dto\ReportRequestDTO.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\dto\ResponseModel.java
+D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\dto\RoleAssignRequest.java
+D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\dto\RoleCreateRequest.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\dto\SalaryComponentDTO.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\dto\SalaryComponentResponseDTO.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\dto\SalaryComponentsDTO.java
@@ -97,12 +100,14 @@ D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\PersonnelDetailsRepository.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\PersonnelPayslipHistoryRepository.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\PersonnelSalaryComponentsRepository.java
+D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\RoleRepository.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\SalaryComponentDefinitionsRepository.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\SShiftsSlotsRepository.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\SStaffShiftsRepository.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\StaffBookedRepository.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\StaffBreakTimeRepository.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\StoreDetailsRepository.java
+D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\StoreStaffRoleRepository.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\TenantCompanyMappingRepository.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\repository\TerminalDetailsRepository.java
 D:\Payroll-mgmt\payroll-service\src\main\java\com\relfor\pcs\payroll\scheduler\AttendanceSchedulerService.java

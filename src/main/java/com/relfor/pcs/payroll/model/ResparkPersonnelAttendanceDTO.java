@@ -3,11 +3,14 @@ package com.relfor.pcs.payroll.model;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 public class ResparkPersonnelAttendanceDTO {
     private Long tenantId;
     private Long storeId;
     private String applicationName;
-    private Long personnelCode;
+    @JsonAlias({"personnelCode", "personnelId"})
+	private Long personnelId;
     private String personnelName;
     private String personnelGender;
     private String personnelDesignation;
@@ -25,8 +28,8 @@ public class ResparkPersonnelAttendanceDTO {
     public String getApplicationName() { return applicationName; }
     public void setApplicationName(String applicationName) { this.applicationName = applicationName; }
 
-    public Long getPersonnelCode() { return personnelCode; }
-    public void setPersonnelCode(Long personnelCode) { this.personnelCode = personnelCode; }
+    public Long getPersonnelId() { return personnelId; }
+    public void setPersonnelId(Long personnelId) { this.personnelId = personnelId; }
 
     public String getPersonnelName() { return personnelName; }
     public void setPersonnelName(String personnelName) { this.personnelName = personnelName; }

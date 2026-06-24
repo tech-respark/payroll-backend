@@ -1,6 +1,7 @@
 package com.relfor.pcs.payroll.model;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonAlias;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -14,8 +15,10 @@ public class InOutHistoryInputModel {
 	@JsonFormat(pattern = "yyyy-MM-dd")
 	private LocalDate toDate;
 	private String currentStatus;
-	private Long personnelCode;
-	private List<Long> personnelCodes;
+	@JsonAlias({"personnelCode", "personnelId"})
+	private Long personnelId;
+	@JsonAlias({"personnelCodes", "personnelIds"})
+	private List<Long> personnelIds;
 	private String sortField;
 	private String sortOrder;
 	private String uploadSource;
@@ -61,12 +64,12 @@ public class InOutHistoryInputModel {
 		this.toDate = toDate;
 	}
 
-	public List<Long> getPersonnelCodes() {
-		return personnelCodes;
+	public List<Long> getPersonnelIds() {
+		return personnelIds;
 	}
 
-	public void setPersonnelCodes(List<Long> personnelCodes) {
-		this.personnelCodes = personnelCodes;
+	public void setPersonnelIds(List<Long> personnelIds) {
+		this.personnelIds = personnelIds;
 	}
 
 	public String getCurrentStatus() {
@@ -101,12 +104,12 @@ public class InOutHistoryInputModel {
 		this.sortField = sortField;
 	}
 
-	public Long getPersonnelCode() {
-		return personnelCode;
+	public Long getPersonnelId() {
+		return personnelId;
 	}
 
-	public void setPersonnelCode(Long personnelCode) {
-		this.personnelCode = personnelCode;
+	public void setPersonnelId(Long personnelId) {
+		this.personnelId = personnelId;
 	}
 
 	public String getUploadSource() {

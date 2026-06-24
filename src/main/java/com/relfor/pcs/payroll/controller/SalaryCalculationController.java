@@ -10,6 +10,7 @@ import com.relfor.pcs.payroll.service.PayslipExcelGenerationService;
 import com.relfor.pcs.payroll.service.SalaryCalculation;
 import com.relfor.pcs.payroll.service.VelocityService;
 import com.relfor.pcs.payroll.util.ResponseHandler;
+import com.relfor.pcs.payroll.util.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,8 +43,10 @@ public class SalaryCalculationController {
     }
 
     @GetMapping("/personnelSalaryCalculation")
-    public ResponseEntity<?> personnelSalaryCalculation(@RequestParam Long personnelCode, @RequestParam String  month, @RequestParam Long  year, @RequestParam Long tenantId, @RequestParam Long storeId){
-        ResponseModel responseModel = salaryCalService.processSalary(personnelCode, month, year, tenantId, storeId);
+    public ResponseEntity<?> personnelSalaryCalculation(@RequestParam Long personnelId, @RequestParam String  month, @RequestParam Long  year, @RequestParam Long tenantId, @RequestParam Long storeId){
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
+        ResponseModel responseModel = salaryCalService.processSalary(personnelId, month, year, tenantId, storeId);
         return ResponseHandler.generateResponseModel(responseModel);
     }
 
@@ -54,13 +57,15 @@ public class SalaryCalculationController {
     }
 
     @GetMapping("/getPayslipData")
-    public ResponseEntity<?> getPayslipData(@RequestParam Long personnelCode, @RequestParam String  month, @RequestParam Integer year){
-        ResponseModel responseModel = salaryCalService.getPayslipData(personnelCode, month, year);
+    public ResponseEntity<?> getPayslipData(@RequestParam Long personnelId, @RequestParam String  month, @RequestParam Integer year){
+        ResponseModel responseModel = salaryCalService.getPayslipData(personnelId, month, year);
         return ResponseHandler.generateResponseModel(responseModel);
     }
 
     @GetMapping("/salaryComponentDefinitions")
     public ResponseEntity<?> getSalaryComponentDefinitions(@RequestParam Long tenantId, @RequestParam Long  storeId){
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
         ResponseModel responseModel = salaryCalService.getSalaryComponentDefinitions(tenantId, storeId);
         return ResponseHandler.generateResponseModel(responseModel);
     }
@@ -78,14 +83,14 @@ public class SalaryCalculationController {
     }
 
     @GetMapping("/personnelSalaryComponents")
-    public ResponseEntity<?> getPersonnelSalaryComponents(@RequestParam Long personnelCode){
-        ResponseModel responseModel = salaryCalService.getPersonnelSalaryComponents(personnelCode);
+    public ResponseEntity<?> getPersonnelSalaryComponents(@RequestParam Long personnelId){
+        ResponseModel responseModel = salaryCalService.getPersonnelSalaryComponents(personnelId);
         return ResponseHandler.generateResponseModel(responseModel);
     }
 
     @GetMapping("/personnelSalaryComponentsForMonth")
-    public ResponseEntity<?> getPersonnelSalaryComponentsForMonth(@RequestParam Long personnelCode, @RequestParam String month, @RequestParam Integer year){
-        ResponseModel responseModel = salaryCalService.getPersonnelSalaryComponentsForMonth(personnelCode, month, year);
+    public ResponseEntity<?> getPersonnelSalaryComponentsForMonth(@RequestParam Long personnelId, @RequestParam String month, @RequestParam Integer year){
+        ResponseModel responseModel = salaryCalService.getPersonnelSalaryComponentsForMonth(personnelId, month, year);
         return ResponseHandler.generateResponseModel(responseModel);
     }
 
@@ -111,6 +116,8 @@ public class SalaryCalculationController {
                                                     Long storeId,
                                                     String month,
                                                     Integer year) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
         try {
             byte[] excelData = payslipExcelGenerationService.generateExcelOfPayslip(tenantId, storeId, month, year);
             HttpHeaders responseHeaders = new HttpHeaders();

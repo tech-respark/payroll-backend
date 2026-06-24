@@ -16,7 +16,6 @@ public class PersonnelDetails extends BaseEntity{
 	@GeneratedValue(strategy = GenerationType.AUTO, generator = "increment")
 	@GenericGenerator(name = "increment", strategy = "increment")
 	private Long id;
-	private Long personnelCode;
 	private Long tenantCompanyMappingId;
 	@Column(length = 50)
 	private String firstName;
@@ -235,14 +234,6 @@ public class PersonnelDetails extends BaseEntity{
 
 	public void setId(Long id) {
 		this.id = id;
-	}
-
-	public Long getPersonnelCode() {
-		return personnelCode;
-	}
-
-	public void setPersonnelCode(Long personnelCode) {
-		this.personnelCode = personnelCode;
 	}
 
 	public String getPersonnelMobileNumber() {

@@ -1,6 +1,7 @@
 package com.relfor.pcs.payroll.security;
 
 import com.relfor.pcs.payroll.entity.PersonnelDetails;
+import com.relfor.pcs.payroll.entity.Role;
 import com.relfor.pcs.payroll.repository.PersonnelDetailsRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
@@ -28,11 +29,11 @@ public class CustomUserDetailsService implements UserDetailsService {
         PersonnelDetails personnel = personnelRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
         
-        // Fetch assigned roles for this staff based on their personnelCode
-        List<com.relfor.pcs.payroll.entity.Role> roles = storeStaffRoleRepository.findActiveRolesByStaffId(personnel.getPersonnelCode());
+        // Fetch assigned roles for this staff based on their personnelId
+        List<Role> roles = storeStaffRoleRepository.findActiveRolesByStaffId(personnel.getId());
         List<GrantedAuthority> authorities = new ArrayList<>();
         
-        for (com.relfor.pcs.payroll.entity.Role role : roles) {
+        for (Role role : roles) {
             // Add the role itself
             if (role.getName() != null) {
                 authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getName().toUpperCase().replace(" ", "_")));

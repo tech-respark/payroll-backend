@@ -28,7 +28,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(request -> {
                     var config = new org.springframework.web.cors.CorsConfiguration();
-                    config.setAllowedOrigins(java.util.List.of("http://127.0.0.1:5174", "http://localhost:5174", "https://respark.gorespark.in"));
+                    config.setAllowedOrigins(java.util.List.of("http://127.0.0.1:5174", "http://localhost:5174", "https://respark.gorespark.in", "http://192.168.11.19:5174"));
                     config.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     config.setAllowedHeaders(java.util.List.of("*"));
                     config.setAllowCredentials(true);
