@@ -9,8 +9,8 @@ import java.util.List;
 public interface MonthWiseAttendanceSummaryRepository extends JpaRepository<MonthWiseAttendanceSummary, Long> {
 
     @Query(value = "SELECT * FROM month_wise_attendance_summary pd \n" +
-            "WHERE personnel_id = :personnelId and salary_month = :month and salary_year = :year ;", nativeQuery = true)
-    MonthWiseAttendanceSummary getSummaryByPersonnelIdAndMonth(Long personnelId, String month, Long year);
+            "WHERE staff_id = :staffId and salary_month = :month and salary_year = :year ;", nativeQuery = true)
+    MonthWiseAttendanceSummary getSummaryByStaffIdAndMonth(Long staffId, String month, Long year);
 
     @Query(value = "SELECT * "
             + "FROM month_wise_attendance_summary mwas "

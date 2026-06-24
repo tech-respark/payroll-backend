@@ -24,6 +24,6 @@ public interface PersonnelDetailsRepository extends JpaRepository<PersonnelDetai
 	List<PersonnelDetails> getPersonnelByEmployeeCode(Long tenantId, List<String> employeeCodeList);
 
 	@Query(value = "SELECT pd.working_hours FROM personnel_details pd \n" +
-			"WHERE pd.id = :personnelId", nativeQuery = true)
-	Float getPersonnelWorkingHours(Long personnelId);
+			"WHERE pd.id = :staffId", nativeQuery = true)
+	Float getPersonnelWorkingHours(Long staffId);
 }

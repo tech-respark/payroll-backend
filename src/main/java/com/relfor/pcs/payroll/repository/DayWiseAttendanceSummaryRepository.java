@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface DayWiseAttendanceSummaryRepository extends JpaRepository<DayWiseAttendanceSummary, Long> {
-	@Query(value = "SELECT dwas.personnel_id AS personnelId, pd.designation AS personnelDesignation,\n" +
+	@Query(value = "SELECT dwas.staff_id AS staffId, pd.designation AS personnelDesignation,\n" +
 			"pd.gender AS personnelGender, pd.personnel_mobile_number AS personnelMobileNumber,\n" +
 			"CONCAT(COALESCE(pd.first_name, ''), ' ', COALESCE(pd.last_name, '')) AS personnelName,\n" +
 			"dwas.attendance_date AS attendanceDate, dwas.attendance_day_of_week AS attendanceDayOfWeek,\n" +
@@ -23,30 +23,30 @@ public interface DayWiseAttendanceSummaryRepository extends JpaRepository<DayWis
 			"CASE WHEN :isActualTimeBasedAttendance = false THEN 0 ELSE dwas.total_break_time_inaday END AS totalBreakTimeInADay\n" +
 			"FROM day_wise_attendance_summary dwas \n" +
 			"JOIN personnel_details pd \n" +
-			"ON pd.id = dwas.personnel_id\n" +
+			"ON pd.id = dwas.staff_id\n" +
 			"WHERE dwas.attendance_date BETWEEN :fromDate AND :toDate\n" +
 			"AND dwas.tenant_id = :tenantId AND dwas.store_id = :storeId AND dwas.application_name = :applicationName \n" +
-			"GROUP BY dwas.personnel_id, dwas.attendance_date, dwas.attendance_day_of_week,\n" +
+			"GROUP BY dwas.staff_id, dwas.attendance_date, dwas.attendance_day_of_week,\n" +
 			"dwas.terminal_serial_number, pd.designation, pd.gender, pd.personnel_mobile_number,\n" +
 			"COALESCE(pd.first_name, ''), COALESCE(pd.last_name, '')\n" +
-			"ORDER BY dwas.personnel_id, dwas.attendance_date ASC; ", nativeQuery = true)
+			"ORDER BY dwas.staff_id, dwas.attendance_date ASC; ", nativeQuery = true)
 	List<PersonnelAttendanceSummaryProjection> getAttendanceSummaryBetweenDates(LocalDate fromDate, LocalDate toDate,
 																				Long tenantId, Long storeId, String applicationName,
 																				boolean isActualTimeBasedAttendance);
 
-	Optional<DayWiseAttendanceSummary> findByTenantIdAndStoreIdAndPersonnelIdAndApplicationNameAndAttendanceDate(Long tenantId,
+	Optional<DayWiseAttendanceSummary> findByTenantIdAndStoreIdAndStaffIdAndApplicationNameAndAttendanceDate(Long tenantId,
 																												   Long storeId,
-																												   Long personnelId,
+																												   Long staffId,
 																												   String applicationName,
 																												   LocalDate attendanceDate);
 
 	@Query("SELECT dwas FROM DayWiseAttendanceSummary dwas " +
-			"WHERE dwas.personnelId IN :personnelIds " +
+			"WHERE dwas.staffId IN :staffIds " +
 			"AND dwas.attendanceDate IN :attendanceDates " +
 			"AND dwas.tenantId = :tenantId " +
 			"AND dwas.storeId = :storeId")
 	List<DayWiseAttendanceSummary> findExistingDayWiseAttendanceSummaries(
-			@Param("personnelIds") List<Long> personnelIds,
+			@Param("staffIds") List<Long> staffIds,
 			@Param("attendanceDates") List<LocalDate> attendanceDates,
 			@Param("tenantId") Long tenantId,
 			@Param("storeId") Long storeId
@@ -56,7 +56,7 @@ public interface DayWiseAttendanceSummaryRepository extends JpaRepository<DayWis
 			"d.tenant_id as tenantId,\n" +
 			"d.store_id as storeId,\n" +
 			"d.application_name as applicationName,\n" +
-			"d.personnel_id as personnelId,\n" +
+			"d.staff_id as staffId,\n" +
 			"SUM(CASE WHEN d.is_weekly_off = TRUE THEN 1 ELSE 0 END) AS totalWeeklyOffs,\n" +
 			"SUM(CASE WHEN d.working_hours_as_per_roster IS NOT NULL AND d.working_hours_as_per_roster > 0 THEN 1 ELSE 0 END) AS totalWorkingDays,\n" +
 			"SUM(CASE WHEN d.is_on_leave = TRUE THEN 1 ELSE 0 END) AS totalPaidLeaves,\n" +
@@ -75,8 +75,8 @@ public interface DayWiseAttendanceSummaryRepository extends JpaRepository<DayWis
 			"WHERE d.tenant_id = :tenantId AND d.store_id = :storeId\n" +
 			"AND d.attendance_date BETWEEN :fromDate AND :toDate\n" +
 			"AND d.application_name = :applicationName\n" +
-			"GROUP BY d.tenant_id, d.store_id, d.application_name, d.personnel_id;", nativeQuery = true)
+			"GROUP BY d.tenant_id, d.store_id, d.application_name, d.staff_id;", nativeQuery = true)
 	List<MonthlySummaryCalculationProjection> calculateMonthlySummary(Long tenantId, Long storeId, String applicationName, LocalDate fromDate, LocalDate toDate);
 
-	Optional<DayWiseAttendanceSummary> findByPersonnelIdAndAttendanceDate(Long personnelId, LocalDate attendanceDate);
+	Optional<DayWiseAttendanceSummary> findByStaffIdAndAttendanceDate(Long staffId, LocalDate attendanceDate);
 }

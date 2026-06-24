@@ -8,6 +8,6 @@ import java.util.Optional;
 
 public interface PersonnelPayslipHistoryRepository extends JpaRepository<PersonnelPayslipHistory, Long> {
 
-    Optional<PersonnelPayslipHistory> findByPersonnelIdAndSalaryMonthAndSalaryYear(Long personnelId, String salaryMonth, Integer salaryYear);
+    Optional<PersonnelPayslipHistory> findByStaffIdAndSalaryMonthAndSalaryYear(Long staffId, String salaryMonth, Integer salaryYear);
     List<PersonnelPayslipHistory> findByTenantIdAndStoreIdAndSalaryMonthAndSalaryYear(Long tenantId, Long storeId, String salaryMonth, Integer salaryYear);
 }

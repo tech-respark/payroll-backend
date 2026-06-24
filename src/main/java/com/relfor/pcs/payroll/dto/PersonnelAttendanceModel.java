@@ -12,8 +12,7 @@ public class PersonnelAttendanceModel {
 	private LocalDate fromDate;
 	private LocalDate toDate;
 	private String applicationName;
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+	private Long staffId;
 	private String personnelDesignation;
 	private String personnelName;
 	private String personnelGender;
@@ -31,12 +30,12 @@ public class PersonnelAttendanceModel {
 		this.dayWiseAttendanceList = dayWiseAttendanceList;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public String getApplicationName() {
@@ -143,7 +142,7 @@ public class PersonnelAttendanceModel {
 				", fromDate=" + fromDate +
 				", toDate=" + toDate +
 				", applicationName='" + applicationName + '\'' +
-				", personnelId=" + personnelId +
+				", staffId=" + staffId +
 				", personnelDesignation='" + personnelDesignation + '\'' +
 				", personnelName='" + personnelName + '\'' +
 				", personnelGender='" + personnelGender + '\'' +

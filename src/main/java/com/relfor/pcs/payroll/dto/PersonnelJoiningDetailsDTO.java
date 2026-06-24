@@ -3,8 +3,7 @@ package com.relfor.pcs.payroll.dto;
 import com.fasterxml.jackson.annotation.JsonAlias;
 
 public class PersonnelJoiningDetailsDTO {
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+	private Long staffId;
 	private String employeeCode;
 	private Long reportingTo;
 	private Long storeId;
@@ -51,18 +50,18 @@ public class PersonnelJoiningDetailsDTO {
 		this.workingHours = workingHours;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	@Override
 	public String toString() {
 		return "PersonnelJoiningDetailsDTO{" +
-				"personnelId=" + personnelId +
+				"staffId=" + staffId +
 				", employeeCode='" + employeeCode + '\'' +
 				", reportingTo=" + reportingTo +
 				", storeId=" + storeId +

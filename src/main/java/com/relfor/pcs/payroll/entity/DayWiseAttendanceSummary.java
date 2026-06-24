@@ -15,7 +15,7 @@ public class DayWiseAttendanceSummary extends BaseEntity{
 	private Long storeId;
 	private String applicationName;
 	private String terminalSerialNumber;
-	private Long personnelId;
+	private Long staffId;
 	private LocalDate attendanceDate;
 	private String attendanceDayOfWeek;
 	private BigDecimal totalHoursWorkedInADay;
@@ -67,12 +67,12 @@ public class DayWiseAttendanceSummary extends BaseEntity{
 		this.terminalSerialNumber = terminalSerialNumber;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public LocalDate getAttendanceDate() {

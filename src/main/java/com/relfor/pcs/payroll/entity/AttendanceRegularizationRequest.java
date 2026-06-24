@@ -19,8 +19,8 @@ public class AttendanceRegularizationRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "personnel_id", nullable = false)
-    private Long personnelId;
+    @Column(name = "staff_id", nullable = false)
+    private Long staffId;
 
     @Column(name = "date_to_regularize", nullable = false)
     private LocalDate dateToRegularize;

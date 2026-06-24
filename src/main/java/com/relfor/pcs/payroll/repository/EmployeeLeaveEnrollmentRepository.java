@@ -7,5 +7,5 @@ import java.util.Optional;
 
 @Repository
 public interface EmployeeLeaveEnrollmentRepository extends JpaRepository<EmployeeLeaveEnrollment, Long> {
-    Optional<EmployeeLeaveEnrollment> findByPersonnelId(Long personnelId);
+    Optional<EmployeeLeaveEnrollment> findByStaffId(Long staffId);
 }

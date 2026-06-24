@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -20,24 +19,21 @@ public class LeaveManagementService {
     private final EmployeeLeaveEnrollmentRepository enrollmentRepository;
     private final LeavePlanRuleRepository ruleRepository;
     private final PersonnelDetailsRepository personnelDetailsRepository;
-    // Assume an interface/bean exists to trigger async attendance update
-    // private final AsyncAttendanceSummaryCalculation asyncAttendanceUpdater;
+    private final LeaveApplicationLogRepository leaveApplicationLogRepository;
+    private final AsyncLeaveAttendanceSyncService asyncAttendanceUpdater;
 
     @Transactional
-    public LeaveApplication applyForLeave(Long personnelId, LeaveType type, LocalDate startDate, LocalDate endDate, String reason, String attachmentUrl) {
-        // GUARD 1: Date Logic
+    public LeaveApplication applyForLeave(Long staffId, LeaveType type, LocalDate startDate, LocalDate endDate, String reason, String attachmentUrl) {
         if (endDate.isBefore(startDate)) {
             throw new IllegalArgumentException("End date cannot be before start date.");
         }
 
-        // GUARD 2: Overlap Prevention
-        long overlaps = applicationRepository.countOverlappingLeaves(personnelId, startDate, endDate);
+        long overlaps = applicationRepository.countOverlappingLeaves(staffId, startDate, endDate);
         if (overlaps > 0) {
             throw new IllegalStateException("You already have a pending or approved leave during this period.");
         }
 
-        // GUARD 3: Weekly Off Deduction Filter
-        PersonnelDetails personnel = personnelDetailsRepository.findById(personnelId)
+        PersonnelDetails personnel = personnelDetailsRepository.findById(staffId)
                 .orElseThrow(() -> new IllegalArgumentException("Personnel not found"));
         
         String weeklyOffStr = personnel.getWeeklyOff();
@@ -45,7 +41,7 @@ public class LeaveManagementService {
         
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             if (weeklyOffStr != null && date.getDayOfWeek().name().equalsIgnoreCase(weeklyOffStr)) {
-                continue; // Skip counting the weekly off day
+                continue; 
             }
             daysRequested++;
         }
@@ -56,41 +52,36 @@ public class LeaveManagementService {
         
         BigDecimal requestedDuration = BigDecimal.valueOf(daysRequested);
 
-        // GUARD 4: Policy & Balance Checks
-        Optional<EmployeeLeaveEnrollment> enrollment = enrollmentRepository.findByPersonnelId(personnelId);
+        Optional<EmployeeLeaveEnrollment> enrollment = enrollmentRepository.findByStaffId(staffId);
         if (enrollment.isEmpty()) {
             throw new IllegalStateException("Employee is not enrolled in any leave plan.");
         }
         
         LeavePlan plan = enrollment.get().getLeavePlan();
-        LeavePlanRule rule = ruleRepository.findAll().stream() // Simplified fetching
+        LeavePlanRule rule = ruleRepository.findAll().stream() 
                 .filter(r -> r.getLeavePlan().getId().equals(plan.getId()) && r.getLeaveType().getId().equals(type.getId()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("This leave type is not permitted under your current plan."));
 
-        // Consecutive Day Limit Check
         if (rule.getMaxConsecutiveDays() != null && daysRequested > rule.getMaxConsecutiveDays()) {
             throw new IllegalArgumentException("Cannot exceed " + rule.getMaxConsecutiveDays() + " consecutive days for this leave type.");
         }
 
-        // Proof/Attachment Check
         if (rule.getProofRequiredAfterDays() != null && daysRequested > rule.getProofRequiredAfterDays()) {
             if (attachmentUrl == null || attachmentUrl.isBlank()) {
                 throw new IllegalArgumentException("A medical certificate or proof document is required for leaves longer than " + rule.getProofRequiredAfterDays() + " days.");
             }
         }
 
-        // Balance Check
         if (!rule.isAllowNegativeBalance()) {
-            BigDecimal currentBalance = ledgerService.getAvailableBalance(personnelId, type.getId(), LocalDate.now());
+            BigDecimal currentBalance = ledgerService.getAvailableBalance(staffId, type.getId(), LocalDate.now());
             if (currentBalance.compareTo(requestedDuration) < 0) {
                 throw new IllegalStateException("Insufficient leave balance. You have " + currentBalance + " days remaining.");
             }
         }
 
-        // Create Application
         LeaveApplication application = LeaveApplication.builder()
-                .personnelId(personnelId)
+                .staffId(staffId)
                 .leaveType(type)
                 .startDate(startDate)
                 .endDate(endDate)
@@ -100,7 +91,11 @@ public class LeaveManagementService {
                 .status(LeaveApplication.ApplicationStatus.PENDING)
                 .build();
 
-        return applicationRepository.save(application);
+        application = applicationRepository.save(application);
+
+        logAction(application, LeaveApplicationLog.LogAction.APPLIED, staffId, reason);
+
+        return application;
     }
 
     @Transactional
@@ -116,17 +111,18 @@ public class LeaveManagementService {
         application.setManagerRemarks(remarks);
         applicationRepository.save(application);
 
-        // Deduct from Ledger immediately
         ledgerService.recordTransaction(
-                application.getPersonnelId(),
+                application.getStaffId(),
                 application.getLeaveType(),
-                application.getRequestedDays().negate(), // Negative value for Debit
+                application.getRequestedDays().negate(), 
                 LeaveTransactionLedger.TransactionType.DEBIT_LEAVE,
                 application,
                 application.getStartDate()
         );
+
+        logAction(application, LeaveApplicationLog.LogAction.APPROVED, managerId, remarks);
         
-        // Trigger async sync with DayWiseAttendanceSummary here
+        asyncAttendanceUpdater.syncApprovedLeaveToAttendance(application);
     }
 
     @Transactional
@@ -145,34 +141,68 @@ public class LeaveManagementService {
         application.setStatus(LeaveApplication.ApplicationStatus.REJECTED);
         application.setManagerRemarks(remarks);
         applicationRepository.save(application);
+
+        logAction(application, LeaveApplicationLog.LogAction.REJECTED, managerId, remarks);
     }
 
     @Transactional
-    public void cancelLeave(Long applicationId) {
+    public void requestCancellation(Long applicationId, Long staffId, String remarks) {
         LeaveApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new IllegalArgumentException("Application not found"));
+
+        if (!application.getStaffId().equals(staffId)) {
+            throw new IllegalStateException("You can only cancel your own leave applications.");
+        }
 
         if (application.getStatus() == LeaveApplication.ApplicationStatus.CANCELLED || application.getStatus() == LeaveApplication.ApplicationStatus.REJECTED) {
             throw new IllegalStateException("Application is already cancelled or rejected.");
         }
 
-        boolean wasApproved = application.getStatus() == LeaveApplication.ApplicationStatus.APPROVED;
+        if (application.getStatus() == LeaveApplication.ApplicationStatus.PENDING) {
+            application.setStatus(LeaveApplication.ApplicationStatus.CANCELLED);
+            applicationRepository.save(application);
+            logAction(application, LeaveApplicationLog.LogAction.CANCELLED, staffId, "Self cancelled before approval: " + remarks);
+        } else if (application.getStatus() == LeaveApplication.ApplicationStatus.APPROVED) {
+            application.setStatus(LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED);
+            applicationRepository.save(application);
+            logAction(application, LeaveApplicationLog.LogAction.CANCELLATION_REQUESTED, staffId, remarks);
+        }
+    }
+
+    @Transactional
+    public void approveCancellation(Long applicationId, Long managerId, String remarks) {
+        LeaveApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Application not found"));
+
+        if (application.getStatus() != LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED) {
+            throw new IllegalStateException("Only CANCELLATION_REQUESTED leaves can be approved for cancellation.");
+        }
 
         application.setStatus(LeaveApplication.ApplicationStatus.CANCELLED);
+        application.setManagerRemarks(remarks);
         applicationRepository.save(application);
 
-        if (wasApproved) {
-            // Refund the ledger
-            ledgerService.recordTransaction(
-                    application.getPersonnelId(),
-                    application.getLeaveType(),
-                    application.getRequestedDays(), // Positive value for Refund
-                    LeaveTransactionLedger.TransactionType.ADJUSTMENT,
-                    application,
-                    LocalDate.now()
-            );
-            
-            // Trigger async revert of attendance data for these dates
-        }
+        ledgerService.recordTransaction(
+                application.getStaffId(),
+                application.getLeaveType(),
+                application.getRequestedDays(), 
+                LeaveTransactionLedger.TransactionType.ADJUSTMENT,
+                application,
+                LocalDate.now()
+        );
+
+        logAction(application, LeaveApplicationLog.LogAction.CANCELLED, managerId, "Cancellation Approved: " + remarks);
+        
+        asyncAttendanceUpdater.revertCancelledLeaveFromAttendance(application);
+    }
+
+    private void logAction(LeaveApplication application, LeaveApplicationLog.LogAction action, Long actorId, String remarks) {
+        LeaveApplicationLog log = LeaveApplicationLog.builder()
+                .leaveApplication(application)
+                .action(action)
+                .actorId(actorId)
+                .remarks(remarks)
+                .build();
+        leaveApplicationLogRepository.save(log);
     }
 }

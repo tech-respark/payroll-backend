@@ -18,10 +18,10 @@ public interface LeaveTransactionLedgerRepository extends JpaRepository<LeaveTra
      * scanning thousands of rows for legacy personnel.
      */
     @Query("SELECT COALESCE(SUM(l.transactionValue), 0.0) FROM LeaveTransactionLedger l " +
-           "WHERE l.personnelId = :personnelId " +
+           "WHERE l.staffId = :staffId " +
            "AND l.leaveType.id = :leaveTypeId " +
            "AND l.effectiveDate >= :yearStart")
-    BigDecimal calculateBalanceForYear(@Param("personnelId") Long personnelId, 
+    BigDecimal calculateBalanceForYear(@Param("staffId") Long staffId, 
                                        @Param("leaveTypeId") Long leaveTypeId, 
                                        @Param("yearStart") LocalDate yearStart);
 }

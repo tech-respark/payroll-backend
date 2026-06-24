@@ -156,7 +156,7 @@ public class PayrollTriggerService {
 						existingMonthWiseSummaryList.stream()
 								.filter(s -> Objects.equals(s.getTenantId(), summary.getTenantId())
 										&& Objects.equals(s.getStoreId(), summary.getStoreId())
-										&& Objects.equals(s.getPersonnelId(), summary.getPersonnelId()))
+										&& Objects.equals(s.getStaffId(), summary.getStaffId()))
 								.findFirst();
 
 				MonthWiseAttendanceSummary monthWiseAttendanceSummary =
@@ -210,11 +210,11 @@ public class PayrollTriggerService {
 					}
 				}
 				if (!skipCurrentStore) {
-					PersonnelPayslipHistory personnelPayslipHistory = salaryCalculationService.calculateSalaryComponents(monthWiseAttendanceSummary, salaryComponentDefinitionsList, monthWiseAttendanceSummary.getPersonnelId(), storeDetailsList);
+					PersonnelPayslipHistory personnelPayslipHistory = salaryCalculationService.calculateSalaryComponents(monthWiseAttendanceSummary, salaryComponentDefinitionsList, monthWiseAttendanceSummary.getStaffId(), storeDetailsList);
 					if (personnelPayslipHistory != null) {
-						outputList.add(String.format("Processed salary calculation for store: %d and staff: %d", currentStoreId, monthWiseAttendanceSummary.getPersonnelId()));
+						outputList.add(String.format("Processed salary calculation for store: %d and staff: %d", currentStoreId, monthWiseAttendanceSummary.getStaffId()));
 					} else {
-						outputList.add(String.format("Salary details not found for store: %d and staff: %d", currentStoreId, monthWiseAttendanceSummary.getPersonnelId()));
+						outputList.add(String.format("Salary details not found for store: %d and staff: %d", currentStoreId, monthWiseAttendanceSummary.getStaffId()));
 					}
 				}
 			}

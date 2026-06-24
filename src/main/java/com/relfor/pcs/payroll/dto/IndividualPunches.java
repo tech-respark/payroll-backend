@@ -24,8 +24,7 @@ public class IndividualPunches {
 	private Instant modifiedTimestamp;
 	private Long modifiedBy;
 	private Integer punchDateOffset;
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+	private Long staffId;
 	private LocalDate attendanceDate;
 	private String uploadSource;
 	private String remark;
@@ -134,12 +133,12 @@ public class IndividualPunches {
 		this.attendanceDate = attendanceDate;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public String getRemark() {
@@ -172,7 +171,7 @@ public class IndividualPunches {
 				", modifiedTimestamp=" + modifiedTimestamp +
 				", modifiedBy=" + modifiedBy +
 				", punchDateOffset=" + punchDateOffset +
-				", personnelId=" + personnelId +
+				", staffId=" + staffId +
 				", attendanceDate=" + attendanceDate +
 				", uploadSource='" + uploadSource + '\'' +
 				", remark='" + remark + '\'' +

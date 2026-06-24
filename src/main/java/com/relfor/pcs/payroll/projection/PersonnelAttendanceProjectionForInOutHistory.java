@@ -7,7 +7,7 @@ public interface PersonnelAttendanceProjectionForInOutHistory {
 	Long getTenantId();
 	Long getStoreId();
 	String getApplicationName();
-	Long getPersonnelId();
+	Long getStaffId();
 	String getPersonnelName();
 	String getPersonnelDesignation();
 	String getPersonnelGender();

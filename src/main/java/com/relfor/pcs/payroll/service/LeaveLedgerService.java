@@ -20,22 +20,22 @@ public class LeaveLedgerService {
     /**
      * Immutable read-only view of current balance.
      */
-    public BigDecimal getAvailableBalance(Long personnelId, Long leaveTypeId, LocalDate asOfDate) {
+    public BigDecimal getAvailableBalance(Long staffId, Long leaveTypeId, LocalDate asOfDate) {
         // Find the start of the year based on effective rules (assuming Jan 1st for now)
         LocalDate yearStart = LocalDate.of(asOfDate.getYear(), 1, 1);
-        return ledgerRepository.calculateBalanceForYear(personnelId, leaveTypeId, yearStart);
+        return ledgerRepository.calculateBalanceForYear(staffId, leaveTypeId, yearStart);
     }
 
     /**
      * Immutable write operation. Never UPDATEs, only INSERTs.
      */
     @Transactional
-    public void recordTransaction(Long personnelId, LeaveType type, BigDecimal value, 
+    public void recordTransaction(Long staffId, LeaveType type, BigDecimal value, 
                                   LeaveTransactionLedger.TransactionType txnType, 
                                   LeaveApplication application, LocalDate effectiveDate) {
         
         LeaveTransactionLedger ledger = LeaveTransactionLedger.builder()
-                .personnelId(personnelId)
+                .staffId(staffId)
                 .leaveType(type)
                 .transactionValue(value)
                 .transactionType(txnType)

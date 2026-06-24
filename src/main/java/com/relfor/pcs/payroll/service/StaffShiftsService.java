@@ -1048,29 +1048,29 @@ public class StaffShiftsService {
 		List<Map<String, Object>> tmp = new ArrayList<Map<String, Object>>();
 		ObjectMapper objectMapper = new ObjectMapper();
 		try {
-			String query = "select s.personnel_id, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
+			String query = "select s.staff_id, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
 					"ROUND((TIMEDIFF(SUBSTRING(ss.slot, 7, 11), SUBSTRING(ss.slot, 1, 5)))/10000,2) AS hours, ss.shift_date as shiftDate " +
-					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
+					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
 					"where ss.tenant_id = " + tenantId +
 					" and ss.store_id = " + storeId +
 					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "'";
 
-			String query1 = "select s.personnel_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
+			String query1 = "select s.staff_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
 					"CONCAT(FLOOR((sum(productive_minutes))/60), '.', LPAD(MOD((sum(productive_minutes)), 60), 2, '0')) as productiveMinutes " +
-					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
+					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
 					"where ss.tenant_id = " + tenantId +
 					" and ss.store_id = " + storeId +
 					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "' group by ss.staff_id";
 
-			String query2 = "select s.personnel_id, round(sum(timediff(substring(ss.slot,7,11),substring(ss.slot,1,5)))/10000,2) as total_hours, ss.slot " +
-					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
+			String query2 = "select s.staff_id, round(sum(timediff(substring(ss.slot,7,11),substring(ss.slot,1,5)))/10000,2) as total_hours, ss.slot " +
+					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
 					"where ss.tenant_id = " + tenantId +
 					" and ss.store_id = " + storeId +
 					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "' " +
 					"and ss.on_leave = 0 and ss.weekly_off = 0 group by ss.staff_id";
 
-			String query3 = "select s.personnel_id, count(ss.on_leave) as leaves " +
-					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
+			String query3 = "select s.staff_id, count(ss.on_leave) as leaves " +
+					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
 					"where ss.tenant_id = " + tenantId +
 					" and ss.store_id = " + storeId +
 					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "' and ss.on_leave = 1 group by ss.staff_id";
@@ -1142,7 +1142,7 @@ public class StaffShiftsService {
 
 					PersonnelAttendanceModel personnelAttendanceModel = null;
 					if (!personnelAttendanceModelList.isEmpty()) {
-						Optional<PersonnelAttendanceModel> personnelAttendanceModelOptional = personnelAttendanceModelList.stream().filter(item -> StringUtils.equalsIgnoreCase(String.valueOf(r[0]), String.valueOf(item.getPersonnelId()))).findFirst();
+						Optional<PersonnelAttendanceModel> personnelAttendanceModelOptional = personnelAttendanceModelList.stream().filter(item -> StringUtils.equalsIgnoreCase(String.valueOf(r[0]), String.valueOf(item.getStaffId()))).findFirst();
 						if (personnelAttendanceModelOptional.isPresent()) {
 							personnelAttendanceModel = personnelAttendanceModelOptional.get();
 						}
@@ -1447,29 +1447,29 @@ public class StaffShiftsService {
 			java.sql.Date fromSql = java.sql.Date.valueOf(start);
 			java.sql.Date toSql = java.sql.Date.valueOf(end);
 
-			String query = "select s.personnel_id, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
+			String query = "select s.staff_id, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
 					"ROUND((TIMEDIFF(SUBSTRING(ss.slot, 7, 11), SUBSTRING(ss.slot, 1, 5)))/10000,2) AS hours, ss.shift_date as shiftDate " +
-					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
+					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate";
 
-			String query1 = "select s.personnel_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
+			String query1 = "select s.staff_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
 					"CONCAT(FLOOR((sum(productive_minutes))/60), '.', LPAD(MOD((sum(productive_minutes)), 60), 2, '0')) as productiveMinutes " +
-					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
+					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate group by ss.staff_id";
 
-			String query2 = "select s.personnel_id, round(sum(timediff(substring(ss.slot,7,11),substring(ss.slot,1,5)))/10000,2) as total_hours, ss.slot " +
-					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
+			String query2 = "select s.staff_id, round(sum(timediff(substring(ss.slot,7,11),substring(ss.slot,1,5)))/10000,2) as total_hours, ss.slot " +
+					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate " +
 					"and ss.on_leave = 0 and ss.weekly_off = 0 group by ss.staff_id";
 
-			String query3 = "select s.personnel_id, count(ss.on_leave) as leaves " +
-					"from personnel_details s join staff_shifts ss on s.personnel_id = ss.staff_id " +
+			String query3 = "select s.staff_id, count(ss.on_leave) as leaves " +
+					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate and ss.on_leave = 1 group by ss.staff_id";
@@ -1554,7 +1554,7 @@ public class StaffShiftsService {
 					PersonnelAttendanceModel personnelAttendanceModel = null;
 					if (!personnelAttendanceModelList.isEmpty()) {
 						Optional<PersonnelAttendanceModel> personnelAttendanceModelOptional = personnelAttendanceModelList.stream()
-								.filter(item -> StringUtils.equalsIgnoreCase(String.valueOf(r[0]), String.valueOf(item.getPersonnelId())))
+								.filter(item -> StringUtils.equalsIgnoreCase(String.valueOf(r[0]), String.valueOf(item.getStaffId())))
 								.findFirst();
 						if (personnelAttendanceModelOptional.isPresent()) {
 							personnelAttendanceModel = personnelAttendanceModelOptional.get();

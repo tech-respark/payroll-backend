@@ -16,13 +16,13 @@ public class AttendanceRegularizationService {
     private final AttendanceRegularizationRequestRepository requestRepository;
 
     @Transactional
-    public AttendanceRegularizationRequest requestRegularization(Long personnelId, LocalDate date, LocalTime inTime, LocalTime outTime, String reason) {
+    public AttendanceRegularizationRequest requestRegularization(Long staffId, LocalDate date, LocalTime inTime, LocalTime outTime, String reason) {
         if (date.isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("Cannot regularize a future date.");
         }
         
         AttendanceRegularizationRequest request = AttendanceRegularizationRequest.builder()
-                .personnelId(personnelId)
+                .staffId(staffId)
                 .dateToRegularize(date)
                 .requestedInTime(inTime)
                 .requestedOutTime(outTime)

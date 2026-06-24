@@ -16,7 +16,7 @@ public class PersonnelAttendance {
 	private Long storeId;
 	private String applicationName;
 	private String terminalSerialNumber;
-	private Long personnelId;
+	private Long staffId;
 	private LocalDate attendanceDate;
 	private String attendanceDayOfWeek;
 	private String punchEvent;
@@ -65,12 +65,12 @@ public class PersonnelAttendance {
 		this.attendanceDate = attendanceDate;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public Long getId() {
@@ -201,7 +201,7 @@ public class PersonnelAttendance {
 				", storeId=" + storeId +
 				", applicationName='" + applicationName + '\'' +
 				", terminalSerialNumber='" + terminalSerialNumber + '\'' +
-				", personnelId=" + personnelId +
+				", staffId=" + staffId +
 				", attendanceDate=" + attendanceDate +
 				", attendanceDayOfWeek='" + attendanceDayOfWeek + '\'' +
 				", punchEvent='" + punchEvent + '\'' +
@@ -225,7 +225,7 @@ public class PersonnelAttendance {
 				", tenantId=" + tenantId +
 				", storeId=" + storeId +
 				", applicationName='" + applicationName + '\'' +
-				", personnelId=" + personnelId +
+				", staffId=" + staffId +
 				", attendanceDate=" + attendanceDate +
 				", punchTimestamp=" + punchTimestamp +
 				", uploadSource='" + uploadSource + '\'' +

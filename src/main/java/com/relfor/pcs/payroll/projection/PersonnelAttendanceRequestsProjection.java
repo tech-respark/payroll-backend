@@ -8,7 +8,7 @@ public interface PersonnelAttendanceRequestsProjection {
 	Long getTenantId();
 	Long getStoreId();
 	String getApplicationName();
-	Long getPersonnelId();
+	Long getStaffId();
 	String getPersonnelName();
 	String getPersonnelDesignation();
 	String getPersonnelGender();

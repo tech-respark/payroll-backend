@@ -13,8 +13,7 @@ public class SalaryComponentsDTO {
 
 	private Long tenantId;
 	private Long storeId;
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+	private Long staffId;
 	private String personnelName;
 	private LocalDate salaryDate;
 	private Map<String, BigDecimal> earnings;
@@ -62,12 +61,12 @@ public class SalaryComponentsDTO {
 		this.storeId = storeId;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public String getPersonnelName() {

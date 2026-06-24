@@ -15,10 +15,8 @@ public class InOutHistoryInputModel {
 	@JsonFormat(pattern = "yyyy-MM-dd")
 	private LocalDate toDate;
 	private String currentStatus;
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
-	@JsonAlias({"personnelCodes", "personnelIds"})
-	private List<Long> personnelIds;
+	private Long staffId;
+	private List<Long> staffIds;
 	private String sortField;
 	private String sortOrder;
 	private String uploadSource;
@@ -64,12 +62,12 @@ public class InOutHistoryInputModel {
 		this.toDate = toDate;
 	}
 
-	public List<Long> getPersonnelIds() {
-		return personnelIds;
+	public List<Long> getStaffIds() {
+		return staffIds;
 	}
 
-	public void setPersonnelIds(List<Long> personnelIds) {
-		this.personnelIds = personnelIds;
+	public void setStaffIds(List<Long> staffIds) {
+		this.staffIds = staffIds;
 	}
 
 	public String getCurrentStatus() {
@@ -104,12 +102,12 @@ public class InOutHistoryInputModel {
 		this.sortField = sortField;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public String getUploadSource() {

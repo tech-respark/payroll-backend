@@ -58,12 +58,12 @@ public class ResparkAttendanceController {
 	public ResponseEntity<?> getPersonnelAttendanceForADay(
 			@RequestParam Long tenantId,
 			@RequestParam Long storeId,
-			@RequestParam Long personnelId,
+			@RequestParam Long staffId,
 			@RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate attendanceDate
 	){
 		tenantId = SecurityUtils.getTenantId(tenantId);
 		storeId = SecurityUtils.getStoreId(storeId);
-		ResponseModel responseModel = resparkInOutHistoryService.getPersonnelAttendanceForADay(tenantId, storeId, personnelId, attendanceDate);
+		ResponseModel responseModel = resparkInOutHistoryService.getPersonnelAttendanceForADay(tenantId, storeId, staffId, attendanceDate);
 		return ResponseHandler.generateResponseModel(responseModel);
 	}
 

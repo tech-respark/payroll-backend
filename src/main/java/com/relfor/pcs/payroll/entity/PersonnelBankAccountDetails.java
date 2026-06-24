@@ -11,7 +11,7 @@ public class PersonnelBankAccountDetails extends BaseEntity{
 	@GeneratedValue(strategy = GenerationType.AUTO, generator = "increment")
 	@GenericGenerator(name = "increment", strategy = "increment")
 	private Long id;
-	private Long personnelId;
+	private Long staffId;
 	private String bankName;
 	private String bankBranch;
 	private String ifscCode;
@@ -24,9 +24,9 @@ public class PersonnelBankAccountDetails extends BaseEntity{
 
 	public void setId(Long id) { this.id = id; }
 
-	public Long getPersonnelId() { return personnelId; }
+	public Long getStaffId() { return staffId; }
 
-	public void setPersonnelId(Long personnelId) { this.personnelId = personnelId; }
+	public void setStaffId(Long staffId) { this.staffId = staffId; }
 
 	public String getBankName() { return bankName; }
 

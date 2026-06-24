@@ -60,7 +60,7 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 		sqlString.append("SELECT pa.tenant_id AS tenantId, ");
 		sqlString.append("pa.store_id AS storeId, ");
 		sqlString.append("pa.id AS personnelAttendanceId, ");
-		sqlString.append("pa.personnel_id AS personnelId, ");
+		sqlString.append("pa.staff_id AS staffId, ");
 		sqlString.append("pd.designation AS personnelDesignation, ");
 		sqlString.append("pd.gender AS personnelGender, ");
 		sqlString.append("pd.personnel_mobile_number AS personnelMobileNumber, ");
@@ -78,7 +78,7 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 		sqlString.append("pa.punch_event AS punchEvent ");
 		sqlString.append("FROM personnel_attendance pa ");
 		sqlString.append("JOIN personnel_details pd ");
-		sqlString.append("ON pd.id = pa.personnel_id WHERE ");
+		sqlString.append("ON pd.id = pa.staff_id WHERE ");
 		return this.appendWhereForGetRegularizationRequests(inOutHistoryInputModel, sqlString, false);
 	}
 
@@ -87,7 +87,7 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 		sqlString.append("SELECT COUNT(pa.id) ");
 		sqlString.append("FROM personnel_attendance pa ");
 		sqlString.append("JOIN personnel_details pd ");
-		sqlString.append("ON pd.id = pa.personnel_id WHERE ");
+		sqlString.append("ON pd.id = pa.staff_id WHERE ");
 		return this.appendWhereForGetRegularizationRequests(inOutHistoryInputModel, sqlString, true);
 	}
 
@@ -134,12 +134,12 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 				sqlString.append("AND pa.attendance_date BETWEEN :fromDate AND :toDate ");
 			}
 		}
-		if (!ObjectUtils.isEmpty(inOutHistoryInputModel.getPersonnelId())) {
+		if (!ObjectUtils.isEmpty(inOutHistoryInputModel.getStaffId())) {
 			if (start) {
-				sqlString.append("pa.personnel_id = :personnelId ");
+				sqlString.append("pa.staff_id = :staffId ");
 				start = false;
 			}else {
-				sqlString.append("AND pa.personnel_id = :personnelId ");
+				sqlString.append("AND pa.staff_id = :staffId ");
 			}
 		}
 		if (!ObjectUtils.isEmpty(inOutHistoryInputModel.getUploadSource())) {
@@ -201,8 +201,8 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 			query.setParameter("fromDate", inOutHistoryInputModel.getFromDate());
 			query.setParameter("toDate", inOutHistoryInputModel.getToDate());
 		}
-		if (!ObjectUtils.isEmpty(inOutHistoryInputModel.getPersonnelId())) {
-			query.setParameter("personnelId", inOutHistoryInputModel.getPersonnelId());
+		if (!ObjectUtils.isEmpty(inOutHistoryInputModel.getStaffId())) {
+			query.setParameter("staffId", inOutHistoryInputModel.getStaffId());
 		}
 		if (!ObjectUtils.isEmpty(inOutHistoryInputModel.getUploadSource())) {
 			query.setParameter("uploadSource", inOutHistoryInputModel.getUploadSource());
@@ -244,7 +244,7 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 					attendanceRequestsDTO.setPersonnelAttendanceId(Long.valueOf(String.valueOf(object[2])));
 				}
 				if (object[3]!=null) {
-					attendanceRequestsDTO.setPersonnelId(Long.valueOf(String.valueOf(object[3])));
+					attendanceRequestsDTO.setStaffId(Long.valueOf(String.valueOf(object[3])));
 				}
 				if (object[4]!=null) {
 					attendanceRequestsDTO.setPersonnelDesignation(String.valueOf(object[4]));

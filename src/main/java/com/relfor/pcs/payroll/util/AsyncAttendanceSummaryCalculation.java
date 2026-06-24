@@ -85,7 +85,7 @@ public class AsyncAttendanceSummaryCalculation {
 			for (List<PersonnelAttendance> attendanceList: subdividedLists) {
 				try {
 					this.calculateAndAddToAttendanceSummaryList(tenantId, storeId,
-							attendanceList.get(0).getPersonnelId(),
+							attendanceList.get(0).getStaffId(),
 							attendanceList.get(0).getAttendanceDate(),
 							isActualTimeBasedAttendance, attendanceList,
 							dayWiseAttendanceSummaryList, zoneId);
@@ -93,7 +93,7 @@ public class AsyncAttendanceSummaryCalculation {
 					logger.error("Exception while calculating dayWiseAttendanceSummary for Tenant: {}, Store: {}, Staff: {}, and Attendance Date: {}, Exception: {}",
 							tenantId,
 							storeId,
-							attendanceList.get(0).getPersonnelId(),
+							attendanceList.get(0).getStaffId(),
 							attendanceList.get(0).getAttendanceDate(),
 							ex.getMessage());
 				}
@@ -112,9 +112,9 @@ public class AsyncAttendanceSummaryCalculation {
 														 List<List<PersonnelAttendance>> subdividedLists) {
 		//personnelAttendanceList is the list of approved requests saved in DB
 
-		// Sort the attendance list by personnelId and attendanceDate.
+		// Sort the attendance list by staffId and attendanceDate.
 		personnelAttendanceList.sort(Comparator
-				.comparing(PersonnelAttendance::getPersonnelId)
+				.comparing(PersonnelAttendance::getStaffId)
 				.thenComparing(PersonnelAttendance::getAttendanceDate)
 				.thenComparing(PersonnelAttendance::getPunchTimestamp));
 
@@ -124,18 +124,18 @@ public class AsyncAttendanceSummaryCalculation {
 				personnelAttendanceList, tenantId, storeId
 		);
 		if (!personnelAttendanceListFromDb.isEmpty()) {
-			// Sort the attendance list by personnelId and attendanceDate.
+			// Sort the attendance list by staffId and attendanceDate.
 			personnelAttendanceListFromDb.sort(Comparator
-					.comparing(PersonnelAttendance::getPersonnelId)
+					.comparing(PersonnelAttendance::getStaffId)
 					.thenComparing(PersonnelAttendance::getAttendanceDate)
 					.thenComparing(PersonnelAttendance::getPunchTimestamp));
 
-			// Subdivide the list into multiple lists based on personnelId and attendanceDate.
+			// Subdivide the list into multiple lists based on staffId and attendanceDate.
 			List<PersonnelAttendance> currentSublist = new ArrayList<>();
 			for (PersonnelAttendance attendance : personnelAttendanceListFromDb) {
 				// If the sublist is empty or matches the current item's grouping, add it.
 				if (currentSublist.isEmpty() || (
-						attendance.getPersonnelId().equals(currentSublist.get(0).getPersonnelId()) &&
+						attendance.getStaffId().equals(currentSublist.get(0).getStaffId()) &&
 								attendance.getAttendanceDate().equals(currentSublist.get(0).getAttendanceDate())
 				)) {
 					currentSublist.add(attendance);
@@ -162,26 +162,26 @@ public class AsyncAttendanceSummaryCalculation {
 		int index = 0;
 		Map<String, Object> personnelAndDatesParameters = new HashMap<>();
 
-		Long personnelId = null;
+		Long staffId = null;
 		List<LocalDate> attendanceDates = new ArrayList<>();
 		String personnelParam = null;
 		String dateParam = null;
 		for (int i = 0; i < personnelAttendanceList.size(); i++) {
 			PersonnelAttendance personnelAttendance = personnelAttendanceList.get(i);
-			Long currentCode = personnelAttendance.getPersonnelId();
+			Long currentCode = personnelAttendance.getStaffId();
 
-			// First iteration or new personnelId detected
-			if (i == 0 || !currentCode.equals(personnelId)) {
+			// First iteration or new staffId detected
+			if (i == 0 || !currentCode.equals(staffId)) {
 				// Save the previous personnel data before switching to a new one
 				if (i > 0) {
-					personnelAndDatesConditions.add("(p.personnelId = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
-					personnelAndDatesParameters.put(personnelParam, personnelId);
+					personnelAndDatesConditions.add("(p.staffId = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
+					personnelAndDatesParameters.put(personnelParam, staffId);
 					personnelAndDatesParameters.put(dateParam, new ArrayList<>(attendanceDates));
 				}
 
 				// Initialize new personnel tracking
-				personnelId = currentCode;
-				personnelParam = "personnelId" + index;
+				staffId = currentCode;
+				personnelParam = "staffId" + index;
 				dateParam = "attendanceDates" + index;
 				attendanceDates = new ArrayList<>();
 				index++;
@@ -194,9 +194,9 @@ public class AsyncAttendanceSummaryCalculation {
 		}
 
 		//Save the last personnel's data
-		if (personnelId != null) {
-			personnelAndDatesConditions.add("(p.personnelId = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
-			personnelAndDatesParameters.put(personnelParam, personnelId);
+		if (staffId != null) {
+			personnelAndDatesConditions.add("(p.staffId = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
+			personnelAndDatesParameters.put(personnelParam, staffId);
 			personnelAndDatesParameters.put(dateParam, attendanceDates);
 		}
 
@@ -218,13 +218,13 @@ public class AsyncAttendanceSummaryCalculation {
 	}
 
 	private void calculateAndAddToAttendanceSummaryList(Long tenantId, Long storeId,
-														Long personnelId, LocalDate dateOfAttendance,
+														Long staffId, LocalDate dateOfAttendance,
 														boolean isActualTimeBasedAttendance,
 														List<PersonnelAttendance> attendanceList,
 														List<DayWiseAttendanceSummary> dayWiseAttendanceSummaryList,
 														ZoneId zoneId) {
 		logger.debug("Iteration of calculateAndAddToAttendanceSummaryList for tenantId: {}, storeId: {}, Staff: {} and Attendance Date: {}",
-				tenantId, storeId, personnelId, dateOfAttendance);
+				tenantId, storeId, staffId, dateOfAttendance);
 		if (attendanceList.size() >= 2) {
 			BigDecimal sumOfActualHoursWorkedInADay = BigDecimal.ZERO;
 			BigDecimal totalBreakTimeInADay = BigDecimal.ZERO;
@@ -247,22 +247,22 @@ public class AsyncAttendanceSummaryCalculation {
 					totalBreakTimeInADay = totalBreakTimeInADay.add(BigDecimal.valueOf(breakDuration.toMinutes()).divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP));
 				}
 			}
-			this.addUpdatedOrNewAttendanceSummaryToList(tenantId, storeId, personnelId, dateOfAttendance,
+			this.addUpdatedOrNewAttendanceSummaryToList(tenantId, storeId, staffId, dateOfAttendance,
 					totalHoursWorkedInADay, sumOfActualHoursWorkedInADay, totalBreakTimeInADay,dayWiseAttendanceSummaryList,
 					firstCheckin, lastCheckout, zoneId);
 		}
 	}
 
 	private void addUpdatedOrNewAttendanceSummaryToList(Long tenantId, Long storeId,
-														Long personnelId, LocalDate dateOfAttendance,
+														Long staffId, LocalDate dateOfAttendance,
 														BigDecimal totalHoursWorkedInADay,
 														BigDecimal sumOfActualHoursWorkedInADay,
 														BigDecimal totalBreakTimeInADay,
 														List<DayWiseAttendanceSummary> dayWiseAttendanceSummaryList,
 														Instant firstCheckin, Instant lastCheckout, ZoneId zoneId) {
 		Optional<DayWiseAttendanceSummary> summaryOptional = dayWiseAttendanceSummaryRepository
-				.findByTenantIdAndStoreIdAndPersonnelIdAndApplicationNameAndAttendanceDate(
-						tenantId, storeId, personnelId,
+				.findByTenantIdAndStoreIdAndStaffIdAndApplicationNameAndAttendanceDate(
+						tenantId, storeId, staffId,
 						BiometricApplicationNames.RESPARK.name(),
 						dateOfAttendance);
 		LocalTime firstCheckinTime = firstCheckin.atZone(zoneId).toLocalTime();
@@ -310,7 +310,7 @@ public class AsyncAttendanceSummaryCalculation {
 			summary = new DayWiseAttendanceSummary();
 			summary.setTenantId(tenantId);
 			summary.setStoreId(storeId);
-			summary.setPersonnelId(personnelId);
+			summary.setStaffId(staffId);
 			summary.setApplicationName(BiometricApplicationNames.RESPARK.name());
 			summary.setAttendanceDate(dateOfAttendance);
 			summary.setAttendanceDayOfWeek(dateOfAttendance.getDayOfWeek().name());

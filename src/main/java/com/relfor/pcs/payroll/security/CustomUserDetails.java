@@ -24,7 +24,7 @@ public class CustomUserDetails implements UserDetails {
         return personnel.getStoreId();
     }
     
-    public Long getPersonnelId() {
+    public Long getStaffId() {
         return personnel.getId();
     }
 

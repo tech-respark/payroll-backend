@@ -12,7 +12,7 @@ import java.util.Optional;
 
 public interface PersonnelAttendanceRepository extends JpaRepository<PersonnelAttendance,Long> {
 	@Query(value = "SELECT pa.tenant_id AS tenantId, pa.store_id AS storeId,\n" +
-			"pa.personnel_id AS personnelId, pd.designation AS personnelDesignation,\n" +
+			"pa.staff_id AS staffId, pd.designation AS personnelDesignation,\n" +
 			"pd.gender AS personnelGender, pd.personnel_mobile_number AS personnelMobileNumber,\n" +
 			"CONCAT(COALESCE(pd.first_name, ''), ' ', COALESCE(pd.last_name, '')) AS personnelName,\n" +
 			"pa.attendance_date AS attendanceDate, pa.attendance_day_of_week AS attendanceDayOfWeek,\n" +
@@ -25,12 +25,12 @@ public interface PersonnelAttendanceRepository extends JpaRepository<PersonnelAt
 			"pa.current_status AS currentStatus \n" +
 			"FROM personnel_attendance pa\n" +
 			"JOIN personnel_details pd \n" +
-			"ON pd.id = pa.personnel_id \n" +
+			"ON pd.id = pa.staff_id \n" +
 			"WHERE pa.attendance_date BETWEEN :fromDate AND :toDate \n" +
 			"AND pa.tenant_id = :tenantId AND pa.store_id = :storeId \n" +
-			"AND pa.application_name = :applicationName AND pa.personnel_id IN :personnelIds ;", nativeQuery = true)
+			"AND pa.application_name = :applicationName AND pa.staff_id IN :staffIds ;", nativeQuery = true)
 	List<PersonnelAttendanceProjectionForInOutHistory> getInOutHistoryBetweenDates(LocalDate fromDate, LocalDate toDate, String applicationName,
-																				   Long tenantId, Long storeId, List<Long> personnelIds);
+																				   Long tenantId, Long storeId, List<Long> staffIds);
 
 	List<PersonnelAttendance> findByIdIn(List<Long> personnelAttendanceIdList);
 

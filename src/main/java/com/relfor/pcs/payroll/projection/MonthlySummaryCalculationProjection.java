@@ -4,7 +4,7 @@ public interface MonthlySummaryCalculationProjection {
 	Long getTenantId();
 	Long getStoreId();
 	String getApplicationName();
-	Long getPersonnelId();
+	Long getStaffId();
 	Float getTotalWeeklyOffs();
 	Float getTotalHolidays();
 	Float getTotalWorkingDays();

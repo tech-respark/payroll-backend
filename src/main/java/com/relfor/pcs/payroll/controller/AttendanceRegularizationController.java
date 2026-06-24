@@ -20,7 +20,7 @@ public class AttendanceRegularizationController {
     @PostMapping("/apply")
     public ResponseEntity<?> applyForRegularization(@RequestBody Map<String, Object> payload) {
         try {
-            Long personnelId = Long.valueOf(payload.get("personnelId").toString());
+            Long staffId = Long.valueOf(payload.get("staffId").toString());
             LocalDate date = LocalDate.parse(payload.get("date").toString());
             
             LocalTime inTime = payload.containsKey("inTime") && payload.get("inTime") != null ? 
@@ -31,7 +31,7 @@ public class AttendanceRegularizationController {
                     
             String reason = (String) payload.get("reason");
 
-            AttendanceRegularizationRequest request = regularizationService.requestRegularization(personnelId, date, inTime, outTime, reason);
+            AttendanceRegularizationRequest request = regularizationService.requestRegularization(staffId, date, inTime, outTime, reason);
             return ResponseEntity.ok(Map.of("message", "Regularization request submitted", "requestId", request.getId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

@@ -43,10 +43,10 @@ public class SalaryCalculationController {
     }
 
     @GetMapping("/personnelSalaryCalculation")
-    public ResponseEntity<?> personnelSalaryCalculation(@RequestParam Long personnelId, @RequestParam String  month, @RequestParam Long  year, @RequestParam Long tenantId, @RequestParam Long storeId){
+    public ResponseEntity<?> personnelSalaryCalculation(@RequestParam Long staffId, @RequestParam String  month, @RequestParam Long  year, @RequestParam Long tenantId, @RequestParam Long storeId){
         tenantId = SecurityUtils.getTenantId(tenantId);
         storeId = SecurityUtils.getStoreId(storeId);
-        ResponseModel responseModel = salaryCalService.processSalary(personnelId, month, year, tenantId, storeId);
+        ResponseModel responseModel = salaryCalService.processSalary(staffId, month, year, tenantId, storeId);
         return ResponseHandler.generateResponseModel(responseModel);
     }
 
@@ -57,8 +57,8 @@ public class SalaryCalculationController {
     }
 
     @GetMapping("/getPayslipData")
-    public ResponseEntity<?> getPayslipData(@RequestParam Long personnelId, @RequestParam String  month, @RequestParam Integer year){
-        ResponseModel responseModel = salaryCalService.getPayslipData(personnelId, month, year);
+    public ResponseEntity<?> getPayslipData(@RequestParam Long staffId, @RequestParam String  month, @RequestParam Integer year){
+        ResponseModel responseModel = salaryCalService.getPayslipData(staffId, month, year);
         return ResponseHandler.generateResponseModel(responseModel);
     }
 
@@ -71,9 +71,9 @@ public class SalaryCalculationController {
     }
 
     @PostMapping("/printStaffPayslip")
-    public ResponseEntity<?> printBillForStaffPayslip(@RequestParam Long personnelId, @RequestParam String month, @RequestParam Integer year) {
+    public ResponseEntity<?> printBillForStaffPayslip(@RequestParam Long staffId, @RequestParam String month, @RequestParam Integer year) {
         try {
-            String result  = velocityService.postPersonnelPayslipData(personnelId, month, year);
+            String result  = velocityService.postPersonnelPayslipData(staffId, month, year);
             return ResponseHandler.generateResponse("Ok", null, HttpStatus.OK, result);
         } catch (Exception e) {
 //            logger.error("An error occurred while processing the request", e);
@@ -83,21 +83,21 @@ public class SalaryCalculationController {
     }
 
     @GetMapping("/personnelSalaryComponents")
-    public ResponseEntity<?> getPersonnelSalaryComponents(@RequestParam Long personnelId){
-        ResponseModel responseModel = salaryCalService.getPersonnelSalaryComponents(personnelId);
+    public ResponseEntity<?> getPersonnelSalaryComponents(@RequestParam Long staffId){
+        ResponseModel responseModel = salaryCalService.getPersonnelSalaryComponents(staffId);
         return ResponseHandler.generateResponseModel(responseModel);
     }
 
     @GetMapping("/personnelSalaryComponentsForMonth")
-    public ResponseEntity<?> getPersonnelSalaryComponentsForMonth(@RequestParam Long personnelId, @RequestParam String month, @RequestParam Integer year){
-        ResponseModel responseModel = salaryCalService.getPersonnelSalaryComponentsForMonth(personnelId, month, year);
+    public ResponseEntity<?> getPersonnelSalaryComponentsForMonth(@RequestParam Long staffId, @RequestParam String month, @RequestParam Integer year){
+        ResponseModel responseModel = salaryCalService.getPersonnelSalaryComponentsForMonth(staffId, month, year);
         return ResponseHandler.generateResponseModel(responseModel);
     }
 
     @PostMapping("/downloadBillPdf")
-    public ResponseEntity<?> downloadBillPdf(@RequestParam Long personnelId, @RequestParam String month, @RequestParam Integer year) {
+    public ResponseEntity<?> downloadBillPdf(@RequestParam Long staffId, @RequestParam String month, @RequestParam Integer year) {
 
-        byte[] pdfBytes = velocityService.getPdfBytes(personnelId, month, year);
+        byte[] pdfBytes = velocityService.getPdfBytes(staffId, month, year);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         String filename = "generated-document.pdf";

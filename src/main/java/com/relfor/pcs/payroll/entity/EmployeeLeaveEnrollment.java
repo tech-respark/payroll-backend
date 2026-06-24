@@ -6,7 +6,7 @@ import java.time.LocalDate;
 
 @Entity
 @Table(name = "employee_leave_enrollments",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"personnel_id", "plan_id"}))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"staff_id", "plan_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,8 +18,8 @@ public class EmployeeLeaveEnrollment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "personnel_id", nullable = false)
-    private Long personnelId;
+    @Column(name = "staff_id", nullable = false)
+    private Long staffId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "plan_id", nullable = false)

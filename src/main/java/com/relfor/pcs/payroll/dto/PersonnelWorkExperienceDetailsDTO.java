@@ -6,8 +6,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 
 public class PersonnelWorkExperienceDetailsDTO {
 	private Long id;
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+	private Long staffId;
 	private String companyName;
 	private String designation;
 	private LocalDate fromDate;
@@ -53,19 +52,19 @@ public class PersonnelWorkExperienceDetailsDTO {
 		this.id = id;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	@Override
 	public String toString() {
 		return "PersonnelWorkExperienceDetailsDTO{" +
 				"id=" + id +
-				", personnelId=" + personnelId +
+				", staffId=" + staffId +
 				", companyName='" + companyName + '\'' +
 				", designation='" + designation + '\'' +
 				", fromDate=" + fromDate +

@@ -5,8 +5,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 public class LoginResponse {
     private boolean success;
     private String message;
-    @JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+    private Long staffId;
     private String username;
     private String firstName;
     private String lastName;
@@ -50,12 +49,12 @@ public class LoginResponse {
         this.message = message;
     }
 
-    public Long getPersonnelId() {
-        return personnelId;
+    public Long getStaffId() {
+        return staffId;
     }
 
-    public void setPersonnelId(Long personnelId) {
-        this.personnelId = personnelId;
+    public void setStaffId(Long staffId) {
+        this.staffId = staffId;
     }
 
     public String getUsername() {

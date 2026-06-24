@@ -50,7 +50,7 @@ public class RosterSummaryService {
 							.collect(Collectors.toSet()))
 					.orElse(Collections.emptySet());
 
-			List<Long> personnelIds = staffShiftsList.stream()
+			List<Long> staffIds = staffShiftsList.stream()
 					.map(SStaffShifts::getStaffId)
 					.distinct()
 					.collect(Collectors.toList());
@@ -62,7 +62,7 @@ public class RosterSummaryService {
 					.collect(Collectors.toList());
 
 			List<DayWiseAttendanceSummary> existingSummaries = dayWiseAttendanceSummaryRepository.findExistingDayWiseAttendanceSummaries(
-					personnelIds,
+					staffIds,
 					attendanceDates,
 					tenantId,
 					storeId
@@ -73,7 +73,7 @@ public class RosterSummaryService {
 							summary -> summary.getTenantId() + "_" +
 									summary.getStoreId() + "_" +
 									summary.getApplicationName() + "_" +
-									summary.getPersonnelId() + "_" +
+									summary.getStaffId() + "_" +
 									summary.getAttendanceDate(),
 							summary -> summary
 					));
@@ -91,7 +91,7 @@ public class RosterSummaryService {
 					dayWiseAttendanceSummary.setTenantId(staffShift.getTenantId());
 					dayWiseAttendanceSummary.setStoreId(staffShift.getStoreId());
 					dayWiseAttendanceSummary.setApplicationName(BiometricApplicationNames.RESPARK.name());
-					dayWiseAttendanceSummary.setPersonnelId(staffShift.getStaffId());
+					dayWiseAttendanceSummary.setStaffId(staffShift.getStaffId());
 					dayWiseAttendanceSummary.setAttendanceDate(staffShift.getShiftDate());
 					dayWiseAttendanceSummary.setAttendanceDayOfWeek(dayWiseAttendanceSummary.getAttendanceDate().getDayOfWeek().toString());
 				}
@@ -180,7 +180,7 @@ public class RosterSummaryService {
 					Optional<SStaffShifts> sStaffShiftsOptional = staffShiftsList.stream().filter(shift -> Objects.equals(shift.getId(), staffBreak.getStaffShiftId())).findFirst();
 					if (sStaffShiftsOptional.isPresent()) {
 						Optional<DayWiseAttendanceSummary> dayWiseAttendanceSummaryOptional =
-								dayWiseAttendanceSummaryRepository.findByPersonnelIdAndAttendanceDate(staffBreak.getStaffId(), sStaffShiftsOptional.get().getShiftDate());
+								dayWiseAttendanceSummaryRepository.findByStaffIdAndAttendanceDate(staffBreak.getStaffId(), sStaffShiftsOptional.get().getShiftDate());
 
 						if (dayWiseAttendanceSummaryOptional.isPresent()) {
 							// Calculate breakTimeAsPerRoster (from breakHours in minutes)

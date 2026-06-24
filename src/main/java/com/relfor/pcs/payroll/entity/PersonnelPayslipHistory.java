@@ -20,7 +20,7 @@ public class PersonnelPayslipHistory extends BaseEntity{
 
 	private Long tenantId;
 	private Long storeId;
-	private Long personnelId;
+	private Long staffId;
 	private String personnelName;
 	private LocalDate salaryDate;
 
@@ -81,12 +81,12 @@ public class PersonnelPayslipHistory extends BaseEntity{
 		this.storeId = storeId;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public String getPersonnelName() {

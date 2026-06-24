@@ -12,7 +12,7 @@ public class PersonnelWorkExperienceDetails {
 	@GeneratedValue(strategy = GenerationType.AUTO, generator = "increment")
 	@GenericGenerator(name = "increment", strategy = "increment")
 	private Long id;
-	private Long personnelId;
+	private Long staffId;
 	private String companyName;
 	private String designation;
 	private LocalDate fromDate;
@@ -23,9 +23,9 @@ public class PersonnelWorkExperienceDetails {
 
 	public void setId(Long id) { this.id = id; }
 
-	public Long getPersonnelId() { return personnelId; }
+	public Long getStaffId() { return staffId; }
 
-	public void setPersonnelId(Long personnelId) { this.personnelId = personnelId; }
+	public void setStaffId(Long staffId) { this.staffId = staffId; }
 
 	public String getCompanyName() { return companyName; }
 

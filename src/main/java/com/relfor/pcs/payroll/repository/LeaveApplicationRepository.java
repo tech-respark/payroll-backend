@@ -12,11 +12,11 @@ import java.time.LocalDate;
 public interface LeaveApplicationRepository extends JpaRepository<LeaveApplication, Long> {
 
     @Query("SELECT COUNT(l) FROM LeaveApplication l " +
-           "WHERE l.personnelId = :personnelId " +
+           "WHERE l.staffId = :staffId " +
            "AND l.status IN ('PENDING', 'APPROVED') " +
            "AND l.startDate <= :endDate " +
            "AND l.endDate >= :startDate")
-    long countOverlappingLeaves(@Param("personnelId") Long personnelId, 
+    long countOverlappingLeaves(@Param("staffId") Long staffId, 
                                 @Param("startDate") LocalDate startDate, 
                                 @Param("endDate") LocalDate endDate);
 }

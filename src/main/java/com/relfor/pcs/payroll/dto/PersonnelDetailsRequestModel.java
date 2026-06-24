@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 
 public class PersonnelDetailsRequestModel {
 	private Long id;
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+	private Long staffId;
 	private String firstName;
 	private String lastName;
 	private String gender;
@@ -79,19 +78,19 @@ public class PersonnelDetailsRequestModel {
 		this.firstName = firstName;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	@Override
 	public String toString() {
 		return "PersonnelDetailsRequestModel{" +
 				"id=" + id +
-				", personnelId=" + personnelId +
+				", staffId=" + staffId +
 				", firstName='" + firstName + '\'' +
 				", lastName='" + lastName + '\'' +
 				", gender='" + gender + '\'' +

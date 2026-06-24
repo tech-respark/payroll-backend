@@ -13,7 +13,7 @@ public class PersonnelDocumentDetails extends BaseEntity{
 	private Long id;
 	private String documentName;
 	private String documentNumber;
-	private Long personnelId;
+	private Long staffId;
 
 	public Long getId() {
 		return id;
@@ -23,12 +23,12 @@ public class PersonnelDocumentDetails extends BaseEntity{
 		this.id = id;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public String getDocumentNumber() {

@@ -14,7 +14,7 @@ public class PersonnelSalaryComponents {
 	private Long id;
 	private Long tenantId;
 	private Long storeId;
-	private Long personnelId;
+	private Long staffId;
 	private String componentName;
 	private BigDecimal annualValue;
 	private BigDecimal monthlyValue;
@@ -48,12 +48,12 @@ public class PersonnelSalaryComponents {
 		this.storeId = storeId;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public String getComponentName() {

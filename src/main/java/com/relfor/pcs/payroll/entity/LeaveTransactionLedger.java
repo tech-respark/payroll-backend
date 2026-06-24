@@ -19,8 +19,8 @@ public class LeaveTransactionLedger {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "personnel_id", nullable = false)
-    private Long personnelId;
+    @Column(name = "staff_id", nullable = false)
+    private Long staffId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "leave_type_id", nullable = false)

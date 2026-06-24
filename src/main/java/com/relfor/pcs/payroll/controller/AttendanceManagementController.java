@@ -32,9 +32,9 @@ public class AttendanceManagementController {
 		return ResponseHandler.generateResponseModel(responseModel);
 	}
 
-	@PostMapping("/personnelDetailsForListOfPersonnelIds")
-	public ResponseEntity<?> getPersonnelDetailsForListOfPersonnelIds(@RequestBody List<Long> personnelIds) {
-		ResponseModel responseModel = attendanceManagementService.getPersonnelDetailsForListOfPersonnelIds(personnelIds);
+	@PostMapping("/personnelDetailsForListOfStaffIds")
+	public ResponseEntity<?> getPersonnelDetailsForListOfStaffIds(@RequestBody List<Long> staffIds) {
+		ResponseModel responseModel = attendanceManagementService.getPersonnelDetailsForListOfStaffIds(staffIds);
 		return ResponseHandler.generateResponseModel(responseModel);
 	}
 

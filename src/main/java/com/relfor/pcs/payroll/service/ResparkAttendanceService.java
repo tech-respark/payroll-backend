@@ -154,7 +154,7 @@ public class ResparkAttendanceService {
 		personnelAttendance.setModifiedBy(individualPunch.getCreatedBy());
 		personnelAttendance.setModifiedTimestamp(Instant.now());
 		personnelAttendance.setCurrentStatus(individualPunch.getCurrentStatus());
-		personnelAttendance.setPersonnelId(attendanceRegularizationInputModel.getPersonnelId());
+		personnelAttendance.setStaffId(attendanceRegularizationInputModel.getStaffId());
 		personnelAttendance.setPunchTimestamp(this.getPunchTimestamp(individualPunch, dateOfAttendance, zoneId));
 		personnelAttendance.setPunchEvent(individualPunch.getPunchEvent());
 		personnelAttendance.setUploadSource(BiometricEntryUploadSource.REGULARIZATION.name());
@@ -222,7 +222,7 @@ public class ResparkAttendanceService {
 				regularizationRequests = attendanceRequestsDTOPage.getContent();
 				List<AttendanceRequestsDTO> modifiableRegularizationRequestsList = new ArrayList<>(regularizationRequests);
 				modifiableRegularizationRequestsList.sort(Comparator
-						.comparing(AttendanceRequestsDTO::getPersonnelId)
+						.comparing(AttendanceRequestsDTO::getStaffId)
 						.thenComparing(AttendanceRequestsDTO::getAttendanceDate));
 				pageModel.setTotalNumberOfRecords(attendanceRequestsDTOPage.getTotalElements());
 
@@ -231,7 +231,7 @@ public class ResparkAttendanceService {
 				if (!individualPunchesList.isEmpty()) {
 					for (AttendanceRequestsDTO attendanceRequest: regularizationRequests) {
 						attendanceRequest.setIndividualPunchesList(individualPunchesList.stream()
-								.filter(req -> Objects.equals(req.getPersonnelId(), attendanceRequest.getPersonnelId())
+								.filter(req -> Objects.equals(req.getStaffId(), attendanceRequest.getStaffId())
 										&& req.getAttendanceDate().isEqual(attendanceRequest.getAttendanceDate())).collect(Collectors.toList()));
 					}
 				}
@@ -260,26 +260,26 @@ public class ResparkAttendanceService {
 		int index = 0;
 		Map<String, Object> personnelAndDatesParameters = new HashMap<>();
 
-		Long personnelId = null;
+		Long staffId = null;
 		List<LocalDate> attendanceDates = new ArrayList<>();
 		String personnelParam = null;
 		String dateParam = null;
 		for (int i = 0; i < regularizationRequests.size(); i++) {
 			AttendanceRequestsDTO attendanceRequest = regularizationRequests.get(i);
-			Long currentCode = attendanceRequest.getPersonnelId();
+			Long currentCode = attendanceRequest.getStaffId();
 
-			// First iteration or new personnelId detected
-			if (i == 0 || !currentCode.equals(personnelId)) {
+			// First iteration or new staffId detected
+			if (i == 0 || !currentCode.equals(staffId)) {
 				// Save the previous personnel data before switching to a new one
 				if (i > 0) {
-					personnelAndDatesConditions.add("(p.personnelId = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
-					personnelAndDatesParameters.put(personnelParam, personnelId);
+					personnelAndDatesConditions.add("(p.staffId = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
+					personnelAndDatesParameters.put(personnelParam, staffId);
 					personnelAndDatesParameters.put(dateParam, new ArrayList<>(attendanceDates));
 				}
 
 				// Initialize new personnel tracking
-				personnelId = currentCode;
-				personnelParam = "personnelId" + index;
+				staffId = currentCode;
+				personnelParam = "staffId" + index;
 				dateParam = "attendanceDates" + index;
 				attendanceDates = new ArrayList<>();
 				index++;
@@ -293,9 +293,9 @@ public class ResparkAttendanceService {
 		}
 
 		//Save the last personnel's data
-		if (personnelId != null) {
-			personnelAndDatesConditions.add("(p.personnelId = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
-			personnelAndDatesParameters.put(personnelParam, personnelId);
+		if (staffId != null) {
+			personnelAndDatesConditions.add("(p.staffId = :" + personnelParam + " AND p.attendanceDate IN (:" + dateParam + "))");
+			personnelAndDatesParameters.put(personnelParam, staffId);
 			personnelAndDatesParameters.put(dateParam, attendanceDates);
 		}
 
@@ -339,7 +339,7 @@ public class ResparkAttendanceService {
 			individualPunch.setCurrentStatus(personnelAttendance.getCurrentStatus());
 			individualPunch.setUploadSource(personnelAttendance.getUploadSource());
 			individualPunch.setAttendanceDate(personnelAttendance.getAttendanceDate());
-			individualPunch.setPersonnelId(personnelAttendance.getPersonnelId());
+			individualPunch.setStaffId(personnelAttendance.getStaffId());
 		}
 		return individualPunch;
 	}

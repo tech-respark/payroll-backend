@@ -43,7 +43,7 @@ public class VelocityService {
 
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-	public String postPersonnelPayslipData(Long personnelId, String salaryMonth, Integer salaryYear) {
+	public String postPersonnelPayslipData(Long staffId, String salaryMonth, Integer salaryYear) {
 		String result = null;
 
 		PrintBillDetailsDTO billDetails = null;
@@ -54,7 +54,7 @@ public class VelocityService {
 			//this template has to be tenant-wise and path should be given accordingly, since every tenant might have different payslip format
 			Template template = velocity.getTemplate("/templates/paySlip.vm");
 
-			Optional<PersonnelPayslipHistory> personnelPayslipHistory = personnelPayslipHistoryRepository.findByPersonnelIdAndSalaryMonthAndSalaryYear(personnelId, salaryMonth, salaryYear);
+			Optional<PersonnelPayslipHistory> personnelPayslipHistory = personnelPayslipHistoryRepository.findByStaffIdAndSalaryMonthAndSalaryYear(staffId, salaryMonth, salaryYear);
 
 			PersonnelPayslipHistory paySlipData = personnelPayslipHistory.get();
 			SalaryComponentsDTO salarySlip = salaryCalculation.convertToSalaryComponentDTO(personnelPayslipHistory.get());
@@ -88,7 +88,7 @@ public class VelocityService {
 
 		context.put("tenantId", dto.getTenantId());
 		context.put("storeId", dto.getStoreId());
-		context.put("personnelId", dto.getPersonnelId());
+		context.put("staffId", dto.getStaffId());
 		context.put("personnelName", dto.getPersonnelName());
 		context.put("salaryDate", dto.getSalaryDate());
 		context.put("employeeCode", dto.getEmployeeCode());
@@ -148,9 +148,9 @@ public class VelocityService {
 		}
 	}
 
-	public byte[] getPdfBytes(Long personnelId, String month, Integer year) {
+	public byte[] getPdfBytes(Long staffId, String month, Integer year) {
 
-		String result  = this.postPersonnelPayslipData(personnelId, month, year);
+		String result  = this.postPersonnelPayslipData(staffId, month, year);
 		String xhtmlContent = this.htmlToXhtml(result);
 		try {
 			return this.xhtmlToPdf(xhtmlContent);

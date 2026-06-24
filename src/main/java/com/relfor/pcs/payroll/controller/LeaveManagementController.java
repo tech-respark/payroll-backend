@@ -25,7 +25,7 @@ public class LeaveManagementController {
     @PostMapping("/apply")
     public ResponseEntity<?> applyForLeave(@RequestBody Map<String, Object> payload) {
         try {
-            Long personnelId = Long.valueOf(payload.get("personnelId").toString());
+            Long staffId = Long.valueOf(payload.get("staffId").toString());
             Long leaveTypeId = Long.valueOf(payload.get("leaveTypeId").toString());
             LocalDate startDate = LocalDate.parse(payload.get("startDate").toString());
             LocalDate endDate = LocalDate.parse(payload.get("endDate").toString());
@@ -35,18 +35,18 @@ public class LeaveManagementController {
             LeaveType type = leaveTypeRepository.findById(leaveTypeId)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid Leave Type ID"));
 
-            LeaveApplication application = leaveManagementService.applyForLeave(personnelId, type, startDate, endDate, reason, attachmentUrl);
+            LeaveApplication application = leaveManagementService.applyForLeave(staffId, type, startDate, endDate, reason, attachmentUrl);
             return ResponseEntity.ok(Map.of("message", "Leave application submitted successfully", "applicationId", application.getId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    @GetMapping("/balances/{personnelId}")
-    public ResponseEntity<?> getAvailableBalances(@PathVariable Long personnelId, @RequestParam Long leaveTypeId) {
+    @GetMapping("/balances/{staffId}")
+    public ResponseEntity<?> getAvailableBalances(@PathVariable Long staffId, @RequestParam Long leaveTypeId) {
         try {
-            BigDecimal balance = leaveLedgerService.getAvailableBalance(personnelId, leaveTypeId, LocalDate.now());
-            return ResponseEntity.ok(Map.of("personnelId", personnelId, "leaveTypeId", leaveTypeId, "availableBalance", balance));
+            BigDecimal balance = leaveLedgerService.getAvailableBalance(staffId, leaveTypeId, LocalDate.now());
+            return ResponseEntity.ok(Map.of("staffId", staffId, "leaveTypeId", leaveTypeId, "availableBalance", balance));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -79,10 +79,26 @@ public class LeaveManagementController {
     }
 
     @PostMapping("/{applicationId}/cancel")
-    public ResponseEntity<?> cancelLeave(@PathVariable Long applicationId) {
+    public ResponseEntity<?> requestCancellation(@PathVariable Long applicationId, @RequestBody Map<String, Object> payload) {
         try {
-            leaveManagementService.cancelLeave(applicationId);
-            return ResponseEntity.ok(Map.of("message", "Leave application cancelled and ledger refunded if applicable."));
+            Long staffId = Long.valueOf(payload.get("staffId").toString());
+            String remarks = (String) payload.getOrDefault("remarks", "");
+            
+            leaveManagementService.requestCancellation(applicationId, staffId, remarks);
+            return ResponseEntity.ok(Map.of("message", "Cancellation requested successfully."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{applicationId}/approve-cancellation")
+    public ResponseEntity<?> approveCancellation(@PathVariable Long applicationId, @RequestBody Map<String, Object> payload) {
+        try {
+            Long managerId = Long.valueOf(payload.get("managerId").toString());
+            String remarks = (String) payload.getOrDefault("remarks", "");
+            
+            leaveManagementService.approveCancellation(applicationId, managerId, remarks);
+            return ResponseEntity.ok(Map.of("message", "Cancellation approved, ledger refunded, and attendance reverted."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

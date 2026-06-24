@@ -4,18 +4,17 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 
 public class PersonnelEmergencyContactsDTO {
 	private Long id;
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+	private Long staffId;
 	private String contactPersonName;
 	private String contactPersonMobile;
 	private String relation;
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public String getContactPersonName() {
@@ -54,7 +53,7 @@ public class PersonnelEmergencyContactsDTO {
 	public String toString() {
 		return "PersonnelEmergencyContactsDTO{" +
 				"id=" + id +
-				", personnelId=" + personnelId +
+				", staffId=" + staffId +
 				", contactPersonName='" + contactPersonName + '\'' +
 				", contactPersonMobile='" + contactPersonMobile + '\'' +
 				", relation='" + relation + '\'' +

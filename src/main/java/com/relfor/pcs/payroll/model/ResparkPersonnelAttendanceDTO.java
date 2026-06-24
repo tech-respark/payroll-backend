@@ -9,8 +9,7 @@ public class ResparkPersonnelAttendanceDTO {
     private Long tenantId;
     private Long storeId;
     private String applicationName;
-    @JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+    private Long staffId;
     private String personnelName;
     private String personnelGender;
     private String personnelDesignation;
@@ -28,8 +27,8 @@ public class ResparkPersonnelAttendanceDTO {
     public String getApplicationName() { return applicationName; }
     public void setApplicationName(String applicationName) { this.applicationName = applicationName; }
 
-    public Long getPersonnelId() { return personnelId; }
-    public void setPersonnelId(Long personnelId) { this.personnelId = personnelId; }
+    public Long getStaffId() { return staffId; }
+    public void setStaffId(Long staffId) { this.staffId = staffId; }
 
     public String getPersonnelName() { return personnelName; }
     public void setPersonnelName(String personnelName) { this.personnelName = personnelName; }

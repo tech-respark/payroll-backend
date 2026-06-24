@@ -11,8 +11,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 public class AttendanceRegularizationInputModel {
 	private Long tenantId;
 	private Long storeId;
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+	private Long staffId;
 	@JsonFormat(pattern = "yyyy-MM-dd")
 	private LocalDate fromDate;
 	@JsonFormat(pattern = "yyyy-MM-dd")
@@ -35,12 +34,12 @@ public class AttendanceRegularizationInputModel {
 		this.storeId = storeId;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public List<IndividualPunches> getIndividualPunchesList() {

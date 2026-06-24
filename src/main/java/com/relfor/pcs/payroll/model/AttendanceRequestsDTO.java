@@ -15,8 +15,7 @@ public class AttendanceRequestsDTO {
 	private Long tenantId;
 	private Long storeId;
 	private String applicationName;
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+	private Long staffId;
 	private String personnelName;
 	private String personnelDesignation;
 	private String personnelGender;
@@ -114,12 +113,12 @@ public class AttendanceRequestsDTO {
 		this.attendanceDate = attendanceDate;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public String getApplicationName() {

@@ -6,8 +6,7 @@ public class PersonnelDocumentDetailsDTO {
 	private Long id;
 	private String documentName;
 	private String documentNumber;
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+	private Long staffId;
 
 	public String getDocumentName() {
 		return documentName;
@@ -33,12 +32,12 @@ public class PersonnelDocumentDetailsDTO {
 		this.id = id;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	@Override
@@ -47,7 +46,7 @@ public class PersonnelDocumentDetailsDTO {
 				"id=" + id +
 				", documentName='" + documentName + '\'' +
 				", documentNumber='" + documentNumber + '\'' +
-				", personnelId=" + personnelId +
+				", staffId=" + staffId +
 				'}';
 	}
 }

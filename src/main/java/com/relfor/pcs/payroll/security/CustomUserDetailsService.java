@@ -29,7 +29,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         PersonnelDetails personnel = personnelRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
         
-        // Fetch assigned roles for this staff based on their personnelId
+        // Fetch assigned roles for this staff based on their staffId
         List<Role> roles = storeStaffRoleRepository.findActiveRolesByStaffId(personnel.getId());
         List<GrantedAuthority> authorities = new ArrayList<>();
         

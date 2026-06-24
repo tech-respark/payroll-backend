@@ -257,7 +257,7 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 						personnelAttendance.setStoreId(storeDetails != null ? storeDetails.getStoreId() : 0);
 						personnelAttendance.setApplicationName(applicationName);
 						personnelAttendance.setTerminalSerialNumber(individualPunches.getMcid());
-						personnelAttendance.setPersonnelId(personnelDetails.getId());
+						personnelAttendance.setStaffId(personnelDetails.getId());
 						personnelAttendance.setAttendanceDate(localDateTime.toLocalDate());
 						personnelAttendance.setAttendanceDayOfWeek(localDateTime.getDayOfWeek().name());
 						personnelAttendance.setPunchTimestamp(storeDetails != null ? localDateTime.atZone(ZoneId.of(storeDetails.getTimeZone())).toInstant() : null);

@@ -4,8 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 
 public class PersonnelBankAccountDetailsDTO {
 	private Long id;
-	@JsonAlias({"personnelCode", "personnelId"})
-	private Long personnelId;
+	private Long staffId;
 	private String bankName;
 	private String bankBranch;
 	private String ifscCode;
@@ -51,19 +50,19 @@ public class PersonnelBankAccountDetailsDTO {
 		this.id = id;
 	}
 
-	public Long getPersonnelId() {
-		return personnelId;
+	public Long getStaffId() {
+		return staffId;
 	}
 
-	public void setPersonnelId(Long personnelId) {
-		this.personnelId = personnelId;
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	@Override
 	public String toString() {
 		return "PersonnelBankAccountDetailsDTO{" +
 				"id=" + id +
-				", personnelId=" + personnelId +
+				", staffId=" + staffId +
 				", bankName='" + bankName + '\'' +
 				", bankBranch='" + bankBranch + '\'' +
 				", ifscCode='" + ifscCode + '\'' +
