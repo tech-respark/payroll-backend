@@ -40,6 +40,16 @@ public class DayWiseAttendanceSummary extends BaseEntity{
 	private Boolean isEarlyExit;
 	private Boolean isHoliday;
 
+	@Enumerated(EnumType.STRING)
+	private DayCategory dayCategory;
+
+	private BigDecimal workUnits;
+
+	private BigDecimal leaveUnits;
+
+	public enum DayCategory {
+		PRESENT, ABSENT, HALF_DAY, ON_LEAVE, WEEKLY_OFF, HOLIDAY, SPLIT
+	}
 
 	public Long getId() {
 		return id;
@@ -263,5 +273,29 @@ public class DayWiseAttendanceSummary extends BaseEntity{
 
 	public void setIsHoliday(Boolean holiday) {
 		isHoliday = holiday;
+	}
+
+	public DayCategory getDayCategory() {
+		return dayCategory;
+	}
+
+	public void setDayCategory(DayCategory dayCategory) {
+		this.dayCategory = dayCategory;
+	}
+
+	public BigDecimal getWorkUnits() {
+		return workUnits;
+	}
+
+	public void setWorkUnits(BigDecimal workUnits) {
+		this.workUnits = workUnits;
+	}
+
+	public BigDecimal getLeaveUnits() {
+		return leaveUnits;
+	}
+
+	public void setLeaveUnits(BigDecimal leaveUnits) {
+		this.leaveUnits = leaveUnits;
 	}
 }
