@@ -22,8 +22,32 @@ public class LeaveManagementService {
     private final LeaveApplicationLogRepository leaveApplicationLogRepository;
     private final AsyncLeaveAttendanceSyncService asyncAttendanceUpdater;
 
+    @Transactional(readOnly = true)
+    public java.util.List<LeaveApplication> getStaffLeaveHistory(Long staffId) {
+        return applicationRepository.findByStaffIdOrderByCreatedAtDesc(staffId);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<LeaveApplication> getPendingLeaves(Long tenantId, Long storeId) {
+        return applicationRepository.findByTenantIdAndStoreIdAndStatusInOrderByCreatedAtAsc(
+                tenantId, storeId,
+                java.util.List.of(LeaveApplication.ApplicationStatus.PENDING, LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED)
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.List<LeavePlanRule> getEligibleLeaveRules(Long staffId) {
+        Optional<EmployeeLeaveEnrollment> enrollment = enrollmentRepository.findByStaffId(staffId);
+        if (enrollment.isEmpty()) return java.util.Collections.emptyList();
+        
+        LeavePlan plan = enrollment.get().getLeavePlan();
+        return ruleRepository.findAll().stream()
+                .filter(r -> r.getLeavePlan().getId().equals(plan.getId()))
+                .toList();
+    }
+
     @Transactional
-    public LeaveApplication applyForLeave(Long staffId, LeaveType type, LocalDate startDate, LocalDate endDate, String reason, String attachmentUrl) {
+    public LeaveApplication applyForLeave(Long tenantId, Long storeId, Long staffId, LeaveType type, LocalDate startDate, LocalDate endDate, String reason, String attachmentUrl) {
         if (endDate.isBefore(startDate)) {
             throw new IllegalArgumentException("End date cannot be before start date.");
         }
@@ -81,6 +105,8 @@ public class LeaveManagementService {
         }
 
         LeaveApplication application = LeaveApplication.builder()
+                .tenantId(tenantId)
+                .storeId(storeId)
                 .staffId(staffId)
                 .leaveType(type)
                 .startDate(startDate)
@@ -112,6 +138,8 @@ public class LeaveManagementService {
         applicationRepository.save(application);
 
         ledgerService.recordTransaction(
+                application.getTenantId(),
+                application.getStoreId(),
                 application.getStaffId(),
                 application.getLeaveType(),
                 application.getRequestedDays().negate(), 
@@ -183,6 +211,8 @@ public class LeaveManagementService {
         applicationRepository.save(application);
 
         ledgerService.recordTransaction(
+                application.getTenantId(),
+                application.getStoreId(),
                 application.getStaffId(),
                 application.getLeaveType(),
                 application.getRequestedDays(), 

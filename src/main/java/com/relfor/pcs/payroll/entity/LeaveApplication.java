@@ -19,11 +19,18 @@ public class LeaveApplication {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
+
     @Column(name = "staff_id", nullable = false)
     private Long staffId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "leave_type_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private LeaveType leaveType;
 
     @Column(name = "start_date", nullable = false)

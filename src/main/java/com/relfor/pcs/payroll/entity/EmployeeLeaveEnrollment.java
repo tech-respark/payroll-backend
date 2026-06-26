@@ -18,7 +18,13 @@ public class EmployeeLeaveEnrollment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "staff_id", nullable = false)
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
+
+    @Column(name = "staff_id", nullable = false, unique = true)
     private Long staffId;
 
     @ManyToOne(fetch = FetchType.LAZY)

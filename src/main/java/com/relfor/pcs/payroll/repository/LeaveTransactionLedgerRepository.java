@@ -8,9 +8,12 @@ import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Repository
 public interface LeaveTransactionLedgerRepository extends JpaRepository<LeaveTransactionLedger, Long> {
+
+    List<LeaveTransactionLedger> findByTenantIdAndStoreId(Long tenantId, Long storeId);
 
     /**
      * Calculates the active balance for an employee's specific leave type.
@@ -24,4 +27,13 @@ public interface LeaveTransactionLedgerRepository extends JpaRepository<LeaveTra
     BigDecimal calculateBalanceForYear(@Param("staffId") Long staffId, 
                                        @Param("leaveTypeId") Long leaveTypeId, 
                                        @Param("yearStart") LocalDate yearStart);
+
+    @Query("SELECT COUNT(l) FROM LeaveTransactionLedger l " +
+           "WHERE l.staffId = :staffId " +
+           "AND l.leaveType.id = :leaveTypeId " +
+           "AND l.transactionType = 'ALLOCATION' " +
+           "AND l.effectiveDate >= :yearStart")
+    long countAllocationsForYear(@Param("staffId") Long staffId, 
+                                 @Param("leaveTypeId") Long leaveTypeId, 
+                                 @Param("yearStart") LocalDate yearStart);
 }

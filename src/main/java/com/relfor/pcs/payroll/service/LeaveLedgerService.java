@@ -26,15 +26,30 @@ public class LeaveLedgerService {
         return ledgerRepository.calculateBalanceForYear(staffId, leaveTypeId, yearStart);
     }
 
+    @Transactional
+    public BigDecimal getOrAllocateBalance(Long tenantId, Long storeId, Long staffId, LeaveType type, BigDecimal annualAllotment, LocalDate asOfDate) {
+        LocalDate yearStart = LocalDate.of(asOfDate.getYear(), 1, 1);
+        long allocations = ledgerRepository.countAllocationsForYear(staffId, type.getId(), yearStart);
+        
+        if (allocations == 0) {
+            recordTransaction(tenantId, storeId, staffId, type, annualAllotment, LeaveTransactionLedger.TransactionType.ALLOCATION, null, asOfDate);
+            return annualAllotment;
+        }
+        
+        return ledgerRepository.calculateBalanceForYear(staffId, type.getId(), yearStart);
+    }
+
     /**
      * Immutable write operation. Never UPDATEs, only INSERTs.
      */
     @Transactional
-    public void recordTransaction(Long staffId, LeaveType type, BigDecimal value, 
+    public void recordTransaction(Long tenantId, Long storeId, Long staffId, LeaveType type, BigDecimal value, 
                                   LeaveTransactionLedger.TransactionType txnType, 
                                   LeaveApplication application, LocalDate effectiveDate) {
         
         LeaveTransactionLedger ledger = LeaveTransactionLedger.builder()
+                .tenantId(tenantId)
+                .storeId(storeId)
                 .staffId(staffId)
                 .leaveType(type)
                 .transactionValue(value)

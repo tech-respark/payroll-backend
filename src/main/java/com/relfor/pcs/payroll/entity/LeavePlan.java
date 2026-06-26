@@ -17,11 +17,14 @@ public class LeavePlan {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
+
     @Column(name = "plan_name", nullable = false, length = 100)
     private String planName;
-
-    @Column(name = "location_id", nullable = false)
-    private Long locationId; // Maps to StoreDetails
 
     @Column(name = "effective_year", nullable = false)
     private Integer effectiveYear; // e.g., 2026

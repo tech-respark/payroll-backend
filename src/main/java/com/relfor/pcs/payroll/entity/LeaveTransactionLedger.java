@@ -19,6 +19,12 @@ public class LeaveTransactionLedger {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
+
     @Column(name = "staff_id", nullable = false)
     private Long staffId;
 

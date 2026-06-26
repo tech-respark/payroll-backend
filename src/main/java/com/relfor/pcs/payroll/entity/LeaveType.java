@@ -17,7 +17,13 @@ public class LeaveType {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "leave_code", nullable = false, unique = true, length = 10)
+    @Column(name = "tenant_id", nullable = false)
+    private Long tenantId;
+
+    @Column(name = "store_id", nullable = false)
+    private Long storeId;
+
+    @Column(name = "leave_code", nullable = false, length = 10)
     private String leaveCode; // e.g., SL, CL, EL, LOP
 
     @Column(name = "leave_name", nullable = false, length = 50)

@@ -70,6 +70,7 @@ public class AuthController {
                 response.setStoreId(personnel.getStoreId());
                 response.setTenantId(personnel.getApplicationTenantId());
                 response.setActive(personnel.getActive() != null ? personnel.getActive() : true);
+				response.setStaffId(personnel.getId());
                 
                 return ResponseEntity.ok(response);
             }

@@ -87,6 +87,22 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("Default Access Modules (0,0) seeded successfully.");
         }
 
+        // Always check and seed Leave Management separately just in case
+        boolean hasLeaveModule = existing.stream().anyMatch(m -> "Leave Management".equals(m.getCategory()));
+        if (!hasLeaveModule) {
+            AccessModule mLeave = new AccessModule();
+            mLeave.setTenantId(0L); mLeave.setStoreId(0L);
+            mLeave.setCategory("Leave Management");
+            mLeave.setIcon("<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\" strokeLinecap=\"round\" strokeLinejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\" ry=\"2\"></rect><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"></line><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"></line><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"></line><path d=\"M8 14h.01\"></path><path d=\"M12 14h.01\"></path><path d=\"M16 14h.01\"></path><path d=\"M8 18h.01\"></path><path d=\"M12 18h.01\"></path><path d=\"M16 18h.01\"></path></svg>");
+            
+            List<AccessPermission> pLeave = new ArrayList<>();
+            pLeave.add(createPerm("VIEW_LEAVES", "View Leave Records & Balances", mLeave));
+            pLeave.add(createPerm("MANAGE_LEAVES", "Manage & Approve Leaves", mLeave));
+            mLeave.setPermissions(pLeave);
+            accessModuleRepository.save(mLeave);
+            System.out.println("Leave Management module seeded successfully.");
+        }
+
         // Seed Store 1 config
         java.util.Optional<com.relfor.pcs.payroll.entity.StoreDetails> sdOpt = 
             storeDetailsRepository.fetchStoreAndTenantDetails("RESPARK", 1L, 1L);

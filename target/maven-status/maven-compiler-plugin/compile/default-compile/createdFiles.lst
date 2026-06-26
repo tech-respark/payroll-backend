@@ -39,6 +39,7 @@ com\relfor\pcs\payroll\exceptions\ApiExceptionResponse.class
 com\relfor\pcs\payroll\entity\PersonnelPayslipHistory.class
 com\relfor\pcs\payroll\entity\LeaveTransactionLedger$TransactionType.class
 com\relfor\pcs\payroll\dto\PersonnelEmergencyContactsDTO.class
+com\relfor\pcs\payroll\entity\LeaveApplicationLog$LogAction.class
 com\relfor\pcs\payroll\model\TenantStoreDTO.class
 com\relfor\pcs\payroll\dto\PersonnelJoiningDetailsDTO.class
 com\relfor\pcs\payroll\dto\ResponseModel.class
@@ -74,6 +75,7 @@ com\relfor\pcs\payroll\entity\PersonnelSalaryComponents.class
 com\relfor\pcs\payroll\repository\DayWiseShiftsTimingRepository.class
 com\relfor\pcs\payroll\entity\DayWiseAttendanceSummary$DayCategory.class
 com\relfor\pcs\payroll\repository\PersonnelAttendanceCustomRepo.class
+com\relfor\pcs\payroll\service\AsyncLeaveAttendanceSyncService.class
 com\relfor\pcs\payroll\projection\PersonnelAttendanceRequestsProjection.class
 com\relfor\pcs\payroll\util\SalaryComponentListConverter$1.class
 com\relfor\pcs\payroll\service\StaffShiftsService$3.class
@@ -82,6 +84,7 @@ com\relfor\pcs\payroll\entity\StoreStaffRole.class
 com\relfor\pcs\payroll\entity\DayWiseAttendanceSummary.class
 com\relfor\pcs\payroll\entity\BreakTypes.class
 com\relfor\pcs\payroll\controller\LeaveManagementController.class
+com\relfor\pcs\payroll\entity\LeaveApplicationLog.class
 com\relfor\pcs\payroll\repository\SShiftsSlotsRepository.class
 com\relfor\pcs\payroll\dto\ReportRequestDTO.class
 com\relfor\pcs\payroll\dto\SalaryComponentsDTO.class
@@ -164,6 +167,7 @@ com\relfor\pcs\payroll\repository\SalaryComponentDefinitionsRepository.class
 com\relfor\pcs\payroll\repository\StoreDetailsRepository.class
 com\relfor\pcs\payroll\controller\SalaryCalculationController.class
 com\relfor\pcs\payroll\projection\PersonnelAttendanceSummaryProjection.class
+com\relfor\pcs\payroll\repository\LeaveApplicationLogRepository.class
 com\relfor\pcs\payroll\dto\DayWiseAttendance.class
 com\relfor\pcs\payroll\repository\PersonnelPayslipHistoryRepository.class
 com\relfor\pcs\payroll\dto\PrintBillDetailsDTO.class
@@ -177,6 +181,7 @@ com\relfor\pcs\payroll\util\ResponseHandler.class
 com\relfor\pcs\payroll\entity\SShiftsSlots.class
 com\relfor\pcs\payroll\controller\StaffBookedSlotController.class
 com\relfor\pcs\payroll\entity\PersonnelBankAccountDetails.class
+com\relfor\pcs\payroll\entity\LeaveApplicationLog$LeaveApplicationLogBuilder.class
 com\relfor\pcs\payroll\repository\LeaveTransactionLedgerRepository.class
 com\relfor\pcs\payroll\dto\constants\RegularizationRequestStatuses.class
 com\relfor\pcs\payroll\service\StaffShiftsService.class
