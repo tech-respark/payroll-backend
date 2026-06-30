@@ -36,6 +36,15 @@ import java.util.stream.Collectors;
 public class ResparkInOutHistoryService {
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	private static final String SUCCESS = "SUCCESS";
+	
+	private static final List<String> PUBLIC_HOLIDAYS = Arrays.asList("2026-01-01", "2026-01-26", "2026-06-15",
+			"2026-10-02", "2026-12-25");
+
+	private boolean isPublicHoliday(LocalDate date) {
+		if (date == null) return false;
+		return PUBLIC_HOLIDAYS.contains(date.toString());
+	}
+
 	@Autowired
 	PersonnelAttendanceRepository personnelAttendanceRepository;
 	@Autowired
@@ -44,6 +53,8 @@ public class ResparkInOutHistoryService {
 	PersonnelDetailsRepository personnelDetailsRepository;
 	@Autowired
 	SStaffShiftsRepository staffShiftsRepository;
+	@Autowired
+	com.relfor.pcs.payroll.repository.LeaveApplicationRepository leaveApplicationRepository;
 
 	public ResponseModel getInOutHistoryInformation(InOutHistoryInputModel inOutHistoryInputModel) {
 		ResponseModel responseModel = new ResponseModel();
@@ -255,14 +266,16 @@ public class ResparkInOutHistoryService {
 							inOutHistoryInputModel.getStoreId(), inOutHistoryInputModel.getStaffIds());
 			Set<Long> staffIdsFromInput = new HashSet<>(inOutHistoryInputModel.getStaffIds());
 			Set<Long> staffIdsWithAttendance = new HashSet<>();
+			
+			Optional<TenantStoreProjection> tenantStoreProjectionOptional =
+					tenantCompanyMappingRepository.getTenantStoreMapping(inOutHistoryInputModel.getTenantId(),
+							inOutHistoryInputModel.getStoreId(), BiometricApplicationNames.RESPARK.name());
+			ZoneId zoneId = ZoneId.systemDefault();
+			if (tenantStoreProjectionOptional.isPresent()) {
+				zoneId = ZoneId.of(tenantStoreProjectionOptional.get().getTimeZone());
+			}
+
 			if (!personnelAttendanceData.isEmpty()) {
-				Optional<TenantStoreProjection> tenantStoreProjectionOptional =
-						tenantCompanyMappingRepository.getTenantStoreMapping(inOutHistoryInputModel.getTenantId(),
-								inOutHistoryInputModel.getStoreId(), BiometricApplicationNames.RESPARK.name());
-				ZoneId zoneId = ZoneId.systemDefault();
-				if (tenantStoreProjectionOptional.isPresent()) {
-					zoneId = ZoneId.of(tenantStoreProjectionOptional.get().getTimeZone());
-				}
 
 				Map<Long, List<PersonnelAttendanceProjectionForInOutHistory>> personnelWiseAttendance = personnelAttendanceData.stream()
 						.collect(Collectors.groupingBy(PersonnelAttendanceProjectionForInOutHistory::getStaffId));
@@ -297,6 +310,27 @@ public class ResparkInOutHistoryService {
 								personnel.getGender(), (Optional.ofNullable(personnel.getFirstName()).orElse("")
 										+ " " + Optional.ofNullable(personnel.getLastName()).orElse("")).trim(),
 								personnel.getDesignation(), personnel.getPersonnelMobileNumber());
+						
+						List<ResparkDayWiseAttendanceDTO> dayWiseAttendanceList = new ArrayList<>();
+						List<SStaffShifts> shifts = staffShiftsRepository.findByTenantIdAndStoreIdAndStaffIdAndShiftDateBetween(
+								inOutHistoryInputModel.getTenantId(), inOutHistoryInputModel.getStoreId(), personnel.getId(), 
+								inOutHistoryInputModel.getFromDate(), inOutHistoryInputModel.getToDate());
+						
+						List<com.relfor.pcs.payroll.entity.LeaveApplication> approvedLeaves = leaveApplicationRepository.findOverlappingApprovedLeaves(
+								personnel.getId(), inOutHistoryInputModel.getFromDate(), inOutHistoryInputModel.getToDate());
+						
+						LocalDate cursor = inOutHistoryInputModel.getFromDate();
+						while (!cursor.isAfter(inOutHistoryInputModel.getToDate())) {
+							LocalDate currentDate = cursor;
+							SStaffShifts dailyShift = shifts.stream().filter(s -> s.getShiftDate() != null && s.getShiftDate().equals(currentDate)).findFirst().orElse(null);
+							ResparkDayWiseAttendanceDTO dayWiseAttendance = this.processAdvancedDateWiseAttendance(
+									currentDate, new ArrayList<>(), zoneId, dailyShift, approvedLeaves
+							);
+							dayWiseAttendanceList.add(dayWiseAttendance);
+							cursor = cursor.plusDays(1);
+						}
+						personnelAttendanceModel.setDayWiseAttendanceList(dayWiseAttendanceList);
+						
 						personnelAttendanceModelList.add(personnelAttendanceModel);
 					}
 				}
@@ -331,13 +365,20 @@ public class ResparkInOutHistoryService {
 			List<ResparkDayWiseAttendanceDTO> dayWiseAttendanceList = new ArrayList<>();
 			if (!dateWisePersonnelAttendance.isEmpty()) {
 			    List<SStaffShifts> shifts = staffShiftsRepository.findByTenantIdAndStoreIdAndStaffIdAndShiftDateBetween(tenantId, storeId, staffId, fromDate, toDate);
+			    List<com.relfor.pcs.payroll.entity.LeaveApplication> approvedLeaves = leaveApplicationRepository.findOverlappingApprovedLeaves(
+			            staffId, fromDate, toDate);
 			    
-				for (Map.Entry<LocalDate, List<PersonnelAttendanceProjectionForInOutHistory>> entry : dateWisePersonnelAttendance.entrySet()) {
-				    SStaffShifts dailyShift = shifts.stream().filter(s -> s.getShiftDate() != null && s.getShiftDate().equals(entry.getKey())).findFirst().orElse(null);
+				LocalDate cursor = fromDate;
+				while (!cursor.isAfter(toDate)) {
+					LocalDate currentDate = cursor;
+					List<PersonnelAttendanceProjectionForInOutHistory> punchesForDay = dateWisePersonnelAttendance.getOrDefault(currentDate, new ArrayList<>());
+					SStaffShifts dailyShift = shifts.stream().filter(s -> s.getShiftDate() != null && s.getShiftDate().equals(currentDate)).findFirst().orElse(null);
+					
 					ResparkDayWiseAttendanceDTO dayWiseAttendance = this.processAdvancedDateWiseAttendance(
-							entry.getKey(), entry.getValue(), zoneId, dailyShift
+							currentDate, punchesForDay, zoneId, dailyShift, approvedLeaves
 					);
 					dayWiseAttendanceList.add(dayWiseAttendance);
+					cursor = cursor.plusDays(1);
 				}
 				personnelModel.setDayWiseAttendanceList(dayWiseAttendanceList);
 			}
@@ -373,7 +414,8 @@ public class ResparkInOutHistoryService {
 			LocalDate dateOfAttendance,
 			List<PersonnelAttendanceProjectionForInOutHistory> individualDateWiseAttendance,
 			ZoneId zoneId,
-			com.relfor.pcs.payroll.entity.SStaffShifts shiftRecord) {
+			com.relfor.pcs.payroll.entity.SStaffShifts shiftRecord,
+			List<com.relfor.pcs.payroll.entity.LeaveApplication> approvedLeaves) {
 		ResparkDayWiseAttendanceDTO dayAttendance = new ResparkDayWiseAttendanceDTO();
 		dayAttendance.setDateOfAttendance(dateOfAttendance);
 		
@@ -389,8 +431,9 @@ public class ResparkInOutHistoryService {
 		dayAttendance.setShiftStartTime(shiftStart);
 		dayAttendance.setShiftEndTime(shiftEnd);
 		
+		dayAttendance.setDayOfAttendance(dateOfAttendance.getDayOfWeek().name());
+		
 		if (!individualDateWiseAttendance.isEmpty()) {
-			dayAttendance.setDayOfAttendance(individualDateWiseAttendance.get(0).getAttendanceDayOfWeek());
 			List<ResparkIndividualPunchesDTO> punchesList = new ArrayList<>();
 			punchesList = this.processAdvancedIndividualPunches(individualDateWiseAttendance,
 					punchesList, zoneId);
@@ -428,16 +471,43 @@ public class ResparkInOutHistoryService {
 			            dayAttendance.setTotalDurationMinutes(dur);
 			        }
 			    }
-			    
-			    dayAttendance.setCurrentStatus("Present");
-			} else {
-			    if (shiftRecord != null) {
-			        if (shiftRecord.getWeeklyOff()) dayAttendance.setCurrentStatus("Weekly Off");
-			        else if (shiftRecord.getOnLeave()) dayAttendance.setCurrentStatus("Leave");
-			        else dayAttendance.setCurrentStatus("Absent");
-			    }
 			}
 		}
+
+		boolean isPH = isPublicHoliday(dateOfAttendance);
+		
+		boolean isLeave = false;
+		if (approvedLeaves != null) {
+		    for (com.relfor.pcs.payroll.entity.LeaveApplication leave : approvedLeaves) {
+		        if (leave.getStartDate() != null && leave.getEndDate() != null &&
+		            !dateOfAttendance.isBefore(leave.getStartDate()) && !dateOfAttendance.isAfter(leave.getEndDate())) {
+		            isLeave = true;
+		            break;
+		        }
+		    }
+		}
+		
+		boolean isWO = shiftRecord != null && shiftRecord.getWeeklyOff();
+		boolean isFuture = dateOfAttendance.isAfter(LocalDate.now(zoneId));
+
+		if (isPH) {
+		    dayAttendance.setCurrentStatus("Public Holiday");
+		} else if (isLeave) {
+		    dayAttendance.setCurrentStatus("Leave");
+		} else if (isWO) {
+		    dayAttendance.setCurrentStatus("Weekly Off");
+		} else if (isFuture) {
+		    dayAttendance.setCurrentStatus(null);
+		} else if (dayAttendance.getIndividualPunchesList() != null && !dayAttendance.getIndividualPunchesList().isEmpty()) {
+		    if (dayAttendance.getLastOutTime() != null) {
+		        dayAttendance.setCurrentStatus("Present");
+		    } else {
+		        dayAttendance.setCurrentStatus("Absent");
+		    }
+		} else {
+		    dayAttendance.setCurrentStatus("Absent");
+		}
+		
 		return dayAttendance;
 	}
 	

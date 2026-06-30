@@ -20,6 +20,15 @@ public interface LeaveApplicationRepository extends JpaRepository<LeaveApplicati
                                 @Param("startDate") LocalDate startDate, 
                                 @Param("endDate") LocalDate endDate);
 
+    @Query("SELECT l FROM LeaveApplication l " +
+           "WHERE l.staffId = :staffId " +
+           "AND l.status = 'APPROVED' " +
+           "AND l.startDate <= :endDate " +
+           "AND l.endDate >= :startDate")
+    List<LeaveApplication> findOverlappingApprovedLeaves(@Param("staffId") Long staffId, 
+                                                         @Param("startDate") LocalDate startDate, 
+                                                         @Param("endDate") LocalDate endDate);
+
     List<LeaveApplication> findByStaffIdOrderByCreatedAtDesc(Long staffId);
     
     List<LeaveApplication> findByStatusInOrderByCreatedAtAsc(List<LeaveApplication.ApplicationStatus> statuses);
