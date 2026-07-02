@@ -25,6 +25,9 @@ public class LeaveApplication {
     @Column(name = "store_id", nullable = false)
     private Long storeId;
 
+    @Column(name = "location_id", nullable = false)
+    private Long locationId;
+
     @Column(name = "staff_id", nullable = false)
     private Long staffId;
 
@@ -41,6 +44,9 @@ public class LeaveApplication {
 
     @Column(name = "requested_days", nullable = false, precision = 4, scale = 2)
     private BigDecimal requestedDays; // Can support 0.5 (Half Days)
+
+    @Column(name = "leave_session", length = 20)
+    private String leaveSession = "FULL_DAY"; // FULL_DAY, FIRST_HALF, SECOND_HALF
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)

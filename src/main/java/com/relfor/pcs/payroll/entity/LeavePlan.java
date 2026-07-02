@@ -23,6 +23,9 @@ public class LeavePlan {
     @Column(name = "store_id", nullable = false)
     private Long storeId;
 
+    @Column(name = "location_id", nullable = false)
+    private Long locationId;
+
     @Column(name = "plan_name", nullable = false, length = 100)
     private String planName;
 

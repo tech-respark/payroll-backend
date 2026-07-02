@@ -50,6 +50,7 @@ public class LeaveLedgerService {
         LeaveTransactionLedger ledger = LeaveTransactionLedger.builder()
                 .tenantId(tenantId)
                 .storeId(storeId)
+                .locationId(storeId)
                 .staffId(staffId)
                 .leaveType(type)
                 .transactionValue(value)

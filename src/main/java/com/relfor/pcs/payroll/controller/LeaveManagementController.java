@@ -1,6 +1,7 @@
 package com.relfor.pcs.payroll.controller;
 
 import com.relfor.pcs.payroll.entity.LeaveApplication;
+import com.relfor.pcs.payroll.entity.LeavePlanRule;
 import com.relfor.pcs.payroll.entity.LeaveType;
 import com.relfor.pcs.payroll.repository.LeaveTypeRepository;
 import com.relfor.pcs.payroll.service.LeaveLedgerService;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -26,7 +28,7 @@ public class LeaveManagementController {
     public ResponseEntity<?> getEligibleLeaveTypes(@PathVariable Long staffId) {
         try {
             return ResponseEntity.ok(leaveManagementService.getEligibleLeaveRules(staffId).stream()
-                    .map(com.relfor.pcs.payroll.entity.LeavePlanRule::getLeaveType)
+                    .map(LeavePlanRule::getLeaveType)
                     .toList());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -62,11 +64,12 @@ public class LeaveManagementController {
             LocalDate endDate = LocalDate.parse(payload.get("endDate").toString());
             String reason = (String) payload.get("reason");
             String attachmentUrl = (String) payload.get("attachmentUrl");
+            String leaveSession = (String) payload.getOrDefault("leaveSession", "FULL_DAY");
 
             LeaveType leaveType = leaveTypeRepository.findById(leaveTypeId)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid Leave Type ID"));
 
-            LeaveApplication application = leaveManagementService.applyForLeave(tenantId, storeId, staffId, leaveType, startDate, endDate, reason, attachmentUrl);
+            LeaveApplication application = leaveManagementService.applyForLeave(tenantId, storeId, staffId, leaveType, startDate, endDate, reason, attachmentUrl, leaveSession);
             return ResponseEntity.ok(Map.of("message", "Leave application submitted successfully", "applicationId", application.getId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -88,10 +91,10 @@ public class LeaveManagementController {
                                                              @RequestParam(required = false) Long tenantId, 
                                                              @RequestParam(required = false) Long storeId) {
         try {
-            java.util.List<com.relfor.pcs.payroll.entity.LeavePlanRule> eligibleRules = leaveManagementService.getEligibleLeaveRules(staffId);
+            List<LeavePlanRule> eligibleRules = leaveManagementService.getEligibleLeaveRules(staffId);
             java.util.List<Map<String, Object>> balances = new java.util.ArrayList<>();
-            for (com.relfor.pcs.payroll.entity.LeavePlanRule rule : eligibleRules) {
-                com.relfor.pcs.payroll.entity.LeaveType type = rule.getLeaveType();
+            for (LeavePlanRule rule : eligibleRules) {
+                LeaveType type = rule.getLeaveType();
                 Long typeId = type.getId();
                 
                 BigDecimal balance;

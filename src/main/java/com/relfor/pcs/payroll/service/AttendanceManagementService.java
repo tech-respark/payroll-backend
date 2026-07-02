@@ -56,6 +56,17 @@ public class AttendanceManagementService {
 				personnelDetails = new PersonnelDetails();
 			}
 
+			if (staffDTO.getUsername() != null && !staffDTO.getUsername().isEmpty()) {
+				Optional<PersonnelDetails> existing = personnelDetailsRepository.findByUsername(staffDTO.getUsername());
+				if (existing.isPresent()) {
+					if (staffDTO.getId() == null || !existing.get().getId().equals(staffDTO.getId())) {
+						responseModel.setCode(org.springframework.http.HttpStatus.BAD_REQUEST);
+						responseModel.setMessage("Username '" + staffDTO.getUsername() + "' is already taken.");
+						return responseModel;
+					}
+				}
+			}
+
 			this.convertToPersonnelDetails(staffDTO, personnelDetails);
 			personnelDetails.setActive(safeGetActive(staffDTO) == 1);
 			personnelDetails = personnelDetailsRepository.save(personnelDetails);
@@ -105,7 +116,9 @@ public class AttendanceManagementService {
 		personnelDetails.setApplicationName(staffDTO.getApplicationName());
 		personnelDetails.setApplicationTenantId(staffDTO.getTenantId());
 		personnelDetails.setUsername(staffDTO.getUsername());
-		personnelDetails.setPassword(staffDTO.getPwd());
+		if (staffDTO.getPwd() != null && !staffDTO.getPwd().isEmpty()) {
+			personnelDetails.setPassword(staffDTO.getPwd());
+		}
 		personnelDetails.setEmail(staffDTO.getEmail());
 		personnelDetails.setAddress(staffDTO.getAddress());
 		personnelDetails.setSpeciality(staffDTO.getSpeciality());

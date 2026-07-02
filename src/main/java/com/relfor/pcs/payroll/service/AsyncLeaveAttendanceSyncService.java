@@ -6,6 +6,11 @@ import com.relfor.pcs.payroll.entity.LeaveApplication;
 import com.relfor.pcs.payroll.entity.PersonnelDetails;
 import com.relfor.pcs.payroll.repository.DayWiseAttendanceSummaryRepository;
 import com.relfor.pcs.payroll.repository.PersonnelDetailsRepository;
+import com.relfor.pcs.payroll.repository.SStaffShiftsRepository;
+import com.relfor.pcs.payroll.entity.SStaffShifts;
+
+import java.util.Date;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +29,7 @@ public class AsyncLeaveAttendanceSyncService {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final DayWiseAttendanceSummaryRepository dayWiseAttendanceSummaryRepository;
     private final PersonnelDetailsRepository personnelDetailsRepository;
+    private final SStaffShiftsRepository sStaffShiftsRepository;
 
     @Async
     @Transactional
@@ -71,7 +77,22 @@ public class AsyncLeaveAttendanceSyncService {
                 summary.setIsAbsent(false);
                 summary.setIsPenaltyAbsent(false);
 
+                if ("FIRST_HALF".equals(application.getLeaveSession()) || "SECOND_HALF".equals(application.getLeaveSession())) {
+                    summary.setLeaveUnits(BigDecimal.valueOf(0.5));
+                } else {
+                    summary.setLeaveUnits(BigDecimal.valueOf(1.0));
+                }
+
                 dayWiseAttendanceSummaryRepository.save(summary);
+
+                Date utilDate = Date.from(date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant());
+                List<SStaffShifts> shifts = sStaffShiftsRepository.findByTenantIdAndStoreIdAndShiftDateAndStaffId(tenantId, storeId, utilDate, staffId);
+                if (shifts != null && !shifts.isEmpty()) {
+                    for (SStaffShifts shift : shifts) {
+                        shift.setOnLeave(true);
+                    }
+                    sStaffShiftsRepository.saveAll(shifts);
+                }
             }
             logger.info("Successfully synced approved leave ID {} to DayWiseAttendanceSummary", application.getId());
         } catch (Exception e) {
@@ -114,6 +135,15 @@ public class AsyncLeaveAttendanceSyncService {
                     }
 
                     dayWiseAttendanceSummaryRepository.save(summary);
+
+                    Date utilDate = Date.from(date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant());
+                    List<SStaffShifts> shifts = sStaffShiftsRepository.findByTenantIdAndStoreIdAndShiftDateAndStaffId(tenantId, storeId, utilDate, staffId);
+                    if (shifts != null && !shifts.isEmpty()) {
+                        for (SStaffShifts shift : shifts) {
+                            shift.setOnLeave(false);
+                        }
+                        sStaffShiftsRepository.saveAll(shifts);
+                    }
                 }
             }
             logger.info("Successfully reverted cancelled leave ID {} from DayWiseAttendanceSummary", application.getId());
@@ -122,3 +152,5 @@ public class AsyncLeaveAttendanceSyncService {
         }
     }
 }
+
+

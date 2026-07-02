@@ -4,6 +4,7 @@ import com.relfor.pcs.payroll.dto.RoleAssignRequest;
 import com.relfor.pcs.payroll.dto.RoleCreateRequest;
 import com.relfor.pcs.payroll.entity.Role;
 import com.relfor.pcs.payroll.entity.StoreStaffRole;
+import com.relfor.pcs.payroll.repository.AccessModuleRepository;
 import com.relfor.pcs.payroll.repository.RoleRepository;
 import com.relfor.pcs.payroll.repository.StoreStaffRoleRepository;
 import com.relfor.pcs.payroll.util.SecurityUtils;
@@ -28,7 +29,7 @@ public class RoleController {
     private StoreStaffRoleRepository storeStaffRoleRepository;
 
     @Autowired
-    private com.relfor.pcs.payroll.repository.AccessModuleRepository accessModuleRepository;
+    private AccessModuleRepository accessModuleRepository;
 
     @GetMapping("/permissions/modules")
     public ResponseEntity<Map<String, Object>> getModules(@RequestParam Long tenantId, @RequestParam Long storeId) {

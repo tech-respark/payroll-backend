@@ -1,5 +1,6 @@
 package com.relfor.pcs.payroll.service;
 
+import com.relfor.pcs.payroll.dto.LeaveApplicationDTO;
 import com.relfor.pcs.payroll.entity.*;
 import com.relfor.pcs.payroll.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +9,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -22,23 +25,32 @@ public class LeaveManagementService {
     private final LeaveApplicationLogRepository leaveApplicationLogRepository;
     private final AsyncLeaveAttendanceSyncService asyncAttendanceUpdater;
 
-    @Transactional(readOnly = true)
-    public java.util.List<LeaveApplication> getStaffLeaveHistory(Long staffId) {
-        return applicationRepository.findByStaffIdOrderByCreatedAtDesc(staffId);
+    private LeaveApplicationDTO toDTO(LeaveApplication app) {
+        String staffName = "Unknown Staff";
+        Optional<PersonnelDetails> pd = personnelDetailsRepository.findById(app.getStaffId());
+        if (pd.isPresent()) {
+            staffName = pd.get().getFirstName() + (pd.get().getLastName() != null ? " " + pd.get().getLastName() : "");
+        }
+        return new LeaveApplicationDTO(app, staffName);
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<LeaveApplication> getPendingLeaves(Long tenantId, Long storeId) {
+    public List<LeaveApplicationDTO> getStaffLeaveHistory(Long staffId) {
+        return applicationRepository.findByStaffIdOrderByCreatedAtDesc(staffId).stream().map(this::toDTO).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<LeaveApplicationDTO> getPendingLeaves(Long tenantId, Long storeId) {
         return applicationRepository.findByTenantIdAndStoreIdAndStatusInOrderByCreatedAtAsc(
                 tenantId, storeId,
-                java.util.List.of(LeaveApplication.ApplicationStatus.PENDING, LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED)
-        );
+                List.of(LeaveApplication.ApplicationStatus.PENDING, LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED)
+        ).stream().map(this::toDTO).toList();
     }
 
     @Transactional(readOnly = true)
-    public java.util.List<LeavePlanRule> getEligibleLeaveRules(Long staffId) {
-        Optional<EmployeeLeaveEnrollment> enrollment = enrollmentRepository.findByStaffId(staffId);
-        if (enrollment.isEmpty()) return java.util.Collections.emptyList();
+    public List<LeavePlanRule> getEligibleLeaveRules(Long staffId) {
+        Optional<EmployeeLeaveEnrollment> enrollment = enrollmentRepository.findFirstByStaffIdOrderByEnrolledDateDesc(staffId);
+        if (enrollment.isEmpty()) return Collections.emptyList();
         
         LeavePlan plan = enrollment.get().getLeavePlan();
         return ruleRepository.findAll().stream()
@@ -47,7 +59,7 @@ public class LeaveManagementService {
     }
 
     @Transactional
-    public LeaveApplication applyForLeave(Long tenantId, Long storeId, Long staffId, LeaveType type, LocalDate startDate, LocalDate endDate, String reason, String attachmentUrl) {
+    public LeaveApplication applyForLeave(Long tenantId, Long storeId, Long staffId, LeaveType type, LocalDate startDate, LocalDate endDate, String reason, String attachmentUrl, String leaveSession) {
         if (endDate.isBefore(startDate)) {
             throw new IllegalArgumentException("End date cannot be before start date.");
         }
@@ -75,8 +87,10 @@ public class LeaveManagementService {
         }
         
         BigDecimal requestedDuration = BigDecimal.valueOf(daysRequested);
-
-        Optional<EmployeeLeaveEnrollment> enrollment = enrollmentRepository.findByStaffId(staffId);
+        if (daysRequested == 1 && ("FIRST_HALF".equals(leaveSession) || "SECOND_HALF".equals(leaveSession))) {
+            requestedDuration = BigDecimal.valueOf(0.5);
+        }
+        Optional<EmployeeLeaveEnrollment> enrollment = enrollmentRepository.findFirstByStaffIdOrderByEnrolledDateDesc(staffId);
         if (enrollment.isEmpty()) {
             throw new IllegalStateException("Employee is not enrolled in any leave plan.");
         }
@@ -107,11 +121,13 @@ public class LeaveManagementService {
         LeaveApplication application = LeaveApplication.builder()
                 .tenantId(tenantId)
                 .storeId(storeId)
+                .locationId(storeId)
                 .staffId(staffId)
                 .leaveType(type)
                 .startDate(startDate)
                 .endDate(endDate)
                 .requestedDays(requestedDuration)
+                .leaveSession(leaveSession)
                 .reason(reason)
                 .attachmentUrl(attachmentUrl)
                 .status(LeaveApplication.ApplicationStatus.PENDING)

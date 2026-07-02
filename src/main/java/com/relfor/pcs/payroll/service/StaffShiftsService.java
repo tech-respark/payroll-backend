@@ -336,7 +336,6 @@ public class StaffShiftsService {
 
 								if (!weekOff.isEmpty() && weekOff.stream().anyMatch(l -> l.equalsIgnoreCase(day))) {
 									newStaffDetail.setWeeklyOff(true);
-									newStaffDetail.setOnLeave(true);
 								}
 
 								newStaffDetail.setCreatedBy(createStaffShiftInput.getCreatedBy());
@@ -1014,7 +1013,6 @@ public class StaffShiftsService {
 								&& weeklyOffList.stream().filter(Objects::nonNull)
 								.anyMatch(day->StringUtils.equalsIgnoreCase(day,shift.getDay()))) {
 							shift.setWeeklyOff(true);
-							shift.setOnLeave(true);
 							staffShiftsEdited.add(shift);
 						} else if (shift.getWeeklyOff()) {
 							shift.setWeeklyOff(false);
@@ -1792,3 +1790,4 @@ public class StaffShiftsService {
 	}
 
 }
+

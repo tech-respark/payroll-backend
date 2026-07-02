@@ -23,6 +23,9 @@ public class LeaveType {
     @Column(name = "store_id", nullable = false)
     private Long storeId;
 
+    @Column(name = "location_id", nullable = false)
+    private Long locationId;
+
     @Column(name = "leave_code", nullable = false, length = 10)
     private String leaveCode; // e.g., SL, CL, EL, LOP
 

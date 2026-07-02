@@ -25,6 +25,9 @@ public class LeaveTransactionLedger {
     @Column(name = "store_id", nullable = false)
     private Long storeId;
 
+    @Column(name = "location_id", nullable = false)
+    private Long locationId;
+
     @Column(name = "staff_id", nullable = false)
     private Long staffId;
 

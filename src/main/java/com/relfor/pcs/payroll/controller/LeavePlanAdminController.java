@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.util.Map;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.relfor.pcs.payroll.entity.EmployeeLeaveEnrollment;
 import com.relfor.pcs.payroll.repository.EmployeeLeaveEnrollmentRepository;
@@ -35,6 +38,9 @@ public class LeavePlanAdminController {
     @PostMapping("/leave-types")
     public ResponseEntity<?> createLeaveType(@RequestBody LeaveType leaveType) {
         try {
+            if (leaveType.getLocationId() == null) {
+                leaveType.setLocationId(leaveType.getStoreId());
+            }
             LeaveType saved = leaveTypeRepository.save(leaveType);
             return ResponseEntity.ok(Map.of("message", "Leave Type created", "data", saved));
         } catch (Exception e) {
@@ -50,6 +56,9 @@ public class LeavePlanAdminController {
     @PostMapping("/plans")
     public ResponseEntity<?> createLeavePlan(@RequestBody LeavePlan leavePlan) {
         try {
+            if (leavePlan.getLocationId() == null) {
+                leavePlan.setLocationId(leavePlan.getStoreId());
+            }
             LeavePlan saved = leavePlanRepository.save(leavePlan);
             return ResponseEntity.ok(Map.of("message", "Leave Plan created", "data", saved));
         } catch (Exception e) {
@@ -63,13 +72,23 @@ public class LeavePlanAdminController {
             LeavePlan plan = leavePlanRepository.findById(planId)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid Leave Plan ID"));
             
-            EmployeeLeaveEnrollment enrollment = EmployeeLeaveEnrollment.builder()
-                    .tenantId(tenantId)
-                    .storeId(storeId)
-                    .staffId(staffId)
-                    .leavePlan(plan)
-                    .enrolledDate(LocalDate.now())
-                    .build();
+            Optional<EmployeeLeaveEnrollment> existingOpt = enrollmentRepository.findFirstByStaffIdOrderByEnrolledDateDesc(staffId);
+            
+            EmployeeLeaveEnrollment enrollment;
+            if (existingOpt.isPresent()) {
+                enrollment = existingOpt.get();
+                enrollment.setLeavePlan(plan);
+                enrollment.setEnrolledDate(LocalDate.now());
+            } else {
+                enrollment = EmployeeLeaveEnrollment.builder()
+                        .tenantId(tenantId)
+                        .storeId(storeId)
+                        .locationId(storeId)
+                        .staffId(staffId)
+                        .leavePlan(plan)
+                        .enrolledDate(LocalDate.now())
+                        .build();
+            }
                     
             enrollmentRepository.save(enrollment);
             return ResponseEntity.ok(Map.of("message", "Staff successfully enrolled in Leave Plan"));
@@ -108,5 +127,65 @@ public class LeavePlanAdminController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/plans/{planId}/rules")
+    public ResponseEntity<?> getRulesForPlan(@PathVariable Long planId, @RequestParam Long tenantId, @RequestParam Long storeId) {
+        List<LeavePlanRule> rules = ruleRepository.findByLeavePlan_Id(planId);
+        List<Map<String, Object>> result = rules.stream().map(r -> {
+            Map<String, Object> map = new java.util.HashMap<>();
+            map.put("id", r.getId());
+            map.put("leaveTypeId", r.getLeaveType().getId());
+            map.put("annualAllotment", r.getAnnualAllotment());
+            map.put("maxConsecutiveDays", r.getMaxConsecutiveDays());
+            map.put("proofRequiredAfterDays", r.getProofRequiredAfterDays());
+            map.put("allowNegativeBalance", r.isAllowNegativeBalance());
+            return map;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/rules/{ruleId}/delete")
+    public ResponseEntity<?> deleteRule(@PathVariable Long ruleId) {
+        try {
+            ruleRepository.deleteById(ruleId);
+            return ResponseEntity.ok(Map.of("message", "Rule deleted"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/plans/{planId}/update")
+    public ResponseEntity<?> updatePlan(@PathVariable Long planId, @RequestBody Map<String, Object> payload) {
+        try {
+            LeavePlan plan = leavePlanRepository.findById(planId)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid Leave Plan ID"));
+            
+            if (payload.containsKey("planName")) {
+                plan.setPlanName(payload.get("planName").toString());
+            }
+            if (payload.containsKey("effectiveYear")) {
+                plan.setEffectiveYear(Integer.valueOf(payload.get("effectiveYear").toString()));
+            }
+            leavePlanRepository.save(plan);
+            return ResponseEntity.ok(Map.of("message", "Plan updated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/enrollments")
+    public ResponseEntity<?> getEnrollments(@RequestParam Long tenantId, @RequestParam Long storeId) {
+        List<EmployeeLeaveEnrollment> enrollments = enrollmentRepository.findByTenantIdAndStoreId(tenantId, storeId);
+        List<Map<String, Object>> result = enrollments.stream().map(e -> {
+            Map<String, Object> map = new java.util.HashMap<>();
+            map.put("id", e.getId());
+            map.put("staffId", e.getStaffId());
+            map.put("planId", e.getLeavePlan().getId());
+            map.put("enrolledDate", e.getEnrolledDate());
+            map.put("status", "ACTIVE");
+            return map;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(result);
     }
 }
