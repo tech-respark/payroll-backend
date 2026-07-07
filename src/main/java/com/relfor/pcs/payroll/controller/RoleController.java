@@ -20,6 +20,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/payroll-management/v1/roles")
+@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ROLES)")
 public class RoleController {
 
     @Autowired
@@ -32,6 +33,7 @@ public class RoleController {
     private AccessModuleRepository accessModuleRepository;
 
     @GetMapping("/permissions/modules")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> getModules(@RequestParam Long tenantId, @RequestParam Long storeId) {
         tenantId = SecurityUtils.getTenantId(tenantId);
         storeId = SecurityUtils.getStoreId(storeId);
@@ -169,6 +171,7 @@ public class RoleController {
     }
 
     @GetMapping("/staff/{staffId}")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> getStaffRole(@PathVariable Long staffId) {
         Map<String, Object> response = new HashMap<>();
         List<Role> activeRoles = storeStaffRoleRepository.findActiveRolesByStaffId(staffId);

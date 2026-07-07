@@ -85,8 +85,7 @@ public class AsyncLeaveAttendanceSyncService {
 
                 dayWiseAttendanceSummaryRepository.save(summary);
 
-                Date utilDate = Date.from(date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant());
-                List<SStaffShifts> shifts = sStaffShiftsRepository.findByTenantIdAndStoreIdAndShiftDateAndStaffId(tenantId, storeId, utilDate, staffId);
+                List<SStaffShifts> shifts = sStaffShiftsRepository.findByTenantIdAndStoreIdAndShiftDateAndStaffId(tenantId, storeId, date, staffId);
                 if (shifts != null && !shifts.isEmpty()) {
                     for (SStaffShifts shift : shifts) {
                         shift.setOnLeave(true);
@@ -136,8 +135,7 @@ public class AsyncLeaveAttendanceSyncService {
 
                     dayWiseAttendanceSummaryRepository.save(summary);
 
-                    Date utilDate = Date.from(date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant());
-                    List<SStaffShifts> shifts = sStaffShiftsRepository.findByTenantIdAndStoreIdAndShiftDateAndStaffId(tenantId, storeId, utilDate, staffId);
+                    List<SStaffShifts> shifts = sStaffShiftsRepository.findByTenantIdAndStoreIdAndShiftDateAndStaffId(tenantId, storeId, date, staffId);
                     if (shifts != null && !shifts.isEmpty()) {
                         for (SStaffShifts shift : shifts) {
                             shift.setOnLeave(false);

@@ -16,7 +16,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
     @Autowired
@@ -36,7 +36,7 @@ public class SecurityConfig {
                 }))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Allow CORS preflight
-                        .requestMatchers("/payroll-management/v1/login", "/actuator/**").permitAll() // Open login endpoints
+                        .requestMatchers("/payroll-management/v1/login", "/payroll-management/v1/forgot-password/**", "/actuator/**").permitAll() // Open login & password reset endpoints
                         .anyRequest().authenticated() // Require JWT for everything else
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

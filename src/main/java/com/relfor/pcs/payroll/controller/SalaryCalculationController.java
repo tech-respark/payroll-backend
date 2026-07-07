@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.ObjectUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,12 +38,14 @@ public class SalaryCalculationController {
     PayslipExcelGenerationService payslipExcelGenerationService;
 
     @PostMapping("/personnelSalaryComponentsCalculation")
+    @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SALARY)")
     public ResponseEntity<?> personnelSalaryComponentsCalculation(@RequestBody SalaryComponentResponseDTO personnelComponents){
         ResponseModel responseModel = salaryCalService.processSalaryComponents(personnelComponents);
         return ResponseHandler.generateResponseModel(responseModel);
     }
 
     @GetMapping("/personnelSalaryCalculation")
+    @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SALARY)")
     public ResponseEntity<?> personnelSalaryCalculation(@RequestParam Long staffId, @RequestParam String  month, @RequestParam Long  year, @RequestParam Long tenantId, @RequestParam Long storeId){
         tenantId = SecurityUtils.getTenantId(tenantId);
         storeId = SecurityUtils.getStoreId(storeId);
@@ -51,6 +54,7 @@ public class SalaryCalculationController {
     }
 
     @PostMapping("/monthlyCalculationComponents")
+    @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SALARY)")
     public ResponseEntity<?> monthlyCalculationComponents(@RequestBody SalaryComponentResponseDTO salaryComponent){
         ResponseModel responseModel = salaryCalService.setMonthlyComponents(salaryComponent);
         return ResponseHandler.generateResponseModel(responseModel);
@@ -112,8 +116,9 @@ public class SalaryCalculationController {
     }
 
     @GetMapping("/excelOfPayslip")
+    @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SALARY)")
     public ResponseEntity<?> generateExcelOfPayslip(@RequestParam Long tenantId,
-                                                    Long storeId,
+                                                    @RequestParam Long storeId,
                                                     String month,
                                                     Integer year) {
         tenantId = SecurityUtils.getTenantId(tenantId);

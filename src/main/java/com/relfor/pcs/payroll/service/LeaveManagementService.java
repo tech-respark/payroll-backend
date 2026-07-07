@@ -242,6 +242,26 @@ public class LeaveManagementService {
         asyncAttendanceUpdater.revertCancelledLeaveFromAttendance(application);
     }
 
+    @Transactional
+    public void rejectCancellation(Long applicationId, Long managerId, String remarks) {
+        LeaveApplication application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new IllegalArgumentException("Application not found"));
+
+        if (application.getStatus() != LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED) {
+            throw new IllegalStateException("Can only reject cancellation for CANCELLATION_REQUESTED applications.");
+        }
+
+        if (remarks == null || remarks.isBlank()) {
+            throw new IllegalArgumentException("Rejection remarks are mandatory.");
+        }
+
+        application.setStatus(LeaveApplication.ApplicationStatus.APPROVED);
+        application.setManagerRemarks(remarks);
+        applicationRepository.save(application);
+
+        logAction(application, LeaveApplicationLog.LogAction.CANCELLATION_REJECTED, managerId, "Cancellation rejected: " + remarks);
+    }
+
     private void logAction(LeaveApplication application, LeaveApplicationLog.LogAction action, Long actorId, String remarks) {
         LeaveApplicationLog log = LeaveApplicationLog.builder()
                 .leaveApplication(application)

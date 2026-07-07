@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -39,6 +40,9 @@ public class AttendanceManagementService {
 	MonthWiseAttendanceSummaryRepository monthWiseAttendanceSummaryRepository;
 	@Autowired
 	SalaryCalculation salaryCalculation;
+	
+	@Autowired
+	private PasswordEncoder passwordEncoder;
 
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	private static final String SUCCESS = "SUCCESS";
@@ -117,7 +121,7 @@ public class AttendanceManagementService {
 		personnelDetails.setApplicationTenantId(staffDTO.getTenantId());
 		personnelDetails.setUsername(staffDTO.getUsername());
 		if (staffDTO.getPwd() != null && !staffDTO.getPwd().isEmpty()) {
-			personnelDetails.setPassword(staffDTO.getPwd());
+			personnelDetails.setPassword(passwordEncoder.encode(staffDTO.getPwd()));
 		}
 		personnelDetails.setEmail(staffDTO.getEmail());
 		personnelDetails.setAddress(staffDTO.getAddress());
@@ -205,7 +209,7 @@ public class AttendanceManagementService {
 		staffDTO.setApplicationName(personnelDetails.getApplicationName());
 		staffDTO.setTenantId(personnelDetails.getApplicationTenantId());
 		staffDTO.setUsername(personnelDetails.getUsername());
-		staffDTO.setPwd(personnelDetails.getPassword());
+		staffDTO.setPwd(null); // Never return the password to the frontend
 		staffDTO.setEmail(personnelDetails.getEmail());
 		staffDTO.setAddress(personnelDetails.getAddress());
 		staffDTO.setSpeciality(personnelDetails.getSpeciality());

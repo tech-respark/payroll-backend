@@ -9,6 +9,7 @@ import com.relfor.pcs.payroll.service.LeaveManagementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -119,6 +120,7 @@ public class LeaveManagementController {
     }
 
     @PostMapping("/{applicationId}/approve")
+    @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_LEAVES)")
     public ResponseEntity<?> approveLeave(@PathVariable Long applicationId, @RequestBody Map<String, Object> payload) {
         try {
             Long managerId = Long.valueOf(payload.get("managerId").toString());
@@ -158,6 +160,7 @@ public class LeaveManagementController {
     }
 
     @PostMapping("/{applicationId}/approve-cancellation")
+    @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_LEAVES)")
     public ResponseEntity<?> approveCancellation(@PathVariable Long applicationId, @RequestBody Map<String, Object> payload) {
         try {
             Long managerId = Long.valueOf(payload.get("managerId").toString());
@@ -165,6 +168,19 @@ public class LeaveManagementController {
             
             leaveManagementService.approveCancellation(applicationId, managerId, remarks);
             return ResponseEntity.ok(Map.of("message", "Cancellation approved, ledger refunded, and attendance reverted."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{applicationId}/reject-cancellation")
+    public ResponseEntity<?> rejectCancellation(@PathVariable Long applicationId, @RequestBody Map<String, Object> payload) {
+        try {
+            Long managerId = Long.valueOf(payload.get("managerId").toString());
+            String remarks = (String) payload.getOrDefault("remarks", "");
+            
+            leaveManagementService.rejectCancellation(applicationId, managerId, remarks);
+            return ResponseEntity.ok(Map.of("message", "Cancellation request rejected."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

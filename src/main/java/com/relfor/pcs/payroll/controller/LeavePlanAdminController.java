@@ -19,10 +19,12 @@ import java.util.stream.Collectors;
 import com.relfor.pcs.payroll.entity.EmployeeLeaveEnrollment;
 import com.relfor.pcs.payroll.repository.EmployeeLeaveEnrollmentRepository;
 import java.time.LocalDate;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/payroll-management/v1/admin/leave-plans")
 @RequiredArgsConstructor
+@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_LEAVES)")
 public class LeavePlanAdminController {
 
     private final LeavePlanRepository leavePlanRepository;

@@ -17,9 +17,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,7 +33,9 @@ import java.util.Map;
  * inject the required dependencies.
  */
 @RestController
+@CrossOrigin
 @RequestMapping("/payroll-management/v1")
+@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
 public class SStaffShiftsController {
 	/**
 	 * SStaffShiftsRepository is used to interact with the database and retrieve
@@ -102,9 +108,9 @@ public class SStaffShiftsController {
         try {
             if (staffId != null && date != null)
                 staffShifts = stSfRepo.findByTenantIdAndStoreIdAndShiftDateAndStaffId(tenantId, storeId,
-                        new SimpleDateFormat("yyyy-MM-dd").parse(date), staffId);
+                        LocalDate.parse(date), staffId);
             else if (date != null) staffShifts = stSfRepo.findByTenantIdAndStoreIdAndShiftDate(tenantId, storeId,
-                    new SimpleDateFormat("yyyy-MM-dd").parse(date));
+                    LocalDate.parse(date));
             else
                 staffShifts = stSfRepo.findByTenantIdAndStoreId(tenantId, storeId);
             return ResponseEntity.ok().body(staffShifts);
