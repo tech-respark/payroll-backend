@@ -46,6 +46,10 @@ build/
 *.tar.gz
 *.rar
 
+### Local Helper Scripts ###
+CheckDB.java
+test-login.js
+
 ### Secrets / Keys ###
 *.jks
 *.pem
