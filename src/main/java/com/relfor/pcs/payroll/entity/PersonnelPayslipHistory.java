@@ -11,7 +11,9 @@ import java.util.List;
 import java.util.Map;
 
 @Entity
-@Table(name = "personnel_payslip_history")
+@Table(name = "personnel_payslip_history", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"staff_id", "salary_month", "salary_year"})
+})
 public class PersonnelPayslipHistory extends BaseEntity{
 
 	@Id

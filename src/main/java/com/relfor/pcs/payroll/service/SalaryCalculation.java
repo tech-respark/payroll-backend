@@ -251,13 +251,18 @@ public class SalaryCalculation {
             Long currentStoreId = null;
             List<SalaryComponentDefinitions> salaryComponentDefinitionsList = null;
             for (MonthWiseAttendanceSummary monthWiseAttendanceSummary: monthWiseAttendanceSummaryList) {
-                if (currentStoreId == null
-                        || !Objects.equals(monthWiseAttendanceSummary.getStoreId(), currentStoreId)) {
-                    currentStoreId = monthWiseAttendanceSummary.getStoreId();
-                    salaryComponentDefinitionsList = this.findSalaryCompenentDefinitionsList(monthWiseAttendanceSummary, currentStoreId);
-                }
-                if (!ObjectUtils.isEmpty(salaryComponentDefinitionsList)) {
-                    this.calculateSalaryComponents(monthWiseAttendanceSummary, salaryComponentDefinitionsList, monthWiseAttendanceSummary.getStaffId(), storeDetailsListForMonthlySummary);
+                try {
+                    if (currentStoreId == null
+                            || !Objects.equals(monthWiseAttendanceSummary.getStoreId(), currentStoreId)) {
+                        currentStoreId = monthWiseAttendanceSummary.getStoreId();
+                        salaryComponentDefinitionsList = this.findSalaryCompenentDefinitionsList(monthWiseAttendanceSummary, currentStoreId);
+                    }
+                    if (!ObjectUtils.isEmpty(salaryComponentDefinitionsList)) {
+                        this.calculateSalaryComponents(monthWiseAttendanceSummary, salaryComponentDefinitionsList, monthWiseAttendanceSummary.getStaffId(), storeDetailsListForMonthlySummary);
+                    }
+                } catch (Exception ex) {
+                    logger.error("Error calculating salary for StaffId={} : {}", monthWiseAttendanceSummary.getStaffId(), ex.getMessage());
+                    // continue to next employee
                 }
             }
         } catch (Exception ex) {

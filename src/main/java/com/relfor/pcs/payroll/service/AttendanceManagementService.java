@@ -571,7 +571,7 @@ public class AttendanceManagementService {
 				if (salaryCycleStartDay == 1) {
 					toDate = fromDate.with(TemporalAdjusters.lastDayOfMonth());
 				} else {
-					toDate = LocalDate.of(monthValue == 1 ? year + 1 : year, monthValue + 1, salaryCycleStartDay - 1);
+					toDate = fromDate.plusMonths(1).withDayOfMonth(salaryCycleStartDay - 1);
 				}
 			}
 
