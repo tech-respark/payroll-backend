@@ -50,6 +50,24 @@ public class LeavePlanAdminController {
         }
     }
 
+    @PutMapping("/leave-types/{id}")
+    public ResponseEntity<?> updateLeaveType(@PathVariable Long id, @RequestBody LeaveType leaveTypePayload) {
+        try {
+            LeaveType existing = leaveTypeRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Leave Type not found"));
+            
+            existing.setLeaveCode(leaveTypePayload.getLeaveCode());
+            existing.setLeaveName(leaveTypePayload.getLeaveName());
+            existing.setDescription(leaveTypePayload.getDescription());
+            existing.setPaid(leaveTypePayload.isPaid());
+            
+            LeaveType saved = leaveTypeRepository.save(existing);
+            return ResponseEntity.ok(Map.of("message", "Leave Type updated", "data", saved));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/plans")
     public ResponseEntity<?> getAllLeavePlans(@RequestParam Long tenantId, @RequestParam Long storeId) {
         return ResponseEntity.ok(leavePlanRepository.findByTenantIdAndStoreId(tenantId, storeId));
