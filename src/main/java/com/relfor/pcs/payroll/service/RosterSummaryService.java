@@ -2,10 +2,12 @@ package com.relfor.pcs.payroll.service;
 
 import com.relfor.pcs.payroll.dto.constants.BiometricApplicationNames;
 import com.relfor.pcs.payroll.entity.DayWiseAttendanceSummary;
+import com.relfor.pcs.payroll.entity.LeaveApplication;
 import com.relfor.pcs.payroll.entity.SStaffShifts;
 import com.relfor.pcs.payroll.entity.StaffBreakTime;
 import com.relfor.pcs.payroll.projection.TenantStoreProjection;
 import com.relfor.pcs.payroll.repository.DayWiseAttendanceSummaryRepository;
+import com.relfor.pcs.payroll.repository.LeaveApplicationRepository;
 import com.relfor.pcs.payroll.repository.TenantCompanyMappingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,8 @@ public class RosterSummaryService {
 	DayWiseAttendanceSummaryRepository dayWiseAttendanceSummaryRepository;
 	@Autowired
 	TenantCompanyMappingRepository tenantCompanyMappingRepository;
+	@Autowired
+	LeaveApplicationRepository leaveApplicationRepository;
 
 	public void addRosterSummaryToAttendanceSummary(List<SStaffShifts> staffShiftsList) {
 		try {
@@ -60,6 +64,14 @@ public class RosterSummaryService {
 					.filter(Objects::nonNull)
 					.distinct()
 					.collect(Collectors.toList());
+
+			LocalDate minDate = attendanceDates.stream().min(LocalDate::compareTo).orElse(LocalDate.now());
+			LocalDate maxDate = attendanceDates.stream().max(LocalDate::compareTo).orElse(LocalDate.now());
+
+			Map<Long, List<LeaveApplication>> approvedLeavesByStaff = new HashMap<>();
+			for (Long staffId : staffIds) {
+				approvedLeavesByStaff.put(staffId, leaveApplicationRepository.findOverlappingApprovedLeaves(staffId, minDate, maxDate));
+			}
 
 			List<DayWiseAttendanceSummary> existingSummaries = dayWiseAttendanceSummaryRepository.findExistingDayWiseAttendanceSummaries(
 					staffIds,
@@ -127,7 +139,17 @@ public class RosterSummaryService {
 				} else if (staffShift.getOnLeave()) {
 					dayWiseAttendanceSummary.setIsWeeklyOff(false);
 					dayWiseAttendanceSummary.setIsAbsent(true);
-					if (isPaidLeaveApplicable) {
+					
+					boolean isThisLeavePaid = isPaidLeaveApplicable;
+					List<LeaveApplication> staffLeaves = approvedLeavesByStaff.getOrDefault(staffShift.getStaffId(), Collections.emptyList());
+					for (LeaveApplication la : staffLeaves) {
+					    if (!staffShift.getShiftDate().isBefore(la.getStartDate()) && !staffShift.getShiftDate().isAfter(la.getEndDate())) {
+					        isThisLeavePaid = isPaidLeaveApplicable && la.getLeaveType().isPaid();
+					        break;
+					    }
+					}
+
+					if (isThisLeavePaid) {
 						dayWiseAttendanceSummary.setIsOnLeave(true);
 						dayWiseAttendanceSummary.setIsAbsent(false);
 						dayWiseAttendanceSummary.setIsPenaltyAbsent(false);
