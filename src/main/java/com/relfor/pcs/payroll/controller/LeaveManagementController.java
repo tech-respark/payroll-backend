@@ -7,9 +7,13 @@ import com.relfor.pcs.payroll.repository.LeaveTypeRepository;
 import com.relfor.pcs.payroll.service.LeaveLedgerService;
 import com.relfor.pcs.payroll.service.LeaveManagementService;
 import lombok.RequiredArgsConstructor;
+import com.relfor.pcs.payroll.dto.ActionApprovalRequest;
+import com.relfor.pcs.payroll.dto.LeaveApplicationRequest;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -55,22 +59,16 @@ public class LeaveManagementController {
     }
 
     @PostMapping("/apply")
-    public ResponseEntity<?> applyForLeave(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> applyForLeave(@Valid @RequestBody LeaveApplicationRequest payload) {
         try {
-            Long staffId = Long.valueOf(payload.get("staffId").toString());
-            Long tenantId = Long.valueOf(payload.get("tenantId").toString());
-            Long storeId = Long.valueOf(payload.get("storeId").toString());
-            Long leaveTypeId = Long.valueOf(payload.get("leaveTypeId").toString());
-            LocalDate startDate = LocalDate.parse(payload.get("startDate").toString());
-            LocalDate endDate = LocalDate.parse(payload.get("endDate").toString());
-            String reason = (String) payload.get("reason");
-            String attachmentUrl = (String) payload.get("attachmentUrl");
-            String leaveSession = (String) payload.getOrDefault("leaveSession", "FULL_DAY");
-
-            LeaveType leaveType = leaveTypeRepository.findById(leaveTypeId)
+            LeaveType leaveType = leaveTypeRepository.findById(payload.getLeaveTypeId())
                     .orElseThrow(() -> new IllegalArgumentException("Invalid Leave Type ID"));
 
-            LeaveApplication application = leaveManagementService.applyForLeave(tenantId, storeId, staffId, leaveType, startDate, endDate, reason, attachmentUrl, leaveSession);
+            LeaveApplication application = leaveManagementService.applyForLeave(
+                payload.getTenantId(), payload.getStoreId(), payload.getStaffId(), 
+                leaveType, payload.getStartDate(), payload.getEndDate(), 
+                payload.getReason(), payload.getAttachmentUrl(), payload.getLeaveSession()
+            );
             return ResponseEntity.ok(Map.of("message", "Leave application submitted successfully", "applicationId", application.getId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -121,12 +119,9 @@ public class LeaveManagementController {
 
     @PostMapping("/{applicationId}/approve")
     @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_LEAVES)")
-    public ResponseEntity<?> approveLeave(@PathVariable Long applicationId, @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> approveLeave(@PathVariable Long applicationId, @Valid @RequestBody ActionApprovalRequest payload) {
         try {
-            Long managerId = Long.valueOf(payload.get("managerId").toString());
-            String remarks = (String) payload.getOrDefault("remarks", "");
-            
-            leaveManagementService.approveLeave(applicationId, managerId, remarks);
+            leaveManagementService.approveLeave(applicationId, payload.getManagerId(), payload.getRemarks());
             return ResponseEntity.ok(Map.of("message", "Leave application approved and ledger deducted."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -134,12 +129,9 @@ public class LeaveManagementController {
     }
     
     @PostMapping("/{applicationId}/reject")
-    public ResponseEntity<?> rejectLeave(@PathVariable Long applicationId, @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> rejectLeave(@PathVariable Long applicationId, @Valid @RequestBody ActionApprovalRequest payload) {
         try {
-            Long managerId = Long.valueOf(payload.get("managerId").toString());
-            String remarks = (String) payload.get("remarks");
-            
-            leaveManagementService.rejectLeave(applicationId, managerId, remarks);
+            leaveManagementService.rejectLeave(applicationId, payload.getManagerId(), payload.getRemarks());
             return ResponseEntity.ok(Map.of("message", "Leave application rejected."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -161,12 +153,9 @@ public class LeaveManagementController {
 
     @PostMapping("/{applicationId}/approve-cancellation")
     @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_LEAVES)")
-    public ResponseEntity<?> approveCancellation(@PathVariable Long applicationId, @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> approveCancellation(@PathVariable Long applicationId, @Valid @RequestBody ActionApprovalRequest payload) {
         try {
-            Long managerId = Long.valueOf(payload.get("managerId").toString());
-            String remarks = (String) payload.getOrDefault("remarks", "");
-            
-            leaveManagementService.approveCancellation(applicationId, managerId, remarks);
+            leaveManagementService.approveCancellation(applicationId, payload.getManagerId(), payload.getRemarks());
             return ResponseEntity.ok(Map.of("message", "Cancellation approved, ledger refunded, and attendance reverted."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -174,12 +163,9 @@ public class LeaveManagementController {
     }
 
     @PostMapping("/{applicationId}/reject-cancellation")
-    public ResponseEntity<?> rejectCancellation(@PathVariable Long applicationId, @RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> rejectCancellation(@PathVariable Long applicationId, @Valid @RequestBody ActionApprovalRequest payload) {
         try {
-            Long managerId = Long.valueOf(payload.get("managerId").toString());
-            String remarks = (String) payload.getOrDefault("remarks", "");
-            
-            leaveManagementService.rejectCancellation(applicationId, managerId, remarks);
+            leaveManagementService.rejectCancellation(applicationId, payload.getManagerId(), payload.getRemarks());
             return ResponseEntity.ok(Map.of("message", "Cancellation request rejected."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

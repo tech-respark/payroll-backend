@@ -149,6 +149,20 @@ public class LeaveManagementService {
             throw new IllegalStateException("Can only approve PENDING applications.");
         }
 
+        Optional<EmployeeLeaveEnrollment> enrollment = enrollmentRepository.findFirstByStaffIdOrderByEnrolledDateDesc(application.getStaffId());
+        if (enrollment.isPresent()) {
+            LeavePlan plan = enrollment.get().getLeavePlan();
+            Optional<LeavePlanRule> ruleOpt = ruleRepository.findAll().stream()
+                    .filter(r -> r.getLeavePlan().getId().equals(plan.getId()) && r.getLeaveType().getId().equals(application.getLeaveType().getId()))
+                    .findFirst();
+            if (ruleOpt.isPresent() && !ruleOpt.get().isAllowNegativeBalance()) {
+                BigDecimal currentBalance = ledgerService.getAvailableBalance(application.getStaffId(), application.getLeaveType().getId(), LocalDate.now());
+                if (currentBalance.compareTo(application.getRequestedDays()) < 0) {
+                    throw new IllegalStateException("Cannot approve: Insufficient leave balance. Staff only has " + currentBalance + " days remaining.");
+                }
+            }
+        }
+
         application.setStatus(LeaveApplication.ApplicationStatus.APPROVED);
         application.setManagerRemarks(remarks);
         applicationRepository.save(application);
