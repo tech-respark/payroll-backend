@@ -58,7 +58,6 @@ public class LeavePlanAdminController {
             
             existing.setLeaveCode(leaveTypePayload.getLeaveCode());
             existing.setLeaveName(leaveTypePayload.getLeaveName());
-            existing.setDescription(leaveTypePayload.getDescription());
             existing.setPaid(leaveTypePayload.isPaid());
             
             LeaveType saved = leaveTypeRepository.save(existing);
