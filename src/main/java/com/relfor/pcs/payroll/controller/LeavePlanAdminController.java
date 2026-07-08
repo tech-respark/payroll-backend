@@ -174,6 +174,37 @@ public class LeavePlanAdminController {
         }
     }
 
+    @PutMapping("/rules/{ruleId}")
+    public ResponseEntity<?> updateRule(@PathVariable Long ruleId, @RequestBody Map<String, Object> payload) {
+        try {
+            LeavePlanRule rule = ruleRepository.findById(ruleId)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid Rule ID"));
+            
+            if (payload.containsKey("annualAllotment")) {
+                rule.setAnnualAllotment(new BigDecimal(payload.get("annualAllotment").toString()));
+            }
+            
+            if (payload.containsKey("maxConsecutiveDays")) {
+                Object maxDays = payload.get("maxConsecutiveDays");
+                rule.setMaxConsecutiveDays(maxDays != null && !maxDays.toString().isEmpty() ? Integer.valueOf(maxDays.toString()) : null);
+            }
+            
+            if (payload.containsKey("proofRequiredAfterDays")) {
+                Object proofDays = payload.get("proofRequiredAfterDays");
+                rule.setProofRequiredAfterDays(proofDays != null && !proofDays.toString().isEmpty() ? Integer.valueOf(proofDays.toString()) : null);
+            }
+            
+            if (payload.containsKey("allowNegativeBalance")) {
+                rule.setAllowNegativeBalance(Boolean.valueOf(payload.get("allowNegativeBalance").toString()));
+            }
+            
+            LeavePlanRule saved = ruleRepository.save(rule);
+            return ResponseEntity.ok(Map.of("message", "Rule updated", "data", saved));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/plans/{planId}/update")
     public ResponseEntity<?> updatePlan(@PathVariable Long planId, @RequestBody Map<String, Object> payload) {
         try {
