@@ -45,20 +45,24 @@ public class AttendanceSchedulerService {
 				.findAllByInvocationTimeAndEvent(startTime, endTime, "ATTENDANCEDATAREMINDER");
 				
 		if (!ObjectUtils.isEmpty(attendanceEventList)) {
-			for (PayrollSchedulerInfo entity : attendanceEventList) {
-				Instant invocationTime = entity.getInvocationTime();
-				// Move to next day
-				entity.setInvocationTime(invocationTime.plus(1, ChronoUnit.DAYS));
-			}
-			
+			boolean success = false;
 			try {
 				logger.info("Calling internal attendanceManagementService.retrieveScheduledAttendanceData with {} records", attendanceEventList.size());
 				attendanceManagementService.retrieveScheduledAttendanceData(attendanceEventList);
 				logger.info("Successfully retrieved scheduled attendance data");
+				success = true;
 			} catch (Exception e) {
 				logger.error("Error retrieving attendance data in scheduler", e);
 			}
-			payrollSchedulerInfoRepo.saveAll(attendanceEventList);
+			
+			if (success) {
+				for (PayrollSchedulerInfo entity : attendanceEventList) {
+					Instant invocationTime = entity.getInvocationTime();
+					// Move to next day
+					entity.setInvocationTime(invocationTime.plus(1, ChronoUnit.DAYS));
+				}
+				payrollSchedulerInfoRepo.saveAll(attendanceEventList);
+			}
 		}
 	}
 }
