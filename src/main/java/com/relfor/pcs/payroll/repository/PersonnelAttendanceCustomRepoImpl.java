@@ -151,13 +151,20 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 			}
 		}
 		if (!isCount) {
+			String sortCol = "pa.attendance_date";
 			if (!StringUtils.isBlank(inOutHistoryInputModel.getSortField())) {
-				sqlString.append(" ORDER BY ").append(CaseFormat.LOWER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, inOutHistoryInputModel.getSortField()));
-			} else {
-				sqlString.append(" ORDER BY pa.attendance_date");
+				java.util.Map<String, String> allowedSorts = java.util.Map.of(
+						"attendanceDate", "pa.attendance_date",
+						"personnelName", "pd.first_name",
+						"currentStatus", "pa.current_status",
+						"punchTimestamp", "pa.punch_timestamp"
+				);
+				sortCol = allowedSorts.getOrDefault(inOutHistoryInputModel.getSortField(), "pa.attendance_date");
 			}
-			if (!StringUtils.isBlank(inOutHistoryInputModel.getSortOrder())) {
-				sqlString.append(" ").append(inOutHistoryInputModel.getSortOrder());
+			sqlString.append(" ORDER BY ").append(sortCol);
+			
+			if ("ASC".equalsIgnoreCase(inOutHistoryInputModel.getSortOrder())) {
+				sqlString.append(" ASC");
 			} else {
 				sqlString.append(" DESC");
 			}

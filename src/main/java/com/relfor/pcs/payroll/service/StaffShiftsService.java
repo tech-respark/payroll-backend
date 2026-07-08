@@ -1049,36 +1049,36 @@ public class StaffShiftsService {
 			String query = "select s.staff_id, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
 					"ROUND((TIMEDIFF(SUBSTRING(ss.slot, 7, 11), SUBSTRING(ss.slot, 1, 5)))/10000,2) AS hours, ss.shift_date as shiftDate " +
 					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
-					"where ss.tenant_id = " + tenantId +
-					" and ss.store_id = " + storeId +
-					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "'";
+					"where ss.tenant_id = :tenantId " +
+					" and ss.store_id = :storeId " +
+					" and ss.shift_date between :fromDate and :toDate";
 
 			String query1 = "select s.staff_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
 					"CONCAT(FLOOR((sum(productive_minutes))/60), '.', LPAD(MOD((sum(productive_minutes)), 60), 2, '0')) as productiveMinutes " +
 					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
-					"where ss.tenant_id = " + tenantId +
-					" and ss.store_id = " + storeId +
-					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "' group by ss.staff_id";
+					"where ss.tenant_id = :tenantId " +
+					" and ss.store_id = :storeId " +
+					" and ss.shift_date between :fromDate and :toDate group by ss.staff_id";
 
 			String query2 = "select s.staff_id, round(sum(timediff(substring(ss.slot,7,11),substring(ss.slot,1,5)))/10000,2) as total_hours, ss.slot " +
 					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
-					"where ss.tenant_id = " + tenantId +
-					" and ss.store_id = " + storeId +
-					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "' " +
+					"where ss.tenant_id = :tenantId " +
+					" and ss.store_id = :storeId " +
+					" and ss.shift_date between :fromDate and :toDate " +
 					"and ss.on_leave = 0 and ss.weekly_off = 0 group by ss.staff_id";
 
 			String query3 = "select s.staff_id, count(ss.on_leave) as leaves " +
 					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
-					"where ss.tenant_id = " + tenantId +
-					" and ss.store_id = " + storeId +
-					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "' and ss.on_leave = 1 group by ss.staff_id";
+					"where ss.tenant_id = :tenantId " +
+					" and ss.store_id = :storeId " +
+					" and ss.shift_date between :fromDate and :toDate and ss.on_leave = 1 group by ss.staff_id";
 
 			String query4 = "select CONCAT(FLOOR((sum(break_hours))/60), '.', LPAD(MOD((sum(break_hours)), 60), 2, '0')) as breaktime, ss.staff_id " +
 					"from staff_break_time sbt " +
 					"inner join staff_shifts ss on sbt.staff_id = ss.staff_id and sbt.staff_shift_id = ss.id " +
-					"where ss.tenant_id = " + tenantId +
-					" and ss.store_id = " + storeId +
-					" and ss.shift_date between '" + fromDate + "' and '" + toDate + "' " +
+					"where ss.tenant_id = :tenantId " +
+					" and ss.store_id = :storeId " +
+					" and ss.shift_date between :fromDate and :toDate " +
 					"and ss.on_leave = 0 and ss.weekly_off = 0 group by ss.staff_id";
 
 
@@ -1087,6 +1087,13 @@ public class StaffShiftsService {
 			Query nativeQuery2 = entityManager.createNativeQuery(query2);
 			Query nativeQuery3 = entityManager.createNativeQuery(query3);
 			Query nativeQuery4 = entityManager.createNativeQuery(query4);
+
+			for (Query q : java.util.Arrays.asList(nativeQuery, nativeQuery1, nativeQuery2, nativeQuery3, nativeQuery4)) {
+				q.setParameter("tenantId", tenantId);
+				q.setParameter("storeId", storeId);
+				q.setParameter("fromDate", fromDate);
+				q.setParameter("toDate", toDate);
+			}
 
 			@SuppressWarnings("unchecked")
 			List<Object[]> list = nativeQuery.getResultList();

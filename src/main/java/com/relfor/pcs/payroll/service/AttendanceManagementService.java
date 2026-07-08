@@ -635,7 +635,7 @@ public class AttendanceManagementService {
 						.findByIdAndApplicationName(staffDTO.getId(), staffDTO.getApplicationName());
 				if (personnelDetailsOptional.isPresent()) {
 					PersonnelDetails personnelDetails = personnelDetailsOptional.get();
-					personnelDetails.setPassword(staffDTO.getPwd());
+					personnelDetails.setPassword(passwordEncoder.encode(staffDTO.getPwd()));
 					personnelDetailsRepository.save(personnelDetails);
 				}
 			}
