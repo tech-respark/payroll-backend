@@ -31,19 +31,12 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
-
+import com.relfor.pcs.payroll.entity.StoreHoliday;
+import com.relfor.pcs.payroll.repository.StoreHolidayRepository;
 @Service
 public class ResparkInOutHistoryService {
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	private static final String SUCCESS = "SUCCESS";
-	
-	private static final List<String> PUBLIC_HOLIDAYS = Arrays.asList("2026-01-01", "2026-01-26", "2026-06-15",
-			"2026-10-02", "2026-12-25");
-
-	private boolean isPublicHoliday(LocalDate date) {
-		if (date == null) return false;
-		return PUBLIC_HOLIDAYS.contains(date.toString());
-	}
 
 	@Autowired
 	PersonnelAttendanceRepository personnelAttendanceRepository;
@@ -55,6 +48,8 @@ public class ResparkInOutHistoryService {
 	SStaffShiftsRepository staffShiftsRepository;
 	@Autowired
 	com.relfor.pcs.payroll.repository.LeaveApplicationRepository leaveApplicationRepository;
+	@Autowired
+	StoreHolidayRepository storeHolidayRepository;
 
 	public ResponseModel getInOutHistoryInformation(InOutHistoryInputModel inOutHistoryInputModel) {
 		ResponseModel responseModel = new ResponseModel();
@@ -275,6 +270,11 @@ public class ResparkInOutHistoryService {
 				zoneId = ZoneId.of(tenantStoreProjectionOptional.get().getTimeZone());
 			}
 
+			List<StoreHoliday> storeHolidays = storeHolidayRepository.findByTenantIdAndStoreIdAndHolidayDateBetween(
+					inOutHistoryInputModel.getTenantId(), inOutHistoryInputModel.getStoreId(), 
+					inOutHistoryInputModel.getFromDate(), inOutHistoryInputModel.getToDate());
+			List<LocalDate> holidayDates = storeHolidays.stream().map(StoreHoliday::getHolidayDate).collect(Collectors.toList());
+
 			if (!personnelAttendanceData.isEmpty()) {
 
 				Map<Long, List<PersonnelAttendanceProjectionForInOutHistory>> personnelWiseAttendance = personnelAttendanceData.stream()
@@ -288,7 +288,8 @@ public class ResparkInOutHistoryService {
 								inOutHistoryInputModel.getApplicationName(),
 								inOutHistoryInputModel.getFromDate(),
 								inOutHistoryInputModel.getToDate(),
-								zoneId
+								zoneId,
+								holidayDates
 						);
 						personnelAttendanceModelList.add(personnelAttendanceModel);
 						staffIdsWithAttendance.add(entry.getKey());
@@ -324,7 +325,7 @@ public class ResparkInOutHistoryService {
 							LocalDate currentDate = cursor;
 							SStaffShifts dailyShift = shifts.stream().filter(s -> s.getShiftDate() != null && s.getShiftDate().equals(currentDate)).findFirst().orElse(null);
 							ResparkDayWiseAttendanceDTO dayWiseAttendance = this.processAdvancedDateWiseAttendance(
-									currentDate, new ArrayList<>(), zoneId, dailyShift, approvedLeaves
+									currentDate, new ArrayList<>(), zoneId, dailyShift, approvedLeaves, holidayDates
 							);
 							dayWiseAttendanceList.add(dayWiseAttendance);
 							cursor = cursor.plusDays(1);
@@ -350,7 +351,7 @@ public class ResparkInOutHistoryService {
 			Long staffId,
 			List<PersonnelAttendanceProjectionForInOutHistory> individualPersonnelAttendanceList,
 			Long tenantId, Long storeId, String applicationName,
-			LocalDate fromDate, LocalDate toDate, ZoneId zoneId) {
+			LocalDate fromDate, LocalDate toDate, ZoneId zoneId, List<LocalDate> holidayDates) {
 		ResparkPersonnelAttendanceDTO personnelModel = this.createAdvancedPersonnelAttendanceModel(
 				staffId, tenantId, storeId, applicationName, fromDate, toDate);
 		if (!individualPersonnelAttendanceList.isEmpty()) {
@@ -375,7 +376,7 @@ public class ResparkInOutHistoryService {
 					SStaffShifts dailyShift = shifts.stream().filter(s -> s.getShiftDate() != null && s.getShiftDate().equals(currentDate)).findFirst().orElse(null);
 					
 					ResparkDayWiseAttendanceDTO dayWiseAttendance = this.processAdvancedDateWiseAttendance(
-							currentDate, punchesForDay, zoneId, dailyShift, approvedLeaves
+							currentDate, punchesForDay, zoneId, dailyShift, approvedLeaves, holidayDates
 					);
 					dayWiseAttendanceList.add(dayWiseAttendance);
 					cursor = cursor.plusDays(1);
@@ -415,7 +416,8 @@ public class ResparkInOutHistoryService {
 			List<PersonnelAttendanceProjectionForInOutHistory> individualDateWiseAttendance,
 			ZoneId zoneId,
 			com.relfor.pcs.payroll.entity.SStaffShifts shiftRecord,
-			List<com.relfor.pcs.payroll.entity.LeaveApplication> approvedLeaves) {
+			List<com.relfor.pcs.payroll.entity.LeaveApplication> approvedLeaves,
+			List<LocalDate> holidayDates) {
 		ResparkDayWiseAttendanceDTO dayAttendance = new ResparkDayWiseAttendanceDTO();
 		dayAttendance.setDateOfAttendance(dateOfAttendance);
 		
@@ -474,7 +476,7 @@ public class ResparkInOutHistoryService {
 			}
 		}
 
-		boolean isPH = isPublicHoliday(dateOfAttendance);
+		boolean isPH = holidayDates != null && holidayDates.contains(dateOfAttendance);
 		
 		boolean isLeave = false;
 		if (approvedLeaves != null) {
