@@ -31,7 +31,7 @@ public class AuthService {
     private StaffPasswordResetOTPRepository otpRepository;
 
     @Autowired
-    private PayrollSmsService smsService;
+    private WhatsappNotificationService whatsappNotificationService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -74,8 +74,8 @@ public class AuthService {
             otpRecord.setExpiryTime(Instant.now().plus(expiryMinutes, ChronoUnit.MINUTES));
             otpRepository.save(otpRecord);
 
-            // Send SMS
-            smsService.sendRegistrationOTP(staff, otpStr, expiryMinutes);
+            // Send WhatsApp OTP
+            whatsappNotificationService.sendOtpViaWhatsapp(staff, otpStr);
 
             response.setCode(HttpStatus.OK);
             response.setMessage("OTP sent successfully. Please check your registered mobile number.");
