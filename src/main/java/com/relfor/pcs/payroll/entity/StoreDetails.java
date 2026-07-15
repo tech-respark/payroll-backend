@@ -24,6 +24,7 @@ public class StoreDetails {
 	private String storeCloseTime;
 	private Integer financialYearStartMonth;
 	private LocalDate payrollLockedUpToDate;
+	private String currencySymbol;
 	
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "tenant_company_mapping_id", referencedColumnName = "id")
@@ -143,5 +144,13 @@ public class StoreDetails {
 
 	public void setPayrollLockedUpToDate(LocalDate payrollLockedUpToDate) {
 		this.payrollLockedUpToDate = payrollLockedUpToDate;
+	}
+
+	public String getCurrencySymbol() {
+		return currencySymbol;
+	}
+
+	public void setCurrencySymbol(String currencySymbol) {
+		this.currencySymbol = currencySymbol;
 	}
 }

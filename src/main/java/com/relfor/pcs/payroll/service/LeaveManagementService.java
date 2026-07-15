@@ -24,6 +24,7 @@ public class LeaveManagementService {
     private final PersonnelDetailsRepository personnelDetailsRepository;
     private final LeaveApplicationLogRepository leaveApplicationLogRepository;
     private final AsyncLeaveAttendanceSyncService asyncAttendanceUpdater;
+    private final StoreHolidayRepository storeHolidayRepository;
 
     private LeaveApplicationDTO toDTO(LeaveApplication app) {
         String staffName = "Unknown Staff";
@@ -115,6 +116,16 @@ public class LeaveManagementService {
             BigDecimal currentBalance = ledgerService.getAvailableBalance(staffId, type.getId(), LocalDate.now());
             if (currentBalance.compareTo(requestedDuration) < 0) {
                 throw new IllegalStateException("Insufficient leave balance. You have " + currentBalance + " days remaining.");
+            }
+        }
+
+        if ("OH".equalsIgnoreCase(type.getLeaveCode())) {
+            List<StoreHoliday> storeHolidays = storeHolidayRepository.findByTenantIdAndStoreIdAndHolidayDateBetween(tenantId, storeId, startDate, endDate);
+            long optionalHolidayCount = storeHolidays.stream()
+                .filter(sh -> Boolean.TRUE.equals(sh.getIsOptional()))
+                .count();
+            if (optionalHolidayCount != daysRequested) {
+                throw new IllegalArgumentException("One or more dates in your request are not designated as Optional Holidays by your store.");
             }
         }
 

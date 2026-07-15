@@ -168,11 +168,12 @@ public class StaffShiftsService {
 					for (SStaffShifts existingStaffShift : existingStaffShiftList) {
 						boolean isPaylodeContainsWeekOff = false;
 						for (String weekDay : weekOff) {
-							if (weekDay.equalsIgnoreCase(staffShift.getDay())) {
+							if (weekDay.equalsIgnoreCase(existingStaffShift.getDay())) {
 								isPaylodeContainsWeekOff = true;
 								break;
 							}
 						}
+						existingStaffShift.setWeeklyOff(isPaylodeContainsWeekOff);
 
 						if (!ObjectUtils.isEmpty(shiftSlots)
 								&& !ObjectUtils.isEmpty(shiftSlots.getDayWiseShiftsTiming())) {
@@ -312,12 +313,13 @@ public class StaffShiftsService {
 								if (personnelDetails != null && !StringUtils.isEmpty(personnelDetails.getWeeklyOff())) {
 									weekOff = new ArrayList<>(Arrays.asList(personnelDetails.getWeeklyOff().split(",")));
 									for (String weekDay : weekOff) {
-										if (weekDay.equalsIgnoreCase(staffShift.getDay())) {
+										if (weekDay.equalsIgnoreCase(day)) {
 											isPaylodeContainsWeekOff = true;
 											break;
 										}
 									}
 								}
+								newStaffDetail.setWeeklyOff(isPaylodeContainsWeekOff);
 //								for (Date date : dates) {
 //									if (!isPaylodeContainsWeekOff
 //											&& ((new SimpleDateFormat("yyyy-MM-dd").format(date)).equalsIgnoreCase(

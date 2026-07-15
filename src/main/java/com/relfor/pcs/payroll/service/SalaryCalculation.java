@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -221,6 +222,7 @@ public class SalaryCalculation {
         }
     }
 
+    @Transactional
     public ResponseModel processSalary(Long staffId, String  month, Long year, Long tenantId, Long storeId) {
         ResponseModel responseModel = new ResponseModel();
         try {
@@ -244,6 +246,7 @@ public class SalaryCalculation {
         return responseModel;
     }
 
+    @Transactional
     public void processSalaryForMonthlySummary(List<MonthWiseAttendanceSummary> monthWiseAttendanceSummaryList,
                                                List<StoreDetails> storeDetailsListForMonthlySummary) {
         try {
@@ -304,6 +307,17 @@ public class SalaryCalculation {
             }
             BigDecimal hours = BigDecimal.valueOf(dbWorkingHours);
             context.put("workingHours", hours);
+
+            if (componentDefinitions != null) {
+                componentDefinitions.forEach(def -> {
+                    if (def.getComponentNameAlias() != null) {
+                        context.putIfAbsent(def.getComponentNameAlias(), BigDecimal.ZERO);
+                    }
+                    if (def.getComponentName() != null) {
+                        context.putIfAbsent(def.getComponentName(), BigDecimal.ZERO);
+                    }
+                });
+            }
 
             List<PersonnelSalaryComponents> existingComponents =
                     personnelSalaryComponentsRepository.findByStaffId(staffId);
@@ -504,9 +518,15 @@ public class SalaryCalculation {
         float workingDays = dto.getTotalPaidDays();
 
         for (PersonnelSalaryComponents component : existingComponents) {
-            BigDecimal amount = component.getDailyValue()
-                    .multiply(BigDecimal.valueOf(workingDays))
-                    .setScale(4, RoundingMode.HALF_UP);
+            BigDecimal amount;
+            if (component.getSalaryComponentDefinitions() != null && 
+                Boolean.TRUE.equals(component.getSalaryComponentDefinitions().getIsCalculatedMonthly())) {
+                amount = component.getMonthlyValue() != null ? component.getMonthlyValue() : BigDecimal.ZERO;
+            } else {
+                amount = component.getDailyValue()
+                        .multiply(BigDecimal.valueOf(workingDays))
+                        .setScale(4, RoundingMode.HALF_UP);
+            }
 
             SalaryComponentDTO salaryComponentDTO = new SalaryComponentDTO();
             salaryComponentDTO.setSalaryComponentDefinitionsId(component.getSalaryComponentDefinitions().getId());

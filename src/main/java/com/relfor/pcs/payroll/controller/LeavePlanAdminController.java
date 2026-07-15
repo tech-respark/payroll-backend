@@ -34,7 +34,21 @@ public class LeavePlanAdminController {
 
     @GetMapping("/leave-types")
     public ResponseEntity<?> getAllLeaveTypes(@RequestParam Long tenantId, @RequestParam Long storeId) {
-        return ResponseEntity.ok(leaveTypeRepository.findByTenantIdAndStoreId(tenantId, storeId));
+        List<LeaveType> existingTypes = new java.util.ArrayList<>(leaveTypeRepository.findByTenantIdAndStoreId(tenantId, storeId));
+        boolean ohExists = existingTypes.stream().anyMatch(t -> "OH".equalsIgnoreCase(t.getLeaveCode()));
+        if (!ohExists) {
+            LeaveType ohType = LeaveType.builder()
+                    .tenantId(tenantId)
+                    .storeId(storeId)
+                    .locationId(storeId)
+                    .leaveCode("OH")
+                    .leaveName("Optional Holiday")
+                    .paid(true)
+                    .build();
+            ohType = leaveTypeRepository.save(ohType);
+            existingTypes.add(ohType);
+        }
+        return ResponseEntity.ok(existingTypes);
     }
 
     @PostMapping("/leave-types")

@@ -10,9 +10,13 @@ import java.util.List;
 @Repository
 public interface StoreHolidayRepository extends JpaRepository<StoreHoliday, Long> {
 
-    List<StoreHoliday> findByTenantIdAndStoreIdAndHolidayDateBetween(Long tenantId, Long storeId, LocalDate startDate, LocalDate endDate);
+    List<StoreHoliday> findByTenantIdAndStoreIdAndHolidayDateBetweenAndIsOptionalFalse(Long tenantId, Long storeId, LocalDate startDate, LocalDate endDate);
     
+    List<StoreHoliday> findByTenantIdAndStoreIdAndHolidayDateBetween(Long tenantId, Long storeId, LocalDate startDate, LocalDate endDate);
+
     List<StoreHoliday> findByTenantIdAndStoreIdAndHolidayDate(Long tenantId, Long storeId, LocalDate holidayDate);
 
     boolean existsByTenantIdAndStoreIdAndHolidayDate(Long tenantId, Long storeId, LocalDate holidayDate);
+
+    List<StoreHoliday> findByTenantIdAndStoreId(Long tenantId, Long storeId);
 }

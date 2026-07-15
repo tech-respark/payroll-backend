@@ -25,6 +25,7 @@ public class TenantStoreDTO {
 	private String companyName;
 	private String address;
 	private String storeName;
+	private String currencySymbol;
 
 	public Long getTenantId() {
 		return tenantId;
@@ -192,5 +193,13 @@ public class TenantStoreDTO {
 
 	public void setStoreName(String storeName) {
 		this.storeName = storeName;
+	}
+
+	public String getCurrencySymbol() {
+		return currencySymbol;
+	}
+
+	public void setCurrencySymbol(String currencySymbol) {
+		this.currencySymbol = currencySymbol;
 	}
 }

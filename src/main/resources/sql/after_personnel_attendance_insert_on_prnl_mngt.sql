@@ -1,7 +1,7 @@
 DELIMITER $$
 
 CREATE TRIGGER after_personnel_attendance_insert
-AFTER INSERT ON pcs_personnel_management.personnel_attendance
+AFTER INSERT ON payroll_management.personnel_attendance
 FOR EACH ROW
 BEGIN
     DECLARE last_punch_time DATETIME;
@@ -18,10 +18,10 @@ BEGIN
 		IF MOD(NEW.sequence_number_of_punch, 2) = 1 AND NEW.sequence_number_of_punch > 1 THEN
 			SELECT punch_timestamp
 			INTO last_punch_time
-			FROM pcs_personnel_management.personnel_attendance
+			FROM payroll_management.personnel_attendance
 			WHERE terminal_serial_number = NEW.terminal_serial_number
 			  AND attendance_date = NEW.attendance_date
-			  AND personnel_code = NEW.personnel_code
+			  AND staff_id = NEW.staff_id
 			  AND sequence_number_of_punch = NEW.sequence_number_of_punch - 1;
 
 			SET hours_worked = 0;
@@ -32,10 +32,10 @@ BEGIN
 		IF MOD(NEW.sequence_number_of_punch, 2) = 0 THEN
 			SELECT punch_timestamp
 			INTO last_punch_time
-			FROM pcs_personnel_management.personnel_attendance
+			FROM payroll_management.personnel_attendance
 			WHERE terminal_serial_number = NEW.terminal_serial_number
 			  AND attendance_date = NEW.attendance_date
-			  AND personnel_code = NEW.personnel_code
+			  AND staff_id = NEW.staff_id
 			  AND sequence_number_of_punch = NEW.sequence_number_of_punch - 1;
 
 			SET hours_worked = TIMESTAMPDIFF(SECOND, last_punch_time, NEW.punch_timestamp) / 3600;
@@ -46,10 +46,10 @@ BEGIN
 		IF NEW.sequence_number_of_punch > 1 THEN
 			SELECT MIN(punch_timestamp)
 			INTO first_punch_time
-			FROM pcs_personnel_management.personnel_attendance
+			FROM payroll_management.personnel_attendance
 			WHERE terminal_serial_number = NEW.terminal_serial_number
 			  AND attendance_date = NEW.attendance_date
-			  AND personnel_code = NEW.personnel_code;
+			  AND staff_id = NEW.staff_id;
 
 			SET total_hours_worked = TIMESTAMPDIFF(SECOND, first_punch_time, NEW.punch_timestamp) / 3600;
 		END IF;
@@ -57,22 +57,22 @@ BEGIN
 		-- Check if summary entry exists
 		SELECT id
 		INTO existing_summary_id
-		FROM pcs_personnel_management.day_wise_attendance_summary
+		FROM payroll_management.day_wise_attendance_summary
 		WHERE terminal_serial_number = NEW.terminal_serial_number
 		  AND attendance_date = NEW.attendance_date
-		  AND personnel_code = NEW.personnel_code;
+		  AND staff_id = NEW.staff_id;
 
 		IF existing_summary_id IS NOT NULL THEN
-			UPDATE pcs_personnel_management.day_wise_attendance_summary
+			UPDATE payroll_management.day_wise_attendance_summary
 			SET sum_of_actual_hours_worked_inaday = COALESCE(sum_of_actual_hours_worked_inaday, 0) + hours_worked,
 				total_break_time_inaday = COALESCE(total_break_time_inaday, 0) + break_time,
 				total_hours_worked_inaday = total_hours_worked
 			WHERE id = existing_summary_id;
 		ELSE
-			INSERT INTO pcs_personnel_management.day_wise_attendance_summary (
+			INSERT INTO payroll_management.day_wise_attendance_summary (
 				attendance_date,
 				attendance_day_of_week,
-				personnel_code,
+				staff_id,
 				terminal_serial_number,
 				tenant_id,
 				store_id,
@@ -84,7 +84,7 @@ BEGIN
 			VALUES (
 				NEW.attendance_date,
 				NEW.attendance_day_of_week,
-				NEW.personnel_code,
+				NEW.staff_id,
 				NEW.terminal_serial_number,
 				NEW.tenant_id,
 				NEW.store_id,

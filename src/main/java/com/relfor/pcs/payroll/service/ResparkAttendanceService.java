@@ -425,6 +425,7 @@ public class ResparkAttendanceService {
 				tenantStoreDTO.setPenaltyAbsentDays(storeDetails.getTenantCompanyMapping().getPenaltyAbsentDays());
 				tenantStoreDTO.setIsPaidLeaveApplicable(storeDetails.getTenantCompanyMapping().getIsPaidLeaveApplicable());
 				tenantStoreDTO.setStoreName(storeDetails.getStoreName());
+				tenantStoreDTO.setCurrencySymbol(storeDetails.getCurrencySymbol());
 
 				Optional<com.relfor.pcs.payroll.entity.StoreProfileConfig> profileConfigOptional = storeProfileConfigRepository.findByTenantIdAndStoreId(tenantId, storeId);
 				if (profileConfigOptional.isPresent()) {

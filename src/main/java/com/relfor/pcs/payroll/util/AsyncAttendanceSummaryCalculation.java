@@ -114,9 +114,9 @@ public class AsyncAttendanceSummaryCalculation {
 
 		// Sort the attendance list by staffId and attendanceDate.
 		personnelAttendanceList.sort(Comparator
-				.comparing(PersonnelAttendance::getStaffId)
-				.thenComparing(PersonnelAttendance::getAttendanceDate)
-				.thenComparing(PersonnelAttendance::getPunchTimestamp));
+				.comparing(PersonnelAttendance::getStaffId, Comparator.nullsLast(Comparator.naturalOrder()))
+				.thenComparing(PersonnelAttendance::getAttendanceDate, Comparator.nullsLast(Comparator.naturalOrder()))
+				.thenComparing(PersonnelAttendance::getPunchTimestamp, Comparator.nullsLast(Comparator.naturalOrder())));
 
 
 		//personnelAttendanceListFromDb is the list of all the entries in attendance table (for the combination of personnel and attendance date) for which new requests got approved
@@ -126,9 +126,9 @@ public class AsyncAttendanceSummaryCalculation {
 		if (!personnelAttendanceListFromDb.isEmpty()) {
 			// Sort the attendance list by staffId and attendanceDate.
 			personnelAttendanceListFromDb.sort(Comparator
-					.comparing(PersonnelAttendance::getStaffId)
-					.thenComparing(PersonnelAttendance::getAttendanceDate)
-					.thenComparing(PersonnelAttendance::getPunchTimestamp));
+					.comparing(PersonnelAttendance::getStaffId, Comparator.nullsLast(Comparator.naturalOrder()))
+					.thenComparing(PersonnelAttendance::getAttendanceDate, Comparator.nullsLast(Comparator.naturalOrder()))
+					.thenComparing(PersonnelAttendance::getPunchTimestamp, Comparator.nullsLast(Comparator.naturalOrder())));
 
 			// Subdivide the list into multiple lists based on staffId and attendanceDate.
 			List<PersonnelAttendance> currentSublist = new ArrayList<>();

@@ -270,7 +270,7 @@ public class ResparkInOutHistoryService {
 				zoneId = ZoneId.of(tenantStoreProjectionOptional.get().getTimeZone());
 			}
 
-			List<StoreHoliday> storeHolidays = storeHolidayRepository.findByTenantIdAndStoreIdAndHolidayDateBetween(
+			List<StoreHoliday> storeHolidays = storeHolidayRepository.findByTenantIdAndStoreIdAndHolidayDateBetweenAndIsOptionalFalse(
 					inOutHistoryInputModel.getTenantId(), inOutHistoryInputModel.getStoreId(), 
 					inOutHistoryInputModel.getFromDate(), inOutHistoryInputModel.getToDate());
 			List<LocalDate> holidayDates = storeHolidays.stream().map(StoreHoliday::getHolidayDate).collect(Collectors.toList());

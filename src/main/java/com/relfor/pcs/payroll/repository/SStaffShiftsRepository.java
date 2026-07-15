@@ -65,4 +65,8 @@ public interface SStaffShiftsRepository extends JpaRepository<SStaffShifts, Long
 	List<Long> findStaffIdsByTenantStoreAndDate(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId, @Param("shiftDate") String shiftDate);
 
 	List<SStaffShifts> findByTenantIdAndStoreIdAndStaffIdAndShiftDateBetween(long tenantId, long storeId, long staffId, LocalDate startDate, LocalDate endDate);
+
+	@Query(value = "SELECT ss.*, s.designation FROM staff_shifts ss JOIN personnel_details s ON ss.staff_id = s.id " +
+			"WHERE ss.tenant_id = ?1 AND ss.store_id = ?2 AND ss.shift_date BETWEEN ?3 AND ?4", nativeQuery = true)
+	List<SStaffShifts> findStoreShiftsForWeek(long tenantId, long storeId, LocalDate startDate, LocalDate endDate);
 }

@@ -1,9 +1,9 @@
-CREATE TABLE pcs_personnel_management.personnel_attendance (
+CREATE TABLE payroll_management.personnel_attendance (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `attendance_date` date DEFAULT NULL,
   `attendance_day_of_week` varchar(255) DEFAULT NULL,
   `iclock_transaction_id` bigint DEFAULT NULL,
-  `personnel_code` bigint DEFAULT NULL,
+  `staff_id` bigint DEFAULT NULL,
   `punch_event` varchar(255) DEFAULT NULL,
   `punch_timestamp` datetime(6) DEFAULT NULL,
   `terminal_serial_number` varchar(255) DEFAULT NULL,

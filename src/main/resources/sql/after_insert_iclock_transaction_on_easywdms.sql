@@ -9,12 +9,11 @@ BEGIN
     DECLARE store_id BIGINT DEFAULT NULL;
 	DECLARE application_name VARCHAR(255) DEFAULT NULL;
 
-    -- Get the sequence number for the punch
     SELECT COALESCE(MAX(sequence_number_of_punch), 0) + 1
     INTO seq_no
-    FROM pcs_personnel_management.personnel_attendance
+    FROM payroll_management.personnel_attendance
     WHERE terminal_serial_number = NEW.terminal_sn
-      AND personnel_code = NEW.emp_code
+      AND staff_id = NEW.emp_code
       AND attendance_date = DATE(NEW.punch_time);
 
     -- Retrieve tenantId and storeId if the related entries exist
@@ -27,19 +26,19 @@ BEGIN
         tenant_id,
 		application_name
     FROM 
-        pcs_personnel_management.terminal_details td
+        payroll_management.terminal_details td
     JOIN 
-        pcs_personnel_management.store_details sd ON td.store_details_id = sd.id
+        payroll_management.store_details sd ON td.store_details_id = sd.id
     JOIN 
-        pcs_personnel_management.tenant_company_mapping tcm ON sd.tenant_company_mapping_id = tcm.id
+        payroll_management.tenant_company_mapping tcm ON sd.tenant_company_mapping_id = tcm.id
     WHERE 
         td.terminal_serial_number = NEW.terminal_sn
     LIMIT 1;
 
     -- Insert the new record with calculated values
-    INSERT INTO pcs_personnel_management.personnel_attendance (
+    INSERT INTO payroll_management.personnel_attendance (
         terminal_serial_number,
-        personnel_code,
+        staff_id,
         attendance_date,
         attendance_day_of_week,
         punch_event,

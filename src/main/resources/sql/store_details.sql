@@ -1,4 +1,4 @@
-CREATE TABLE pcs_personnel_management.store_details (
+CREATE TABLE payroll_management.store_details (
   `id` bigint NOT NULL,
   `is_actual_time_based_attendance` bit(1) DEFAULT NULL,
   `store_id` bigint DEFAULT NULL,

@@ -28,12 +28,12 @@ public class AttendanceSchedulerService {
 	private AttendanceManagementService attendanceManagementService;
 
 	@Async
-	@Scheduled(fixedDelayString = "${scheduler.attendance.fixedRate:120000}") // RUNS AFTER 2MIN default
+	@Scheduled(fixedDelayString = "${scheduler.attendance.fixedRate:1200000}") // RUNS AFTER 2MIN default
 	public void schedulerReminders() {
 		logger.debug("Attendance scheduler service has been started");
 		// Fetch everything from 1 hour ago up to 2 minutes from now to ensure we don't miss slightly delayed jobs
 		Instant startTime = Instant.now().minus(1, ChronoUnit.HOURS);
-		Instant endTime = Instant.now().plus(120000, ChronoUnit.MILLIS);
+		Instant endTime = Instant.now().plus(6000000, ChronoUnit.MILLIS);
 
 		sortAttendanceReminder(startTime, endTime);
 		logger.debug("Attendance scheduler service has been completed");

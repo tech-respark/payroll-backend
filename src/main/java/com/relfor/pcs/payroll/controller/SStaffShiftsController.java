@@ -121,6 +121,44 @@ public class SStaffShiftsController {
         }
     }
 
+	@GetMapping("/staffshifts/store/weekly")
+	public ResponseEntity<?> getStoreWeeklyShifts(
+			@RequestParam long tenantId,
+			@RequestParam long storeId,
+			@RequestParam String startDate) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
+		try {
+			LocalDate start = LocalDate.parse(startDate);
+			LocalDate end = start.plusDays(6);
+			List<SStaffShifts> staffShifts = stSfRepo.findStoreShiftsForWeek(
+					tenantId, storeId, start, end);
+			return ResponseEntity.ok().body(staffShifts);
+		} catch (Exception e) {
+			logger.error(e.getClass().getName(), e);
+			return ResponseHandler.generateResponse("Internal Server error please contact to admin.",e.getMessage(),HttpStatus.INTERNAL_SERVER_ERROR,null);
+		}
+	}
+
+	@GetMapping("/staffshifts/staff")
+	public ResponseEntity<?> getStaffShiftsForNext7Days(@RequestParam long tenantId, @RequestParam long storeId,
+														  @RequestParam long staffId, @RequestParam String startDate) {
+        tenantId = SecurityUtils.getTenantId(tenantId);
+        storeId = SecurityUtils.getStoreId(storeId);
+		List<SStaffShifts> staffShifts;
+		try {
+			LocalDate fromDate = LocalDate.parse(startDate);
+			LocalDate toDate = fromDate.plusDays(6);
+			staffShifts = stSfRepo.findByTenantIdAndStoreIdAndStaffIdAndShiftDateBetween(
+					tenantId, storeId, staffId, fromDate, toDate);
+			return ResponseEntity.ok().body(staffShifts);
+		} catch (Exception e) {
+			logger.error(e.getClass().getName(), e);
+			return ResponseHandler.generateResponse("Internal Server error please contact to admin.", e.getMessage(),
+					HttpStatus.INTERNAL_SERVER_ERROR, null);
+		}
+	}
+
 	/**
 	 * createShiftSlots endpoint is used to create shift slots.
 	 *

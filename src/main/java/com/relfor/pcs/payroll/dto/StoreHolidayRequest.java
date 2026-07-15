@@ -1,40 +1,14 @@
-package com.relfor.pcs.payroll.entity;
-
-import jakarta.persistence.*;
+package com.relfor.pcs.payroll.dto;
 
 import java.time.LocalDate;
 
-@Entity
-@Table(name = "store_holiday")
-public class StoreHoliday {
+public class StoreHolidayRequest {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "tenant_id", nullable = false)
     private Long tenantId;
-
-    @Column(name = "store_id", nullable = false)
     private Long storeId;
-
-    @Column(name = "holiday_date", nullable = false)
     private LocalDate holidayDate;
-
-    @Column(name = "holiday_name", nullable = false)
     private String holidayName;
-
-    @Column(name = "is_optional", nullable = false)
     private Boolean isOptional = false;
-
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
 
     public Long getTenantId() {
         return tenantId;
