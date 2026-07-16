@@ -26,6 +26,7 @@ public class TenantStoreDTO {
 	private String address;
 	private String storeName;
 	private String currencySymbol;
+	private String dateFormat;
 
 	public Long getTenantId() {
 		return tenantId;
@@ -201,5 +202,13 @@ public class TenantStoreDTO {
 
 	public void setCurrencySymbol(String currencySymbol) {
 		this.currencySymbol = currencySymbol;
+	}
+
+	public String getDateFormat() {
+		return dateFormat;
+	}
+
+	public void setDateFormat(String dateFormat) {
+		this.dateFormat = dateFormat;
 	}
 }

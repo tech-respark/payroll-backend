@@ -11,6 +11,7 @@ public interface StoreStaffRoleRepository extends JpaRepository<StoreStaffRole, 
     
     List<StoreStaffRole> findByStaffIdAndActive(Long staffId, Integer active);
     boolean existsByStaffIdAndRoleIdAndActive(Long staffId, Long roleId, Integer active);
+    StoreStaffRole findByStaffIdAndStoreIdAndActive(Long staffId, Long storeId, Integer active);
 
     @Query("SELECT r.name FROM StoreStaffRole ssr JOIN Role r ON ssr.roleId = r.id " +
            "WHERE ssr.staffId = :staffId AND ssr.active = 1 AND r.active = 1")

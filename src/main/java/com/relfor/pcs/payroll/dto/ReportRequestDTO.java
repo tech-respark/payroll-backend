@@ -12,6 +12,7 @@ public class ReportRequestDTO<T> {
 
 	private Long tenantId;
 	private Long storeId;
+	private Long staffId;
 
 	private Date fromDate;
 	private Date toDate;
@@ -58,6 +59,14 @@ public class ReportRequestDTO<T> {
 
 	public void setStoreId(Long storeId) {
 		this.storeId = storeId;
+	}
+
+	public Long getStaffId() {
+		return staffId;
+	}
+
+	public void setStaffId(Long staffId) {
+		this.staffId = staffId;
 	}
 
 	public Date getFromDate() {

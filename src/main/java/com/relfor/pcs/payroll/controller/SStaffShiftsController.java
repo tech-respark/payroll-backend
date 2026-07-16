@@ -1,10 +1,6 @@
 package com.relfor.pcs.payroll.controller;
 
-import com.relfor.pcs.payroll.dto.ResponseModel;
-import com.relfor.pcs.payroll.dto.ReportRequestDTO;
-import com.relfor.pcs.payroll.dto.AttendanceQueryRequest;
-import com.relfor.pcs.payroll.dto.CreateStaffShiftInput;
-import com.relfor.pcs.payroll.dto.StaffShiftDTO;
+import com.relfor.pcs.payroll.dto.*;
 import com.relfor.pcs.payroll.entity.SShiftsSlots;
 import com.relfor.pcs.payroll.entity.SStaffShifts;
 import com.relfor.pcs.payroll.repository.SShiftsSlotsRepository;
@@ -344,6 +340,44 @@ public class SStaffShiftsController {
             List<Map<String, Object>> attendance = staffShiftsService.getAttendenceByTenantIdStoreIdInBetween(reportRequestDTO.getTenantId(),
                     reportRequestDTO.getStoreId(), reportRequestDTO.getFromDateStr(), reportRequestDTO.getToDateStr());
             return ResponseHandler.generateResponse("Ok", "", HttpStatus.OK, attendance);
+        } catch (Exception e) {
+            logger.error(e.getClass().getName(), e);
+            return ResponseHandler.generateResponse("Internal Server error please contact to admin.", e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR, null);
+        }
+    }
+
+	@PostMapping("/staff/report/summary")
+    public ResponseEntity<?> fetchStaffAttendanceSummaryByTenantIdAndStoreIdAndShiftDateInBetween(
+            @RequestBody ReportRequestDTO reportRequestDTO) {
+        try {
+            reportRequestDTO.setTenantId(SecurityUtils.getTenantId(reportRequestDTO.getTenantId()));
+            reportRequestDTO.setStoreId(SecurityUtils.getStoreId(reportRequestDTO.getStoreId()));
+            List<Map<String, Object>> attendanceSummary = staffShiftsService.getAttendanceSummaryByTenantIdStoreIdInBetween(reportRequestDTO.getTenantId(),
+                    reportRequestDTO.getStoreId(), reportRequestDTO.getFromDateStr(), reportRequestDTO.getToDateStr());
+            return ResponseHandler.generateResponse("Ok", "", HttpStatus.OK, attendanceSummary);
+        } catch (Exception e) {
+            logger.error(e.getClass().getName(), e);
+            return ResponseHandler.generateResponse("Internal Server error please contact to admin.", e.getMessage(),
+                    HttpStatus.INTERNAL_SERVER_ERROR, null);
+        }
+    }
+
+	@PostMapping("/staff/report/detailed")
+    public ResponseEntity<?> fetchDetailedStaffAttendanceByStaffId(
+            @RequestBody ReportRequestDTO reportRequestDTO) {
+        try {
+            if (reportRequestDTO.getStaffId() == null) {
+                return ResponseHandler.generateResponse("Bad Request", "staffId is required", HttpStatus.BAD_REQUEST, null);
+            }
+            reportRequestDTO.setTenantId(SecurityUtils.getTenantId(reportRequestDTO.getTenantId()));
+            reportRequestDTO.setStoreId(SecurityUtils.getStoreId(reportRequestDTO.getStoreId()));
+            
+            List<AttendanceDetailDto> detailedAttendance = staffShiftsService.getDetailedAttendenceByStaffIdStoreIdInBetween(
+                    reportRequestDTO.getStaffId(), reportRequestDTO.getTenantId(), reportRequestDTO.getStoreId(),
+                    reportRequestDTO.getFromDateStr(), reportRequestDTO.getToDateStr());
+                    
+            return ResponseHandler.generateResponse("Ok", "", HttpStatus.OK, detailedAttendance);
         } catch (Exception e) {
             logger.error(e.getClass().getName(), e);
             return ResponseHandler.generateResponse("Internal Server error please contact to admin.", e.getMessage(),

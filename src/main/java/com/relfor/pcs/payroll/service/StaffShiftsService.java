@@ -14,25 +14,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.relfor.pcs.payroll.dto.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
 
 
-import com.relfor.pcs.payroll.dto.ConfigDTO;
-import com.relfor.pcs.payroll.dto.ResponseModel;
-import com.relfor.pcs.payroll.dto.SStaff;
-import com.relfor.pcs.payroll.dto.DayWiseAttendance;
-import com.relfor.pcs.payroll.dto.PersonnelAttendanceModel;
 import com.relfor.pcs.payroll.dto.constants.BiometricApplicationNames;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.relfor.pcs.payroll.dto.AttendanceQueryRequest;
-import com.relfor.pcs.payroll.dto.CreateStaffShiftInput;
-import com.relfor.pcs.payroll.dto.ShiftSlotDTO;
-import com.relfor.pcs.payroll.dto.StaffShiftDTO;
 import com.relfor.pcs.payroll.entity.*;
 import com.relfor.pcs.payroll.repository.*;
 import com.relfor.pcs.payroll.repository.StoreProfileConfigRepository;
@@ -1048,34 +1040,38 @@ public class StaffShiftsService {
 		List<Map<String, Object>> tmp = new ArrayList<Map<String, Object>>();
 		ObjectMapper objectMapper = new ObjectMapper();
 		try {
-			String query = "select s.staff_id, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
-					"ROUND((TIMEDIFF(SUBSTRING(ss.slot, 7, 11), SUBSTRING(ss.slot, 1, 5)))/10000,2) AS hours, ss.shift_date as shiftDate " +
-					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
+			Optional<StoreDetails> storeDetailsOpt = storeDetailsRepository.fetchStoreAndTenantDetails(BiometricApplicationNames.RESPARK.name(), tenantId, storeId);
+			String formatStr = storeDetailsOpt.isPresent() && storeDetailsOpt.get().getDateFormat() != null ? storeDetailsOpt.get().getDateFormat() : "dd-MM-yyyy";
+			java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern(formatStr);
+
+			String query = "select s.id as staff_id, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
+					"ROUND(MOD((TIME_TO_SEC(SUBSTRING(ss.slot, 7, 5)) - TIME_TO_SEC(SUBSTRING(ss.slot, 1, 5))) / 3600 + 24, 24), 2) AS hours, ss.shift_date as shiftDate " +
+					"from personnel_details s join staff_shifts ss on s.id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate";
 
-			String query1 = "select s.staff_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
-					"CONCAT(FLOOR((sum(productive_minutes))/60), '.', LPAD(MOD((sum(productive_minutes)), 60), 2, '0')) as productiveMinutes " +
-					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
+			String query1 = "select s.id as staff_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
+					"ROUND(SUM(productive_minutes) / 60, 2) as productiveMinutes " +
+					"from personnel_details s join staff_shifts ss on s.id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate group by ss.staff_id";
 
-			String query2 = "select s.staff_id, round(sum(timediff(substring(ss.slot,7,11),substring(ss.slot,1,5)))/10000,2) as total_hours, ss.slot " +
-					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
+			String query2 = "select s.id as staff_id, round(sum(MOD((TIME_TO_SEC(SUBSTRING(ss.slot, 7, 5)) - TIME_TO_SEC(SUBSTRING(ss.slot, 1, 5))) / 3600 + 24, 24)), 2) as total_hours, MAX(ss.slot) as slot " +
+					"from personnel_details s join staff_shifts ss on s.id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate " +
 					"and ss.on_leave = 0 and ss.weekly_off = 0 group by ss.staff_id";
 
-			String query3 = "select s.staff_id, count(ss.on_leave) as leaves " +
-					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
+			String query3 = "select s.id as staff_id, count(ss.on_leave) as leaves " +
+					"from personnel_details s join staff_shifts ss on s.id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate and ss.on_leave = 1 group by ss.staff_id";
 
-			String query4 = "select CONCAT(FLOOR((sum(break_hours))/60), '.', LPAD(MOD((sum(break_hours)), 60), 2, '0')) as breaktime, ss.staff_id " +
+			String query4 = "select ROUND(SUM(break_hours) / 60, 2) as breaktime, ss.staff_id " +
 					"from staff_break_time sbt " +
 					"inner join staff_shifts ss on sbt.staff_id = ss.staff_id and sbt.staff_shift_id = ss.id " +
 					"where ss.tenant_id = :tenantId " +
@@ -1187,21 +1183,44 @@ public class StaffShiftsService {
 							if (!ObjectUtils.isEmpty(dayWiseAttendance)) {
 								loop2.put("hoursWorkedForADayAsPerBiometric", dayWiseAttendance.getTotalHoursWorkedInADay());
 								loop2.put("breakTimeForADayAsPerBiometric", dayWiseAttendance.getTotalBreakTimeInADay());
+								
+								if (dayWiseAttendance.getIndividualPunchesList() != null && !dayWiseAttendance.getIndividualPunchesList().isEmpty()) {
+									List<com.relfor.pcs.payroll.dto.IndividualPunches> punches = new ArrayList<>(dayWiseAttendance.getIndividualPunchesList());
+									punches.sort(java.util.Comparator.comparing(com.relfor.pcs.payroll.dto.IndividualPunches::getPunchTime));
+									loop2.put("checkIn", punches.get(0).getPunchTime().toString());
+									loop2.put("checkOut", punches.get(punches.size() - 1).getPunchTime().toString());
+								} else {
+									loop2.put("checkIn", null);
+									loop2.put("checkOut", null);
+								}
 							} else {
 								loop2.put("hoursWorkedForADayAsPerBiometric", 0.0);
 								loop2.put("breakTimeForADayAsPerBiometric", 0.0);
+								loop2.put("checkIn", null);
+								loop2.put("checkOut", null);
 							}
 
 							loop2.put("day", r1[2]);
-							loop2.put("date", r1[3]);
+							
+							String formattedDate1 = r1[3] != null ? String.valueOf(r1[3]) : "";
+							if (r1[7] != null) {
+								try {
+									formattedDate1 = java.time.LocalDate.parse(String.valueOf(r1[7])).format(dtf);
+								} catch (Exception e) {
+									logger.error("Failed to format date in getAttendenceByTenantIdStoreIdInBetween: {}", r1[7]);
+								}
+							}
+							loop2.put("date", formattedDate1);
+							
 							loop2.put("slot", r1[4]);
 							loop2.put("onLeave", r1[5]);
 							if (Boolean.TRUE.equals(r1[5])) {
-								loop2.put("hours", 0);
+								loop2.put("hours", 0.0);
 							} else {
-								double hrs = r1[6].toString().endsWith(".60")
-										? Double.parseDouble(r1[6].toString().replace(".60", ".00")) + 1
-										: Double.parseDouble(r1[6].toString());
+								double hrs = 0.0;
+								if (r1[6] != null) {
+									hrs = Double.parseDouble(r1[6].toString());
+								}
 								loop2.put("hours", hrs);
 							}
 							tmp1.add(loop2);
@@ -1210,9 +1229,10 @@ public class StaffShiftsService {
 
 					for (Object[] r2 : list2) {
 						if (String.valueOf(r[0]).equalsIgnoreCase(String.valueOf(r2[0]))) {
-							double hrs = r2[1].toString().endsWith(".60")
-									? Double.parseDouble(r2[1].toString().replace(".60", ".00")) + 1
-									: Double.parseDouble(r2[1].toString());
+							double hrs = 0.0;
+							if (r2[1] != null) {
+								hrs = Double.parseDouble(r2[1].toString());
+							}
 							loop1.put("totalHours", hrs);
 						}
 					}
@@ -1340,6 +1360,139 @@ public class StaffShiftsService {
 		return tmp;
 	}
 
+	public List<Map<String, Object>> getAttendanceSummaryByTenantIdStoreIdInBetween(long tenantId, long storeId, String fromDate, String toDate) {
+		List<Map<String, Object>> resultList = new ArrayList<Map<String, Object>>();
+		ObjectMapper objectMapper = new ObjectMapper();
+		try {
+			String query1 = "select s.id as staff_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
+					"ROUND(SUM(productive_minutes) / 60, 2) as productiveMinutes " +
+					"from personnel_details s join staff_shifts ss on s.id = ss.staff_id " +
+					"where ss.tenant_id = :tenantId " +
+					" and ss.store_id = :storeId " +
+					" and ss.shift_date between :fromDate and :toDate group by ss.staff_id";
+
+			String query2 = "select s.id as staff_id, round(sum(MOD((TIME_TO_SEC(SUBSTRING(ss.slot, 7, 5)) - TIME_TO_SEC(SUBSTRING(ss.slot, 1, 5))) / 3600 + 24, 24)), 2) as total_hours, MAX(ss.slot) as slot " +
+					"from personnel_details s join staff_shifts ss on s.id = ss.staff_id " +
+					"where ss.tenant_id = :tenantId " +
+					" and ss.store_id = :storeId " +
+					" and ss.shift_date between :fromDate and :toDate " +
+					"and ss.on_leave = 0 and ss.weekly_off = 0 group by ss.staff_id";
+
+			String query3 = "select s.id as staff_id, count(ss.on_leave) as leaves " +
+					"from personnel_details s join staff_shifts ss on s.id = ss.staff_id " +
+					"where ss.tenant_id = :tenantId " +
+					" and ss.store_id = :storeId " +
+					" and ss.shift_date between :fromDate and :toDate and ss.on_leave = 1 group by ss.staff_id";
+
+			String query4 = "select ROUND(SUM(break_hours) / 60, 2) as breaktime, ss.staff_id " +
+					"from staff_break_time sbt " +
+					"inner join staff_shifts ss on sbt.staff_id = ss.staff_id and sbt.staff_shift_id = ss.id " +
+					"where ss.tenant_id = :tenantId " +
+					" and ss.store_id = :storeId " +
+					" and ss.shift_date between :fromDate and :toDate " +
+					"and ss.on_leave = 0 and ss.weekly_off = 0 group by ss.staff_id";
+
+			Query nativeQuery1 = entityManager.createNativeQuery(query1);
+			Query nativeQuery2 = entityManager.createNativeQuery(query2);
+			Query nativeQuery3 = entityManager.createNativeQuery(query3);
+			Query nativeQuery4 = entityManager.createNativeQuery(query4);
+
+			for (Query q : java.util.Arrays.asList(nativeQuery1, nativeQuery2, nativeQuery3, nativeQuery4)) {
+				q.setParameter("tenantId", tenantId);
+				q.setParameter("storeId", storeId);
+				q.setParameter("fromDate", fromDate);
+				q.setParameter("toDate", toDate);
+			}
+
+			@SuppressWarnings("unchecked")
+			List<Object[]> list1 = nativeQuery1.getResultList();
+			@SuppressWarnings("unchecked")
+			List<Object[]> list2 = nativeQuery2.getResultList();
+			@SuppressWarnings("unchecked")
+			List<Object[]> list3 = nativeQuery3.getResultList();
+			@SuppressWarnings("unchecked")
+			List<Object[]> list4 = nativeQuery4.getResultList();
+
+			PersonnelAttendanceModel inputPersonnelAttendanceModel = new PersonnelAttendanceModel();
+			inputPersonnelAttendanceModel.setTenantId(tenantId);
+			inputPersonnelAttendanceModel.setStoreId(storeId);
+			inputPersonnelAttendanceModel.setFromDate(java.time.LocalDate.parse(fromDate));
+			inputPersonnelAttendanceModel.setToDate(java.time.LocalDate.parse(toDate));
+			inputPersonnelAttendanceModel.setApplicationName(BiometricApplicationNames.RESPARK.name());
+
+			List<PersonnelAttendanceModel> personnelAttendanceModelList = new ArrayList<>();
+			if (true) {
+				ResponseModel responseModel = attendanceManagementService.getPersonnelAttendanceSummary(inputPersonnelAttendanceModel);
+				if (!ObjectUtils.isEmpty(responseModel) && responseModel.getCode().is2xxSuccessful() && !ObjectUtils.isEmpty(responseModel.getData())) {
+					objectMapper.registerModule(new JavaTimeModule());
+					personnelAttendanceModelList = objectMapper.convertValue(responseModel.getData(), new TypeReference<List<PersonnelAttendanceModel>>() {});
+				}
+			}
+
+			if (list1 != null && !list1.isEmpty()) {
+				for (Object[] r : list1) {
+					Map<String, Object> loop1 = new HashMap<String, Object>();
+					
+					PersonnelAttendanceModel personnelAttendanceModel = null;
+					if (!personnelAttendanceModelList.isEmpty()) {
+						Optional<PersonnelAttendanceModel> opt =
+								personnelAttendanceModelList.stream().filter(item -> StringUtils.equalsIgnoreCase(String.valueOf(r[0]), String.valueOf(item.getStaffId()))).findFirst();
+						if (opt.isPresent()) { personnelAttendanceModel = opt.get(); }
+					}
+
+					loop1.put("staff_id", r[0]);
+					loop1.put("name", r[1]);
+					loop1.put("number", r[2]);
+					loop1.put("designation", r[3]);
+					loop1.put("productiveTime", r[4]);
+
+					if (!ObjectUtils.isEmpty(personnelAttendanceModel)) {
+						loop1.put("totalHoursWorkedAsPerBiometric", personnelAttendanceModel.getTotalHoursWorkedForPersonnel());
+						loop1.put("totalBreakTimeAsPerBiometric", personnelAttendanceModel.getTotalBreakTimeForPersonnel());
+					} else {
+						loop1.put("totalHoursWorkedAsPerBiometric", 0.0);
+						loop1.put("totalBreakTimeAsPerBiometric", 0.0);
+					}
+
+					if (list2 != null) {
+						for (Object[] r2 : list2) {
+							if (String.valueOf(r[0]).equalsIgnoreCase(String.valueOf(r2[0]))) {
+								double hrs = r2[1].toString().endsWith(".60")
+										? Double.parseDouble(r2[1].toString().replace(".60", ".00")) + 1
+										: Double.parseDouble(r2[1].toString());
+								loop1.put("totalHours", hrs);
+							}
+						}
+					}
+					loop1.putIfAbsent("totalHours", 0.0);
+
+					if (list3 != null && !list3.isEmpty()) {
+						for (Object[] r3 : list3) {
+							if (String.valueOf(r[0]).equalsIgnoreCase(String.valueOf(r3[0]))) {
+								loop1.put("leaves", r3[1]);
+							}
+						}
+					}
+					loop1.putIfAbsent("leaves", 0);
+
+					if (list4 != null && !list4.isEmpty()) {
+						for (Object[] r4 : list4) {
+							if (String.valueOf(r[0]).equalsIgnoreCase(String.valueOf(r4[1]))) {
+								loop1.put("breaktime", r4[0]);
+							}
+						}
+					}
+					loop1.putIfAbsent("breaktime", 0.0);
+
+					resultList.add(loop1);
+				}
+			}
+		} catch (Exception e) {
+			logger.error(e.getClass().getName(), e);
+		}
+		return resultList;
+	}
+
 	private Map<String, LocalTime> getStoreTimingForDate(String startDate, long tenantId, long storeId) {
 		List<SShiftsSlots> shiftSlotsList = shiftSlotRepo.findByTenantIdAndStoreId(tenantId, storeId);
 		List<DayWiseShiftsTiming> dayWiseTimingsList = new ArrayList<>();
@@ -1451,37 +1604,43 @@ public class StaffShiftsService {
 		ObjectMapper objectMapper = new ObjectMapper();
 
 		try {
+			Optional<StoreDetails> storeDetailsOpt =
+					storeDetailsRepository.fetchStoreAndTenantDetails(BiometricApplicationNames.RESPARK.name(), request.tenantId,
+							request.storeId);
+			String formatStr = storeDetailsOpt.isPresent() && storeDetailsOpt.get().getDateFormat() != null ? storeDetailsOpt.get().getDateFormat() : "dd-MM-yyyy";
+			java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern(formatStr);
+
 			java.sql.Date fromSql = java.sql.Date.valueOf(start);
 			java.sql.Date toSql = java.sql.Date.valueOf(end);
 
-			String query = "select s.staff_id, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
-					"ROUND((TIMEDIFF(SUBSTRING(ss.slot, 7, 11), SUBSTRING(ss.slot, 1, 5)))/10000,2) AS hours, ss.shift_date as shiftDate " +
-					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
+			String query = "select s.id as staff_id, s.phone, ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') as shift_date, ss.slot, ss.on_leave, " +
+					"ROUND(MOD((TIME_TO_SEC(SUBSTRING(ss.slot, 7, 5)) - TIME_TO_SEC(SUBSTRING(ss.slot, 1, 5))) / 3600 + 24, 24), 2) AS hours, ss.shift_date as shiftDate " +
+					"from personnel_details s join staff_shifts ss on s.id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate";
 
-			String query1 = "select s.staff_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
-					"CONCAT(FLOOR((sum(productive_minutes))/60), '.', LPAD(MOD((sum(productive_minutes)), 60), 2, '0')) as productiveMinutes " +
-					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
+			String query1 = "select s.id as staff_id, concat_ws(' ', s.first_name, s.last_name) as name, s.phone, s.designation, " +
+					"ROUND(SUM(productive_minutes) / 60, 2) as productiveMinutes " +
+					"from personnel_details s join staff_shifts ss on s.id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate group by ss.staff_id";
 
-			String query2 = "select s.staff_id, round(sum(timediff(substring(ss.slot,7,11),substring(ss.slot,1,5)))/10000,2) as total_hours, ss.slot " +
-					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
+			String query2 = "select s.id as staff_id, round(sum(MOD((TIME_TO_SEC(SUBSTRING(ss.slot, 7, 5)) - TIME_TO_SEC(SUBSTRING(ss.slot, 1, 5))) / 3600 + 24, 24)), 2) as total_hours, MAX(ss.slot) as slot " +
+					"from personnel_details s join staff_shifts ss on s.id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate " +
 					"and ss.on_leave = 0 and ss.weekly_off = 0 group by ss.staff_id";
 
-			String query3 = "select s.staff_id, count(ss.on_leave) as leaves " +
-					"from personnel_details s join staff_shifts ss on s.staff_id = ss.staff_id " +
+			String query3 = "select s.id as staff_id, count(ss.on_leave) as leaves " +
+					"from personnel_details s join staff_shifts ss on s.id = ss.staff_id " +
 					"where ss.tenant_id = :tenantId " +
 					" and ss.store_id = :storeId " +
 					" and ss.shift_date between :fromDate and :toDate and ss.on_leave = 1 group by ss.staff_id";
 
-			String query4 = "select CONCAT(FLOOR((sum(break_hours))/60), '.', LPAD(MOD((sum(break_hours)), 60), 2, '0')) as breaktime, ss.staff_id " +
+			String query4 = "select ROUND(SUM(break_hours) / 60, 2) as breaktime, ss.staff_id " +
 					"from staff_break_time sbt " +
 					"inner join staff_shifts ss on sbt.staff_id = ss.staff_id and sbt.staff_shift_id = ss.id " +
 					"where ss.tenant_id = :tenantId " +
@@ -1608,15 +1767,26 @@ public class StaffShiftsService {
 							}
 
 							loop2.put("day", r1[2]);
-							loop2.put("date", r1[3]);
+							
+							String formattedDate = r1[3] != null ? String.valueOf(r1[3]) : "";
+							if (r1[7] != null) {
+								try {
+									formattedDate = java.time.LocalDate.parse(String.valueOf(r1[7])).format(dtf);
+								} catch (Exception e) {
+									logger.error("Failed to format date in getAttendenceByTenantIdStoreIdInBetween: {}", r1[7]);
+								}
+							}
+							loop2.put("date", formattedDate);
+							
 							loop2.put("slot", r1[4]);
 							loop2.put("onLeave", r1[5]);
 							if (Boolean.TRUE.equals(r1[5])) {
-								loop2.put("hours", 0);
+								loop2.put("hours", 0.0);
 							} else {
-								double hrs = r1[6].toString().endsWith(".60")
-										? Double.parseDouble(r1[6].toString().replace(".60", ".00")) + 1
-										: Double.parseDouble(r1[6].toString());
+								double hrs = 0.0;
+								if (r1[6] != null) {
+									hrs = Double.parseDouble(r1[6].toString());
+								}
 								loop2.put("hours", hrs);
 							}
 							tmp1.add(loop2);
@@ -1625,9 +1795,10 @@ public class StaffShiftsService {
 
 					for (Object[] r2 : list2) {
 						if (String.valueOf(r[0]).equalsIgnoreCase(String.valueOf(r2[0]))) {
-							double hrs = r2[1].toString().endsWith(".60")
-									? Double.parseDouble(r2[1].toString().replace(".60", ".00")) + 1
-									: Double.parseDouble(r2[1].toString());
+							double hrs = 0.0;
+							if (r2[1] != null) {
+								hrs = Double.parseDouble(r2[1].toString());
+							}
 							loop1.put("totalHours", hrs);
 						}
 					}
@@ -1798,5 +1969,119 @@ public class StaffShiftsService {
 		}
 	}
 
+	public List<AttendanceDetailDto> getDetailedAttendenceByStaffIdStoreIdInBetween(
+			long staffId,
+			long tenantId,
+			long storeId,
+			String fromDate,
+			String toDate) {
+
+		List<AttendanceDetailDto> resultShifts = new ArrayList<>();
+
+		try {
+			String query = "SELECT ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') AS shift_date, ss.slot, ss.on_leave, " +
+					"ROUND(MOD((TIME_TO_SEC(SUBSTRING(ss.slot,7,5))-TIME_TO_SEC(SUBSTRING(ss.slot,1,5)))/3600+24,24),2) AS hours, " +
+					"CASE WHEN sd.is_actual_time_based_attendance=FALSE THEN dwas.total_hours_worked_inaday ELSE dwas.sum_of_actual_hours_worked_inaday END AS biometric_hours, " +
+					"CASE WHEN sd.is_actual_time_based_attendance=FALSE THEN 0 ELSE dwas.total_break_time_inaday END AS biometric_break, " +
+					"DATE_FORMAT(pa.first_punch,'%H:%i') AS check_in, " +
+					"DATE_FORMAT(pa.last_punch,'%H:%i') AS check_out, " +
+					"ss.weekly_off, dwas.is_holiday, ss.shift_date as shiftDate, sd.date_format " +
+					"FROM staff_shifts ss " +
+					"JOIN tenant_company_mapping tcm ON tcm.tenant_id=ss.tenant_id AND tcm.application_name='RESPARK' " +
+					"JOIN store_details sd ON sd.tenant_company_mapping_id=tcm.id AND sd.store_id=ss.store_id " +
+					"LEFT JOIN day_wise_attendance_summary dwas ON dwas.staff_id=ss.staff_id AND dwas.attendance_date=ss.shift_date AND dwas.application_name='RESPARK' " +
+					"LEFT JOIN (SELECT staff_id, attendance_date, MIN(punch_timestamp) AS first_punch, MAX(punch_timestamp) AS last_punch " +
+					"FROM personnel_attendance " +
+					"WHERE staff_id=:staffId AND attendance_date BETWEEN :fromDate AND :toDate " +
+					"GROUP BY staff_id, attendance_date) pa " +
+					"ON pa.staff_id=ss.staff_id AND pa.attendance_date=ss.shift_date " +
+					"WHERE ss.staff_id=:staffId " +
+					"AND ss.tenant_id=:tenantId " +
+					"AND ss.shift_date BETWEEN :fromDate AND :toDate " +
+					"ORDER BY ss.shift_date";
+
+			Query nativeQuery = entityManager.createNativeQuery(query);
+			nativeQuery.setParameter("staffId", staffId);
+			nativeQuery.setParameter("tenantId", tenantId);
+			nativeQuery.setParameter("fromDate", fromDate);
+			nativeQuery.setParameter("toDate", toDate);
+
+			@SuppressWarnings("unchecked")
+			List<Object[]> shiftsData = nativeQuery.getResultList();
+
+			for (Object[] row : shiftsData) {
+				boolean onLeave = false;
+				if (row[3] != null) {
+					onLeave = (row[3] instanceof Boolean) ? (Boolean) row[3] : ((Number) row[3]).intValue() > 0;
+				}
+				
+				boolean weeklyOff = false;
+				if (row[9] != null) {
+					weeklyOff = (row[9] instanceof Boolean) ? (Boolean) row[9] : ((Number) row[9]).intValue() > 0;
+				}
+				
+				boolean isHoliday = false;
+				if (row[10] != null) {
+					isHoliday = (row[10] instanceof Boolean) ? (Boolean) row[10] : ((Number) row[10]).intValue() > 0;
+				}
+				
+				java.time.LocalDate shiftDateObj = null;
+				if (row[11] != null) {
+					shiftDateObj = java.time.LocalDate.parse(row[11].toString());
+				}
+				boolean isFuture = shiftDateObj != null && shiftDateObj.isAfter(java.time.LocalDate.now());
+
+				String formattedDateStr = (String) row[1];
+				if (shiftDateObj != null) {
+					String formatStr = (row.length > 12 && row[12] != null) ? row[12].toString() : "dd-MM-yyyy";
+					try {
+						java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern(formatStr);
+						formattedDateStr = shiftDateObj.format(dtf);
+					} catch (Exception e) {
+						logger.error("Invalid date format string from DB: {}", formatStr);
+					}
+				}
+
+				String status = "Absent";
+				if (isHoliday) {
+					status = "Public Holiday";
+				} else if (onLeave) {
+					status = "Leave";
+				} else if (weeklyOff) {
+					status = "Weekly Off";
+				} else if (isFuture) {
+					status = null;
+				} else if (row[7] != null) {
+					if (row[8] != null && !row[7].toString().equals(row[8].toString())) {
+						status = "Present";
+					} else {
+						status = "Absent";
+					}
+				} else {
+					status = "Absent";
+				}
+
+				AttendanceDetailDto dto = new AttendanceDetailDto(
+						(String) row[0],
+						formattedDateStr,
+						(String) row[2],
+						onLeave,
+						onLeave ? 0.0 : (row[4] == null ? 0.0 : ((Number) row[4]).doubleValue()),
+						row[5] == null ? 0.0 : ((Number) row[5]).doubleValue(),
+						row[6] == null ? 0.0 : ((Number) row[6]).doubleValue(),
+						(String) row[7],
+						(String) row[8],
+						status
+				);
+
+				resultShifts.add(dto);
+			}
+
+		} catch (Exception e) {
+			logger.error("Failed to fetch detailed attendance for staffId={}, tenantId={}, storeId={}, fromDate={}, toDate={}", staffId, tenantId, storeId, fromDate, toDate, e);
+		}
+
+		return resultShifts;
+	}
 }
 

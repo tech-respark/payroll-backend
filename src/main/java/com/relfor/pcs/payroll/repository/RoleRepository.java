@@ -7,4 +7,5 @@ import java.util.List;
 public interface RoleRepository extends JpaRepository<Role, Long> {
     List<Role> findByActive(Integer active);
     List<Role> findByActiveAndTenantId(Integer active, Long tenantId);
+    Role findByNameAndTenantId(String name, Long tenantId);
 }

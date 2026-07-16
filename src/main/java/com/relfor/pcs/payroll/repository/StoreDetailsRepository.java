@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface StoreDetailsRepository extends JpaRepository<StoreDetails,Long> {
+	List<StoreDetails> findByTenantCompanyMappingId(Long tenantCompanyMappingId);
+
 	@Query(value = "SELECT s.* FROM store_details s " +
 			"JOIN tenant_company_mapping t ON s.tenant_company_mapping_id = t.id " +
 			"WHERE t.application_name = :applicationName AND t.tenant_id = :tenantId AND s.store_id = :storeId", nativeQuery = true)

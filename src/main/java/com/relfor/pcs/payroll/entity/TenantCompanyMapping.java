@@ -25,6 +25,24 @@ public class TenantCompanyMapping {
 	private String vendorPassword;
 	private String penaltyAbsentDays;
 	private Boolean isPaidLeaveApplicable;
+	private String externalSoftwareUrl;
+	private String externalAppName;
+
+	public String getExternalSoftwareUrl() {
+		return externalSoftwareUrl;
+	}
+
+	public void setExternalSoftwareUrl(String externalSoftwareUrl) {
+		this.externalSoftwareUrl = externalSoftwareUrl;
+	}
+
+	public String getExternalAppName() {
+		return externalAppName;
+	}
+
+	public void setExternalAppName(String externalAppName) {
+		this.externalAppName = externalAppName;
+	}
 
 	public Integer getSalaryCycleStartDay() {
 		return salaryCycleStartDay;

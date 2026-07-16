@@ -25,6 +25,7 @@ public class StoreDetails {
 	private Integer financialYearStartMonth;
 	private LocalDate payrollLockedUpToDate;
 	private String currencySymbol;
+	private String dateFormat;
 	
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "tenant_company_mapping_id", referencedColumnName = "id")
@@ -33,6 +34,15 @@ public class StoreDetails {
 	@OneToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
 	@JoinColumn(name = "store_details_id", referencedColumnName = "id")
 	private List<TerminalDetails> terminalDetailsList;
+	private String externalBranchId;
+
+	public String getExternalBranchId() {
+		return externalBranchId;
+	}
+
+	public void setExternalBranchId(String externalBranchId) {
+		this.externalBranchId = externalBranchId;
+	}
 
 	public Long getId() {
 		return id;
@@ -152,5 +162,13 @@ public class StoreDetails {
 
 	public void setCurrencySymbol(String currencySymbol) {
 		this.currencySymbol = currencySymbol;
+	}
+
+	public String getDateFormat() {
+		return dateFormat;
+	}
+
+	public void setDateFormat(String dateFormat) {
+		this.dateFormat = dateFormat;
 	}
 }
