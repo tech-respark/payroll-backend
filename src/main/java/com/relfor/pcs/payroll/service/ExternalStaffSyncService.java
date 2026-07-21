@@ -96,10 +96,10 @@ public class ExternalStaffSyncService {
                             pd.setFirstName(staffDto.getFirstName());
                             pd.setLastName(staffDto.getLastName());
                             pd.setEmail(staffDto.getEmail());
-                            pd.setMobileNumber(staffDto.getPhone());
+                            pd.setPhone(staffDto.getPhone());
                             pd.setGender(staffDto.getGender());
                             pd.setUsername(staffDto.getEmail()); // Using email as username
-                            pd.setActive(Boolean.TRUE.equals(staffDto.getIsActive()) ? 1 : 0);
+                            pd.setActive(Boolean.TRUE.equals(staffDto.getIsActive()));
                             
                             pd = personnelRepo.save(pd);
 
