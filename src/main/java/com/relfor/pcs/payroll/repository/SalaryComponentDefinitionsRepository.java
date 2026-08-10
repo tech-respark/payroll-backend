@@ -9,12 +9,14 @@ import java.util.List;
 
 public interface SalaryComponentDefinitionsRepository extends JpaRepository<SalaryComponentDefinitions,Long> {
     @Query(value = "SELECT * FROM salary_component_definitions pd \n" +
-            "WHERE component_type = :formula and tenant_id = :tenantId and store_id = :storeId and is_computable = true ORDER BY priority_index;", nativeQuery = true)
-    List<SalaryComponentDefinitions> findByComponentTypeAndComputableAndTenantIdAndStoreId(String formula, Long tenantId, Long storeId);
+            "WHERE component_type = :formula and tenant_id = :tenantId and (store_id = :storeId OR store_id = 0) and is_computable = true ORDER BY priority_index;", nativeQuery = true)
+    List<SalaryComponentDefinitions> findByComponentTypeAndComputableAndTenantIdAndStoreId(@org.springframework.data.repository.query.Param("formula") String formula, @org.springframework.data.repository.query.Param("tenantId") Long tenantId, @org.springframework.data.repository.query.Param("storeId") Long storeId);
 
     @Query(value = "SELECT * FROM salary_component_definitions pd \n" +
-            "WHERE tenant_id = :tenantId and store_id = :storeId ORDER BY priority_index;", nativeQuery = true)
-    List<SalaryComponentDefinitions> findByTenantIdAndStoreId(Long tenantId, Long storeId);
+            "WHERE tenant_id = :tenantId and (store_id = :storeId OR store_id = 0) ORDER BY priority_index;", nativeQuery = true)
+    List<SalaryComponentDefinitions> findByTenantIdAndStoreId(@org.springframework.data.repository.query.Param("tenantId") Long tenantId, @org.springframework.data.repository.query.Param("storeId") Long storeId);
 
-    List<SalaryComponentDefinitions> findAllByTenantIdAndStoreId(Long tenantId, Long storeId);
+    @Query(value = "SELECT * FROM salary_component_definitions pd \n" +
+            "WHERE tenant_id = :tenantId and (store_id = :storeId OR store_id = 0) ORDER BY priority_index;", nativeQuery = true)
+    List<SalaryComponentDefinitions> findAllByTenantIdAndStoreId(@org.springframework.data.repository.query.Param("tenantId") Long tenantId, @org.springframework.data.repository.query.Param("storeId") Long storeId);
 }

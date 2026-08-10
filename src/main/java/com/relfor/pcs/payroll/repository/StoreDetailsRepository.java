@@ -3,12 +3,14 @@ package com.relfor.pcs.payroll.repository;
 import com.relfor.pcs.payroll.entity.StoreDetails;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
 public interface StoreDetailsRepository extends JpaRepository<StoreDetails,Long> {
 	List<StoreDetails> findByTenantCompanyMappingId(Long tenantCompanyMappingId);
+	List<StoreDetails> findByStoreIdIn(List<Long> storeIds);
 
 	@Query(value = "SELECT s.* FROM store_details s " +
 			"JOIN tenant_company_mapping t ON s.tenant_company_mapping_id = t.id " +
@@ -24,5 +26,5 @@ public interface StoreDetailsRepository extends JpaRepository<StoreDetails,Long>
 			+ "WHERE tcm.application_name = :applicationName "
 			+ "AND tcm.tenant_id = :tenantId "
 			+ "AND (:storeId = 0 OR sd.store_id = :storeId)", nativeQuery = true)
-	List<StoreDetails> fetchStoreDetailListForTenant(String applicationName, Long tenantId, Long storeId);
+	List<StoreDetails> fetchStoreDetailListForTenant(@Param("applicationName") String applicationName, @Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
 }

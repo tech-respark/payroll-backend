@@ -63,19 +63,19 @@ public class Role {
 		this.description = description;
 	}
 
-	public Integer getrIndex() {
+	public Integer getRIndex() {
 		return rIndex;
 	}
 
-	public void setrIndex(Integer rIndex) {
+	public void setRIndex(Integer rIndex) {
 		this.rIndex = rIndex;
 	}
 
-	public Integer getrValue() {
+	public Integer getRValue() {
 		return rValue;
 	}
 
-	public void setrValue(Integer rValue) {
+	public void setRValue(Integer rValue) {
 		this.rValue = rValue;
 	}
 

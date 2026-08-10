@@ -62,9 +62,6 @@ public class SalaryCalculation {
                 }
 
                 List<SalaryComponentDefinitions> salaryComponentDefinitions = definitionsRepository.findAllByTenantIdAndStoreId(tenantId, storeId);
-                if (ObjectUtils.isEmpty(salaryComponentDefinitions)) {
-                    salaryComponentDefinitions = definitionsRepository.findAllByTenantIdAndStoreId(tenantId, 0L);
-                }
                 logger.info("Found {} salary component definitions for TenantId={} | StoreId={}",
                         salaryComponentDefinitions.size(), tenantId, storeId);
 
@@ -662,9 +659,6 @@ public class SalaryCalculation {
         logger.info("Salary Component Definitions fetch for TenantId: {}, StoreId: {}",
                 salaryComponent.getTenantId(), salaryComponent.getStoreId());
         List<SalaryComponentDefinitions> salaryComponentDefinitions = definitionsRepository.findAllByTenantIdAndStoreId(salaryComponent.getTenantId(), salaryComponent.getStoreId());
-        if (ObjectUtils.isEmpty(salaryComponentDefinitions)) {
-            salaryComponentDefinitions = definitionsRepository.findAllByTenantIdAndStoreId(salaryComponent.getTenantId(), 0L);
-        }
 
         Optional<PersonnelPayslipHistory> personnelPayslipHistoryOptional =
                 personnelPayslipHistoryRepository.findByStaffIdAndSalaryMonthAndSalaryYear(salaryComponent.getStaffId(), salaryComponent.getSalaryMonth(), salaryComponent.getSalaryYear());
