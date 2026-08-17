@@ -51,7 +51,7 @@ public class PersonnelDetails extends BaseEntity{
 	private String speciality;
 	private String phone;
 	private String passcode;
-	private float experience;
+	private Float experience;
 	private String description;
 	private String profileImage;
 	private String otp;
@@ -372,11 +372,11 @@ public class PersonnelDetails extends BaseEntity{
 		this.passcode = passcode;
 	}
 
-	public float getExperience() {
+	public Float getExperience() {
 		return experience;
 	}
 
-	public void setExperience(float experience) {
+	public void setExperience(Float experience) {
 		this.experience = experience;
 	}
 
