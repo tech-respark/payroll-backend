@@ -74,7 +74,7 @@ public class PersonnelDetails extends BaseEntity{
 	private Boolean receiveNotificationsOfAll;
 	@Column(name = "salaryAmount", columnDefinition = "Decimal(19,2) default '0'")
 	private BigDecimal salaryAmount = BigDecimal.ZERO;
-	private int displayRank;
+	private Integer displayRank;
 
 	public String getPassword() {
 		return password;
@@ -412,11 +412,11 @@ public class PersonnelDetails extends BaseEntity{
 		this.personnelDocumentDetails = personnelDocumentDetails;
 	}
 
-	public int getDisplayRank() {
+	public Integer getDisplayRank() {
 		return displayRank;
 	}
 
-	public void setDisplayRank(int displayRank) {
+	public void setDisplayRank(Integer displayRank) {
 		this.displayRank = displayRank;
 	}
 }

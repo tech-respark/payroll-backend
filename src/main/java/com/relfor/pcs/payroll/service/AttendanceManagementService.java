@@ -86,7 +86,7 @@ public class AttendanceManagementService {
 		return responseModel;
 	}
 
-	private float safeGetExperience(StaffDTO dto) {
+	private Float safeGetExperience(StaffDTO dto) {
 		try {
 			return dto.getExperience();
 		} catch (NullPointerException e) {
@@ -102,7 +102,7 @@ public class AttendanceManagementService {
 		}
 	}
 
-	private int safeGetDisplayRank(StaffDTO dto) {
+	private Integer safeGetDisplayRank(StaffDTO dto) {
 		try {
 			return dto.getDisplayRank();
 		} catch (NullPointerException e) {

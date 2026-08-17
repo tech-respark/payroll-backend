@@ -181,11 +181,11 @@ public class StaffResponseDTO {
 		this.passcode = passcode;
 	}
 
-	public float getExperience() {
+	public Float getExperience() {
 		return experience;
 	}
 
-	public void setExperience(float experience) {
+	public void setExperience(Float experience) {
 		this.experience = experience;
 	}
 
@@ -373,11 +373,11 @@ public class StaffResponseDTO {
 		this.personnelDocumentDetailsList = personnelDocumentDetailsList;
 	}
 
-	public int getDisplayRank() {
+	public Integer getDisplayRank() {
 		return displayRank;
 	}
 
-	public void setDisplayRank(int displayRank) {
+	public void setDisplayRank(Integer displayRank) {
 		this.displayRank = displayRank;
 	}
 
