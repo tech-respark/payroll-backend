@@ -35,6 +35,9 @@ public class LeaveType {
     @Column(name = "is_paid", nullable = false)
     private boolean paid;
 
+    @Column(name = "applicable_gender", length = 10)
+    private String applicableGender = "ALL"; // ALL, MALE, FEMALE
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

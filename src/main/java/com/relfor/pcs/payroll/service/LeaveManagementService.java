@@ -102,6 +102,13 @@ public class LeaveManagementService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("This leave type is not permitted under your current plan."));
 
+        String applicableGender = rule.getLeaveType().getApplicableGender();
+        if (applicableGender != null && !applicableGender.equalsIgnoreCase("ALL")) {
+            if (personnel.getGender() == null || !personnel.getGender().equalsIgnoreCase(applicableGender)) {
+                throw new IllegalArgumentException("This leave type is not applicable for your gender.");
+            }
+        }
+
         if (rule.getMaxConsecutiveDays() != null && daysRequested > rule.getMaxConsecutiveDays()) {
             throw new IllegalArgumentException("Cannot exceed " + rule.getMaxConsecutiveDays() + " consecutive days for this leave type.");
         }

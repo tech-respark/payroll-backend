@@ -35,5 +35,21 @@ public interface LeaveApplicationRepository extends JpaRepository<LeaveApplicati
 
     List<LeaveApplication> findByTenantIdAndStoreIdAndStatusInOrderByCreatedAtAsc(Long tenantId, Long storeId, List<LeaveApplication.ApplicationStatus> statuses);
 
-    List<LeaveApplication> findByTenantIdAndStoreId(Long tenantId, Long storeId);
+    List<LeaveApplication> findByTenantIdAndStoreIdOrderByCreatedAtDesc(Long tenantId, Long storeId);
+
+    @Query("SELECT COUNT(l) FROM LeaveApplication l " +
+           "WHERE l.tenantId = :tenantId AND l.storeId = :storeId " +
+           "AND l.status = :status")
+    long countByStatus(@Param("tenantId") Long tenantId, 
+                       @Param("storeId") Long storeId, 
+                       @Param("status") LeaveApplication.ApplicationStatus status);
+
+    @Query("SELECT l FROM LeaveApplication l JOIN FETCH l.leaveType " +
+           "WHERE l.tenantId = :tenantId AND l.storeId = :storeId " +
+           "AND l.status = 'APPROVED' " +
+           "AND l.startDate <= :targetDate " +
+           "AND l.endDate >= :targetDate")
+    List<LeaveApplication> findApprovedLeavesForDate(@Param("tenantId") Long tenantId, 
+                                                     @Param("storeId") Long storeId, 
+                                                     @Param("targetDate") LocalDate targetDate);
 }

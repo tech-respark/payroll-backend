@@ -26,7 +26,7 @@ public class LeavePlanRule {
     @JoinColumn(name = "leave_type_id", nullable = false)
     private LeaveType leaveType;
 
-    @Column(name = "annual_allotment", nullable = false, precision = 4, scale = 2)
+    @Column(name = "annual_allotment", nullable = false, precision = 5, scale = 2)
     private BigDecimal annualAllotment;
 
     @Column(name = "max_consecutive_days")
@@ -37,4 +37,15 @@ public class LeavePlanRule {
 
     @Column(name = "allow_negative_balance", nullable = false)
     private boolean allowNegativeBalance;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "accrual_frequency", length = 20)
+    private AccrualFrequency accrualFrequency = AccrualFrequency.NONE;
+
+    @Column(name = "max_carry_forward")
+    private Integer maxCarryForward;
+
+    public enum AccrualFrequency {
+        MONTHLY, QUARTERLY, ANNUALLY, NONE
+    }
 }

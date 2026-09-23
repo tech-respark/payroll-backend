@@ -79,4 +79,14 @@ public interface DayWiseAttendanceSummaryRepository extends JpaRepository<DayWis
 	List<MonthlySummaryCalculationProjection> calculateMonthlySummary(Long tenantId, Long storeId, String applicationName, LocalDate fromDate, LocalDate toDate);
 
 	Optional<DayWiseAttendanceSummary> findByStaffIdAndAttendanceDate(Long staffId, LocalDate attendanceDate);
+
+	@Query("SELECT dwas FROM DayWiseAttendanceSummary dwas " +
+			"WHERE dwas.tenantId = :tenantId AND dwas.storeId = :storeId " +
+			"AND dwas.attendanceDate BETWEEN :startDate AND :endDate")
+	List<DayWiseAttendanceSummary> findByTenantAndStoreAndDateBetween(
+			@Param("tenantId") Long tenantId,
+			@Param("storeId") Long storeId,
+			@Param("startDate") LocalDate startDate,
+			@Param("endDate") LocalDate endDate
+	);
 }

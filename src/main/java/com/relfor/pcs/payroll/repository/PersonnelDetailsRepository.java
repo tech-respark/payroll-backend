@@ -26,4 +26,6 @@ public interface PersonnelDetailsRepository extends JpaRepository<PersonnelDetai
 	@Query(value = "SELECT pd.working_hours FROM personnel_details pd \n" +
 			"WHERE pd.id = :staffId", nativeQuery = true)
 	Float getPersonnelWorkingHours(Long staffId);
+
+	long countByApplicationTenantIdAndStoreId(Long applicationTenantId, Long storeId);
 }

@@ -31,6 +31,8 @@ public class LeavePlanAdminController {
     private final LeavePlanRuleRepository ruleRepository;
     private final LeaveTypeRepository leaveTypeRepository;
     private final EmployeeLeaveEnrollmentRepository enrollmentRepository;
+    private final com.relfor.pcs.payroll.repository.LeaveRuleOverrideRepository overrideRepository;
+    private final com.relfor.pcs.payroll.service.LeaveLedgerService ledgerService;
 
     @GetMapping("/leave-types")
     public ResponseEntity<?> getAllLeaveTypes(@RequestParam Long tenantId, @RequestParam Long storeId) {
@@ -73,6 +75,9 @@ public class LeavePlanAdminController {
             existing.setLeaveCode(leaveTypePayload.getLeaveCode());
             existing.setLeaveName(leaveTypePayload.getLeaveName());
             existing.setPaid(leaveTypePayload.isPaid());
+            if (leaveTypePayload.getApplicableGender() != null) {
+                existing.setApplicableGender(leaveTypePayload.getApplicableGender());
+            }
             
             LeaveType saved = leaveTypeRepository.save(existing);
             return ResponseEntity.ok(Map.of("message", "Leave Type updated", "data", saved));
@@ -139,6 +144,13 @@ public class LeavePlanAdminController {
             Integer maxConsecutiveDays = payload.containsKey("maxConsecutiveDays") && payload.get("maxConsecutiveDays") != null && !payload.get("maxConsecutiveDays").toString().isEmpty() ? Integer.valueOf(payload.get("maxConsecutiveDays").toString()) : null;
             Integer proofRequiredAfterDays = payload.containsKey("proofRequiredAfterDays") && payload.get("proofRequiredAfterDays") != null && !payload.get("proofRequiredAfterDays").toString().isEmpty() ? Integer.valueOf(payload.get("proofRequiredAfterDays").toString()) : null;
             Boolean allowNegativeBalance = Boolean.valueOf(payload.getOrDefault("allowNegativeBalance", "false").toString());
+            
+            LeavePlanRule.AccrualFrequency accrualFrequency = LeavePlanRule.AccrualFrequency.NONE;
+            if (payload.containsKey("accrualFrequency") && payload.get("accrualFrequency") != null) {
+                accrualFrequency = LeavePlanRule.AccrualFrequency.valueOf(payload.get("accrualFrequency").toString());
+            }
+            
+            Integer maxCarryForward = payload.containsKey("maxCarryForward") && payload.get("maxCarryForward") != null && !payload.get("maxCarryForward").toString().isEmpty() ? Integer.valueOf(payload.get("maxCarryForward").toString()) : null;
 
             LeavePlan plan = leavePlanRepository.findById(planId)
                     .orElseThrow(() -> new IllegalArgumentException("Invalid Leave Plan ID"));
@@ -153,6 +165,8 @@ public class LeavePlanAdminController {
                     .maxConsecutiveDays(maxConsecutiveDays)
                     .proofRequiredAfterDays(proofRequiredAfterDays)
                     .allowNegativeBalance(allowNegativeBalance)
+                    .accrualFrequency(accrualFrequency)
+                    .maxCarryForward(maxCarryForward)
                     .build();
 
             ruleRepository.save(rule);
@@ -173,6 +187,8 @@ public class LeavePlanAdminController {
             map.put("maxConsecutiveDays", r.getMaxConsecutiveDays());
             map.put("proofRequiredAfterDays", r.getProofRequiredAfterDays());
             map.put("allowNegativeBalance", r.isAllowNegativeBalance());
+            map.put("accrualFrequency", r.getAccrualFrequency());
+            map.put("maxCarryForward", r.getMaxCarryForward());
             return map;
         }).collect(Collectors.toList());
         return ResponseEntity.ok(result);
@@ -211,9 +227,18 @@ public class LeavePlanAdminController {
             if (payload.containsKey("allowNegativeBalance")) {
                 rule.setAllowNegativeBalance(Boolean.valueOf(payload.get("allowNegativeBalance").toString()));
             }
+
+            if (payload.containsKey("accrualFrequency")) {
+                rule.setAccrualFrequency(LeavePlanRule.AccrualFrequency.valueOf(payload.get("accrualFrequency").toString()));
+            }
+
+            if (payload.containsKey("maxCarryForward")) {
+                Object maxCf = payload.get("maxCarryForward");
+                rule.setMaxCarryForward(maxCf != null && !maxCf.toString().isEmpty() ? Integer.valueOf(maxCf.toString()) : null);
+            }
             
             LeavePlanRule saved = ruleRepository.save(rule);
-            return ResponseEntity.ok(Map.of("message", "Rule updated", "data", saved));
+            return ResponseEntity.ok(Map.of("message", "Rule updated", "ruleId", saved.getId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -251,5 +276,69 @@ public class LeavePlanAdminController {
             return map;
         }).collect(Collectors.toList());
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/overrides")
+    public ResponseEntity<?> setLeaveRuleOverride(@RequestBody Map<String, Object> payload) {
+        try {
+            Long tenantId = Long.valueOf(payload.get("tenantId").toString());
+            Long storeId = Long.valueOf(payload.get("storeId").toString());
+            Long staffId = Long.valueOf(payload.get("staffId").toString());
+            Long leavePlanRuleId = Long.valueOf(payload.get("leavePlanRuleId").toString());
+            Integer maxCarryForwardOverride = payload.containsKey("maxCarryForwardOverride") && payload.get("maxCarryForwardOverride") != null && !payload.get("maxCarryForwardOverride").toString().isEmpty() ? Integer.valueOf(payload.get("maxCarryForwardOverride").toString()) : null;
+
+            LeavePlanRule rule = ruleRepository.findById(leavePlanRuleId)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid Rule ID"));
+
+            Optional<com.relfor.pcs.payroll.entity.LeaveRuleOverride> existingOpt = overrideRepository.findByStaffIdAndLeavePlanRuleId(staffId, leavePlanRuleId);
+            com.relfor.pcs.payroll.entity.LeaveRuleOverride override;
+            
+            if (existingOpt.isPresent()) {
+                override = existingOpt.get();
+                override.setMaxCarryForwardOverride(maxCarryForwardOverride);
+            } else {
+                override = com.relfor.pcs.payroll.entity.LeaveRuleOverride.builder()
+                        .tenantId(tenantId)
+                        .storeId(storeId)
+                        .staffId(staffId)
+                        .leavePlanRule(rule)
+                        .maxCarryForwardOverride(maxCarryForwardOverride)
+                        .build();
+            }
+
+            overrideRepository.save(override);
+            return ResponseEntity.ok(Map.of("message", "Leave rule override saved successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/adjust-balance")
+    public ResponseEntity<?> adjustBalance(@RequestBody Map<String, Object> payload) {
+        try {
+            Long tenantId = Long.valueOf(payload.get("tenantId").toString());
+            Long storeId = Long.valueOf(payload.get("storeId").toString());
+            Long staffId = Long.valueOf(payload.get("staffId").toString());
+            Long leaveTypeId = Long.valueOf(payload.get("leaveTypeId").toString());
+            BigDecimal adjustmentValue = new BigDecimal(payload.get("adjustmentValue").toString());
+
+            LeaveType type = leaveTypeRepository.findById(leaveTypeId)
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid Leave Type ID"));
+
+            ledgerService.recordTransaction(
+                    tenantId, 
+                    storeId, 
+                    staffId, 
+                    type, 
+                    adjustmentValue, 
+                    com.relfor.pcs.payroll.entity.LeaveTransactionLedger.TransactionType.ADJUSTMENT, 
+                    null, 
+                    LocalDate.now()
+            );
+
+            return ResponseEntity.ok(Map.of("message", "Balance adjusted successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }
