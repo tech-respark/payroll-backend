@@ -20,6 +20,24 @@ public class AttendanceRegularizationController {
 
     private final AttendanceRegularizationService regularizationService;
 
+    @GetMapping("/pending")
+    public ResponseEntity<?> getPendingRegularizations(@RequestParam Long tenantId, @RequestParam Long storeId, org.springframework.security.core.Authentication authentication) {
+        try {
+            Long managerId = null;
+            boolean isHrAdmin = false;
+            if (authentication != null && authentication.getPrincipal() instanceof com.relfor.pcs.payroll.security.CustomUserDetails) {
+                com.relfor.pcs.payroll.security.CustomUserDetails userDetails = (com.relfor.pcs.payroll.security.CustomUserDetails) authentication.getPrincipal();
+                managerId = userDetails.getStaffId();
+                isHrAdmin = authentication.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_HR_ADMIN") || a.getAuthority().equals("HR_ADMIN") 
+                                    || a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("SUPER_ADMIN"));
+            }
+            return ResponseEntity.ok(regularizationService.getPendingRegularizations(tenantId, storeId, managerId, isHrAdmin));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PostMapping("/apply")
     public ResponseEntity<?> applyForRegularization(@Valid @RequestBody RegularizationApplyRequest payload) {
         try {

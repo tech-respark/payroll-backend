@@ -35,6 +35,17 @@ public interface LeaveApplicationRepository extends JpaRepository<LeaveApplicati
 
     List<LeaveApplication> findByTenantIdAndStoreIdAndStatusInOrderByCreatedAtAsc(Long tenantId, Long storeId, List<LeaveApplication.ApplicationStatus> statuses);
 
+    @Query("SELECT l FROM LeaveApplication l JOIN PersonnelDetails pd ON l.staffId = pd.id " +
+           "WHERE l.tenantId = :tenantId AND l.storeId = :storeId " +
+           "AND pd.reportingTo = :managerId " +
+           "AND l.status IN :statuses " +
+           "ORDER BY l.createdAt ASC")
+    List<LeaveApplication> findByTenantIdAndStoreIdAndReportingToAndStatusInOrderByCreatedAtAsc(
+            @Param("tenantId") Long tenantId, 
+            @Param("storeId") Long storeId, 
+            @Param("managerId") Long managerId, 
+            @Param("statuses") List<LeaveApplication.ApplicationStatus> statuses);
+
     List<LeaveApplication> findByTenantIdAndStoreIdOrderByCreatedAtDesc(Long tenantId, Long storeId);
 
     @Query("SELECT COUNT(l) FROM LeaveApplication l " +

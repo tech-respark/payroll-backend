@@ -15,6 +15,15 @@ public class AttendanceRegularizationService {
 
     private final AttendanceRegularizationRequestRepository requestRepository;
 
+    @Transactional(readOnly = true)
+    public java.util.List<AttendanceRegularizationRequest> getPendingRegularizations(Long tenantId, Long storeId, Long managerId, boolean isHrAdmin) {
+        if (isHrAdmin) {
+            return requestRepository.findByTenantAndStoreAndStatus(tenantId, storeId, AttendanceRegularizationRequest.RegularizationStatus.PENDING);
+        } else {
+            return requestRepository.findByTenantAndStoreAndReportingToAndStatus(tenantId, storeId, managerId, AttendanceRegularizationRequest.RegularizationStatus.PENDING);
+        }
+    }
+
     @Transactional
     public AttendanceRegularizationRequest requestRegularization(Long staffId, LocalDate date, LocalTime inTime, LocalTime outTime, String reason) {
         if (date.isAfter(LocalDate.now())) {

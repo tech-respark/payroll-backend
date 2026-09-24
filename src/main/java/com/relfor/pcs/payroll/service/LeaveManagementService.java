@@ -41,11 +41,17 @@ public class LeaveManagementService {
     }
 
     @Transactional(readOnly = true)
-    public List<LeaveApplicationDTO> getPendingLeaves(Long tenantId, Long storeId) {
-        return applicationRepository.findByTenantIdAndStoreIdAndStatusInOrderByCreatedAtAsc(
-                tenantId, storeId,
-                List.of(LeaveApplication.ApplicationStatus.PENDING, LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED)
-        ).stream().map(this::toDTO).toList();
+    public List<LeaveApplicationDTO> getPendingLeaves(Long tenantId, Long storeId, Long managerId, boolean isHrAdmin) {
+        List<LeaveApplication.ApplicationStatus> statuses = List.of(LeaveApplication.ApplicationStatus.PENDING, LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED);
+        if (isHrAdmin) {
+            return applicationRepository.findByTenantIdAndStoreIdAndStatusInOrderByCreatedAtAsc(
+                    tenantId, storeId, statuses
+            ).stream().map(this::toDTO).toList();
+        } else {
+            return applicationRepository.findByTenantIdAndStoreIdAndReportingToAndStatusInOrderByCreatedAtAsc(
+                    tenantId, storeId, managerId, statuses
+            ).stream().map(this::toDTO).toList();
+        }
     }
 
     @Transactional(readOnly = true)

@@ -110,14 +110,6 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 				sqlString.append("AND pa.store_id = :storeId ");
 			}
 		}
-		if (!StringUtils.isEmpty(inOutHistoryInputModel.getApplicationName())){
-			if (start) {
-				sqlString.append("pa.application_name = :applicationName ");
-				start = false;
-			}else {
-				sqlString.append("");
-			}
-		}
 		if (!StringUtils.isEmpty(inOutHistoryInputModel.getCurrentStatus())){
 			if (start) {
 				sqlString.append("pa.current_status = :currentStatus ");
@@ -197,9 +189,6 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 		}
 		if (!ObjectUtils.isEmpty(inOutHistoryInputModel.getStoreId())) {
 			query.setParameter("storeId", inOutHistoryInputModel.getStoreId());
-		}
-		if (!StringUtils.isEmpty(inOutHistoryInputModel.getApplicationName())) {
-			query.setParameter("applicationName", inOutHistoryInputModel.getApplicationName());
 		}
 		if (!StringUtils.isEmpty(inOutHistoryInputModel.getCurrentStatus())) {
 			query.setParameter("currentStatus", inOutHistoryInputModel.getCurrentStatus());

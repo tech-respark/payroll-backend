@@ -50,9 +50,18 @@ public class LeaveManagementController {
     }
 
     @GetMapping("/applications/pending")
-    public ResponseEntity<?> getPendingLeaves(@RequestParam Long tenantId, @RequestParam Long storeId) {
+    public ResponseEntity<?> getPendingLeaves(@RequestParam Long tenantId, @RequestParam Long storeId, org.springframework.security.core.Authentication authentication) {
         try {
-            return ResponseEntity.ok(leaveManagementService.getPendingLeaves(tenantId, storeId));
+            Long managerId = null;
+            boolean isHrAdmin = false;
+            if (authentication != null && authentication.getPrincipal() instanceof com.relfor.pcs.payroll.security.CustomUserDetails) {
+                com.relfor.pcs.payroll.security.CustomUserDetails userDetails = (com.relfor.pcs.payroll.security.CustomUserDetails) authentication.getPrincipal();
+                managerId = userDetails.getStaffId();
+                isHrAdmin = authentication.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_HR_ADMIN") || a.getAuthority().equals("HR_ADMIN") 
+                                    || a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("SUPER_ADMIN"));
+            }
+            return ResponseEntity.ok(leaveManagementService.getPendingLeaves(tenantId, storeId, managerId, isHrAdmin));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
