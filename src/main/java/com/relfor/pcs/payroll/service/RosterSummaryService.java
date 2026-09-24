@@ -38,8 +38,7 @@ public class RosterSummaryService {
 			Long storeId = staffShiftsList.get(0).getStoreId();
 
 			Optional<TenantStoreProjection> tenantStoreProjectionOptional =
-					tenantCompanyMappingRepository.getTenantStoreMapping(tenantId, storeId,
-							BiometricApplicationNames.RESPARK.name());
+					tenantCompanyMappingRepository.getTenantStoreMapping(tenantId, storeId);
 			boolean isPaidLeaveApplicable = tenantStoreProjectionOptional
 					.map(TenantStoreProjection::getIsPaidLeaveApplicable)
 					.orElse(false);

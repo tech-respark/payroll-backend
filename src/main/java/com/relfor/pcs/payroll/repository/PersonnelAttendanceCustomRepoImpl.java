@@ -72,7 +72,7 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 		sqlString.append("pa.created_by AS createdBy, ");
 		sqlString.append("pa.modified_timestamp AS modifiedTimestamp, ");
 		sqlString.append("pa.modified_by AS modifiedBy, ");
-		sqlString.append("pa.application_name AS applicationName, ");
+		sqlString.append("");
 		sqlString.append("pa.remark AS remark, ");
 		sqlString.append("pa.current_status AS currentStatus, ");
 		sqlString.append("pa.punch_event AS punchEvent ");
@@ -115,7 +115,7 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 				sqlString.append("pa.application_name = :applicationName ");
 				start = false;
 			}else {
-				sqlString.append("AND pa.application_name = :applicationName ");
+				sqlString.append("");
 			}
 		}
 		if (!StringUtils.isEmpty(inOutHistoryInputModel.getCurrentStatus())){

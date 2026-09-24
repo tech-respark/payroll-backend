@@ -17,32 +17,29 @@ public class PayrollTriggerController {
 	PayrollTriggerService payrollTriggerService;
 
 	@PostMapping("/retrieveAttendanceData")
-	public ResponseEntity<?> retrieveAttendanceDataOnDemand(@RequestParam String applicationName,
-															@RequestParam Long tenantId,
+	public ResponseEntity<?> retrieveAttendanceDataOnDemand(@RequestParam Long tenantId,
 															@RequestParam(defaultValue = "0") Long storeId,
 															@RequestParam Instant fromDate,
 															@RequestParam(required = false) Instant toDate){
-		ResponseModel responseModel = payrollTriggerService.retrieveAttendanceDataOnDemand(applicationName, tenantId, storeId, fromDate, toDate);
+		ResponseModel responseModel = payrollTriggerService.retrieveAttendanceDataOnDemand(tenantId, storeId, fromDate, toDate);
 		return ResponseHandler.generateResponseModel(responseModel);
 	}
 
 	@PostMapping("/calculateMonthWiseSummary")
-	public ResponseEntity<?> calculateMonthWiseSummary(@RequestParam String applicationName,
-													 @RequestParam Long tenantId,
+	public ResponseEntity<?> calculateMonthWiseSummary(@RequestParam Long tenantId,
 													 @RequestParam(defaultValue = "0") Long storeId,
 													 @RequestParam String month,
 													 @RequestParam Integer year){
-		ResponseModel responseModel = payrollTriggerService.calculateMonthWiseSummary(applicationName, tenantId, storeId, month, year);
+		ResponseModel responseModel = payrollTriggerService.calculateMonthWiseSummary(tenantId, storeId, month, year);
 		return ResponseHandler.generateResponseModel(responseModel);
 	}
 
 	@PostMapping("/calculateSalary")
-	public ResponseEntity<?> calculateSalary(@RequestParam String applicationName,
-											 @RequestParam Long tenantId,
+	public ResponseEntity<?> calculateSalary(@RequestParam Long tenantId,
 											 @RequestParam(defaultValue = "0") Long storeId,
 											 @RequestParam String month,
 											 @RequestParam Integer year){
-		ResponseModel responseModel = payrollTriggerService.calculateSalary(applicationName, tenantId, storeId, month, year);
+		ResponseModel responseModel = payrollTriggerService.calculateSalary(tenantId, storeId, month, year);
 		return ResponseHandler.generateResponseModel(responseModel);
 	}
 }

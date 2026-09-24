@@ -53,8 +53,8 @@ public class AsyncLeaveAttendanceSyncService {
                 }
 
                 Optional<DayWiseAttendanceSummary> summaryOpt = dayWiseAttendanceSummaryRepository
-                        .findByTenantIdAndStoreIdAndStaffIdAndApplicationNameAndAttendanceDate(
-                                tenantId, storeId, staffId, BiometricApplicationNames.RESPARK.name(), date);
+                        .findByTenantIdAndStoreIdAndStaffIdAndAttendanceDate(
+                                tenantId, storeId, staffId, date);
 
                 DayWiseAttendanceSummary summary;
                 if (summaryOpt.isPresent()) {
@@ -120,8 +120,8 @@ public class AsyncLeaveAttendanceSyncService {
                 }
 
                 Optional<DayWiseAttendanceSummary> summaryOpt = dayWiseAttendanceSummaryRepository
-                        .findByTenantIdAndStoreIdAndStaffIdAndApplicationNameAndAttendanceDate(
-                                tenantId, storeId, staffId, BiometricApplicationNames.RESPARK.name(), date);
+                        .findByTenantIdAndStoreIdAndStaffIdAndAttendanceDate(
+                                tenantId, storeId, staffId, date);
 
                 if (summaryOpt.isPresent()) {
                     DayWiseAttendanceSummary summary = summaryOpt.get();

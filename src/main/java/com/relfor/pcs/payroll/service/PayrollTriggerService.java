@@ -40,9 +40,9 @@ public class PayrollTriggerService {
 	// 2. If the time zones are different, this will be triggered separately separate stores
 	// 3. If storeId is 0 then it will be processed for all the stores under that tenant and storeDetails.getRetrieveAttendanceWithOtherStores() will be assumed to be true
 	@Transactional
-	public ResponseModel retrieveAttendanceDataOnDemand(String applicationName, Long tenantId, Long storeId, Instant fromDate, Instant toDate) {
+	public ResponseModel retrieveAttendanceDataOnDemand(Long tenantId, Long storeId, Instant fromDate, Instant toDate) {
 		ResponseModel responseModel = new ResponseModel();
-		List<StoreDetails> storeDetailsList = storeDetailsRepository.fetchStoreDetailListForTenant(applicationName, tenantId, storeId);
+		List<StoreDetails> storeDetailsList = storeDetailsRepository.fetchStoreDetailListForTenant(tenantId, storeId);
 		List<String> outputList = new ArrayList<>();
 		if (!storeDetailsList.isEmpty()) {
 			Map<String, StoreDetails> terminalToStoreMap = new HashMap<>();
@@ -65,7 +65,7 @@ public class PayrollTriggerService {
 					}
 				}
 			}
-			attendanceRetrievalRoutingService.adhocRetrieveDataFromVendorAndSaveInDb(biometricVendorName, tenantId, storeId, applicationName, vendorUrl, corporateId, userName, password, fromDateZoned, toDateZoned, terminalToStoreMap, outputList);
+			attendanceRetrievalRoutingService.adhocRetrieveDataFromVendorAndSaveInDb(biometricVendorName, tenantId, storeId, vendorUrl, corporateId, userName, password, fromDateZoned, toDateZoned, terminalToStoreMap, outputList);
 		}
 		responseModel.setData(outputList);
 		responseModel.setCode(HttpStatus.OK);
@@ -74,8 +74,8 @@ public class PayrollTriggerService {
 	}
 
 	@Transactional
-	public ResponseModel calculateMonthWiseSummary(String applicationName, Long tenantId, Long storeId, String month, Integer year) {
-		List<StoreDetails> storeDetailsList = storeDetailsRepository.fetchStoreDetailListForTenant(applicationName, tenantId, storeId);
+	public ResponseModel calculateMonthWiseSummary(Long tenantId, Long storeId, String month, Integer year) {
+		List<StoreDetails> storeDetailsList = storeDetailsRepository.fetchStoreDetailListForTenant(tenantId, storeId);
 		List<String> outputList = new ArrayList<>();
 		ResponseModel responseModel = new ResponseModel();
 		if (!storeDetailsList.isEmpty()) {
@@ -90,7 +90,7 @@ public class PayrollTriggerService {
 			}
 
 			List<MonthWiseAttendanceSummary> existingMonthWiseSummaryList = monthWiseAttendanceSummaryRepository
-					.getExistingMonthWiseSummaryList(applicationName, tenantId, storeId, month.toUpperCase(), year);
+					.getExistingMonthWiseSummaryList(tenantId, storeId, month.toUpperCase(), year);
 
 			outputList.add(String.format("No of existing summary record for the range given: %d",existingMonthWiseSummaryList.size()));
 
@@ -100,7 +100,6 @@ public class PayrollTriggerService {
 					this.processStoreMonthlySummary(
 							tenantId,
 							storeDetails.getStoreId(),
-							applicationName,
 							fromDate,
 							toDate,
 							existingMonthWiseSummaryList,
@@ -112,7 +111,6 @@ public class PayrollTriggerService {
 				this.processStoreMonthlySummary(
 						tenantId,
 						storeId,
-						applicationName,
 						fromDate,
 						toDate,
 						existingMonthWiseSummaryList,
@@ -134,7 +132,6 @@ public class PayrollTriggerService {
 	private void processStoreMonthlySummary(
 			Long tenantId,
 			Long storeId,
-			String applicationName,
 			LocalDate fromDate,
 			LocalDate toDate,
 			List<MonthWiseAttendanceSummary> existingMonthWiseSummaryList,
@@ -145,7 +142,6 @@ public class PayrollTriggerService {
 				dayWiseAttendanceSummaryRepository.calculateMonthlySummary(
 						tenantId,
 						storeId,
-						applicationName,
 						fromDate,
 						toDate
 				);
@@ -166,7 +162,6 @@ public class PayrollTriggerService {
 						monthWiseAttendanceSummaryList,
 						monthWiseAttendanceSummary,
 						summary,
-						applicationName,
 						tenantId,
 						summary.getStoreId(),
 						fromDate,
@@ -182,15 +177,15 @@ public class PayrollTriggerService {
 	}
 
 	@Transactional
-	public ResponseModel calculateSalary(String applicationName, Long tenantId, Long storeId, String month, Integer year) {
+	public ResponseModel calculateSalary(Long tenantId, Long storeId, String month, Integer year) {
 		logger.info("START Salary Calculation | Tenant: {} | Store: {} | Month: {} | Year: {}",
 				tenantId, storeId, month, year);
-		List<StoreDetails> storeDetailsList = storeDetailsRepository.fetchStoreDetailListForTenant(applicationName, tenantId, storeId);
+		List<StoreDetails> storeDetailsList = storeDetailsRepository.fetchStoreDetailListForTenant(tenantId, storeId);
 		List<String> outputList = new ArrayList<>();
 		ResponseModel responseModel = new ResponseModel();
 		if (!storeDetailsList.isEmpty()) {
 			List<MonthWiseAttendanceSummary> existingMonthWiseSummaryList = monthWiseAttendanceSummaryRepository
-					.getExistingMonthWiseSummaryList(applicationName, tenantId, storeId, month.toUpperCase(), year);
+					.getExistingMonthWiseSummaryList(tenantId, storeId, month.toUpperCase(), year);
 
 			logger.info("Found {} attendance summaries for Tenant: {}", existingMonthWiseSummaryList.size(), tenantId);
 			outputList.add(String.format("Number of records found in month wise summary: %d",existingMonthWiseSummaryList.size()));

@@ -54,7 +54,7 @@ public class AttendanceManagementService {
 			
 			if (staffDTO.getId() != null && staffDTO.getId() != 0) {
 				Optional<PersonnelDetails> personnelDetailsOptional = personnelDetailsRepository
-						.findByIdAndApplicationName(staffDTO.getId(), staffDTO.getApplicationName());
+						.findById(staffDTO.getId());
 				personnelDetails = personnelDetailsOptional.orElseGet(PersonnelDetails::new);
 			} else {
 				personnelDetails = new PersonnelDetails();
@@ -361,7 +361,7 @@ public class AttendanceManagementService {
 
 			Optional<TenantStoreProjection> tenantStoreProjectionOptional =
 					tenantCompanyMappingRepository.getTenantStoreMapping(inputPersonnelAttendanceModel.getTenantId(),
-							inputPersonnelAttendanceModel.getStoreId(), inputPersonnelAttendanceModel.getApplicationName());
+							inputPersonnelAttendanceModel.getStoreId());
 
 			if (tenantStoreProjectionOptional.isPresent()) {
 				isActualTimeBasedAttendance = tenantStoreProjectionOptional.get().getIsActualTimeBasedAttendance();
@@ -370,7 +370,7 @@ public class AttendanceManagementService {
 			List<PersonnelAttendanceSummaryProjection> personnelAttendanceSummaryProjectionList =
 					dayWiseAttendanceSummaryRepository.getAttendanceSummaryBetweenDates(inputPersonnelAttendanceModel.getFromDate(),
 							inputPersonnelAttendanceModel.getToDate(), inputPersonnelAttendanceModel.getTenantId(),
-							inputPersonnelAttendanceModel.getStoreId(), inputPersonnelAttendanceModel.getApplicationName(),
+							inputPersonnelAttendanceModel.getStoreId(),
 							isActualTimeBasedAttendance);
 			if (!personnelAttendanceSummaryProjectionList.isEmpty()) {
 				Map<Long, List<PersonnelAttendanceSummaryProjection>> personnelWiseAttendance = personnelAttendanceSummaryProjectionList.stream()
@@ -577,8 +577,7 @@ public class AttendanceManagementService {
 
 			if (fromDate != null) {
 				List<MonthlySummaryCalculationProjection> monthlySummaryCalculationProjectionList =
-						dayWiseAttendanceSummaryRepository.calculateMonthlySummary(tenantId, storeDetails.getStoreId(),
-								storeDetails.getTenantCompanyMapping().getApplicationName(), fromDate, toDate);
+						dayWiseAttendanceSummaryRepository.calculateMonthlySummary(tenantId, storeDetails.getStoreId(), fromDate, toDate);
 				logger.debug("Total number of monthly summaries for TenantId: {} & StoreId: {} is {}",
 						storeDetails.getTenantCompanyMapping().getTenantId(),
 						storeDetails.getStoreId(),
@@ -587,7 +586,6 @@ public class AttendanceManagementService {
 					MonthWiseAttendanceSummary monthWiseAttendanceSummary = new MonthWiseAttendanceSummary();
 					this.constructMonthlySummaryAndAddToList(monthWiseAttendanceSummaryList,
 							monthWiseAttendanceSummary, summary,
-							storeDetails.getTenantCompanyMapping().getApplicationName(),
 							tenantId, storeDetails.getStoreId(), fromDate, toDate);
 				}
 			}
@@ -598,12 +596,10 @@ public class AttendanceManagementService {
 	public void constructMonthlySummaryAndAddToList(List<MonthWiseAttendanceSummary> monthWiseAttendanceSummaryList,
 													MonthWiseAttendanceSummary monthWiseAttendanceSummary,
 													MonthlySummaryCalculationProjection summary,
-													String applicationName,
 													Long tenantId,
 													Long storeId,
 													LocalDate fromDate,
 													LocalDate toDate) {
-		monthWiseAttendanceSummary.setApplicationName(applicationName);
 		monthWiseAttendanceSummary.setTenantId(tenantId);
 		monthWiseAttendanceSummary.setStoreId(storeId);
 		monthWiseAttendanceSummary.setStaffId(summary.getStaffId());
@@ -632,7 +628,7 @@ public class AttendanceManagementService {
 		try {
 			if (staffDTO.getId() != 0) {
 				Optional<PersonnelDetails> personnelDetailsOptional = personnelDetailsRepository
-						.findByIdAndApplicationName(staffDTO.getId(), staffDTO.getApplicationName());
+						.findById(staffDTO.getId());
 				if (personnelDetailsOptional.isPresent()) {
 					PersonnelDetails personnelDetails = personnelDetailsOptional.get();
 					personnelDetails.setPassword(passwordEncoder.encode(staffDTO.getPwd()));

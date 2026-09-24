@@ -409,8 +409,7 @@ public class SalaryCalculation {
                                 && (Objects.equals(storeDetails.getTenantCompanyMapping().getTenantId(), attendanceSummary.getTenantId()))
                                 && (Objects.equals(storeDetails.getStoreId(), attendanceSummary.getStoreId()))).findFirst();
             } else {
-                storeDetailsOptional = storeDetailsRepository.fetchStoreAndTenantDetails(attendanceSummary.getApplicationName(),
-                    attendanceSummary.getTenantId(), attendanceSummary.getStoreId());
+                storeDetailsOptional = storeDetailsRepository.fetchStoreAndTenantDetails(attendanceSummary.getTenantId(), attendanceSummary.getStoreId());
             }
             this.setPersonnelDetails(personnelDetails, dto, storeDetailsOptional.orElse(null));
             String timeZone = null;

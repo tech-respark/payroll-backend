@@ -31,7 +31,6 @@ public class AttendanceRetrievalRoutingService {
 	public void adhocRetrieveDataFromVendorAndSaveInDb(String biometricVendorName,
 													   Long tenantId,
 													   Long storeId,
-													   String applicationName,
 													   String vendorUrl,
 													   String corporateId,
 													   String userName,
@@ -40,7 +39,7 @@ public class AttendanceRetrievalRoutingService {
 													   ZonedDateTime toDateZoned,
 													   Map<String, StoreDetails> terminalToStoreMap,
 													   List<String> outputList) {
-		getHandler(biometricVendorName).adhocRetrieveDataFromVendorAndSaveInDb(tenantId, storeId, applicationName, vendorUrl, corporateId, userName, password, fromDateZoned, toDateZoned, terminalToStoreMap, outputList);
+		getHandler(biometricVendorName).adhocRetrieveDataFromVendorAndSaveInDb(tenantId, storeId, vendorUrl, corporateId, userName, password, fromDateZoned, toDateZoned, terminalToStoreMap, outputList);
 	}
 
 	private AttendanceRetrievalHandlerService getHandler(String vendor) {

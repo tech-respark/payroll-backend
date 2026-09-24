@@ -16,7 +16,6 @@ public interface AttendanceRetrievalHandlerService {
 
 	void adhocRetrieveDataFromVendorAndSaveInDb(Long tenantId,
 												Long storeId,
-												String applicationName,
 												String vendorUrl,
 												String corporateId,
 												String userName,

@@ -105,7 +105,7 @@ public class DataSeeder implements CommandLineRunner {
 
         // Seed Store 1 config
         java.util.Optional<com.relfor.pcs.payroll.entity.StoreDetails> sdOpt = 
-            storeDetailsRepository.fetchStoreAndTenantDetails("RESPARK", 1L, 1L);
+            storeDetailsRepository.fetchStoreAndTenantDetails( 1L, 1L);
         if (sdOpt.isPresent()) {
             com.relfor.pcs.payroll.entity.StoreDetails sd = sdOpt.get();
             boolean updated = false;

@@ -53,7 +53,7 @@ public class ResparkAttendanceService {
 		try{
 						Optional<TenantStoreProjection> tenantStoreProjectionOptional =
 					tenantCompanyMappingRepository.getTenantStoreMapping(attendanceRegularizationInputModel.getTenantId(),
-							attendanceRegularizationInputModel.getStoreId(), BiometricApplicationNames.RESPARK.name());
+							attendanceRegularizationInputModel.getStoreId());
 			boolean isActualTimeBasedAttendance = false;
 			ZoneId zoneId = ZoneId.systemDefault();
 			if (tenantStoreProjectionOptional.isPresent()) {
@@ -213,7 +213,7 @@ public class ResparkAttendanceService {
 			PageModel pageModel = new PageModel();
 			Optional<TenantStoreProjection> tenantStoreProjectionOptional =
 					tenantCompanyMappingRepository.getTenantStoreMapping(inOutHistoryInputModel.getTenantId(),
-							inOutHistoryInputModel.getStoreId(), BiometricApplicationNames.RESPARK.name());
+							inOutHistoryInputModel.getStoreId());
 			ZoneId zoneId = tenantStoreProjectionOptional.map(tenantStoreProjection -> ZoneId.of(tenantStoreProjection.getTimeZone())).orElseGet(ZoneId::systemDefault);
 			inOutHistoryInputModel.setUploadSource(BiometricEntryUploadSource.REGULARIZATION.name());
 			Page<AttendanceRequestsDTO> attendanceRequestsDTOPage = personnelAttendanceCustomRepo.getRegularizationRequests(inOutHistoryInputModel, zoneId);
@@ -402,7 +402,7 @@ public class ResparkAttendanceService {
 		try {
 			Optional<StoreDetails> storeDetailsOptional =
 					storeDetailsRepository.fetchStoreAndTenantDetails(
-							BiometricApplicationNames.RESPARK.name(), tenantId, storeId);
+							tenantId, storeId);
 			if (storeDetailsOptional.isPresent()) {
 				TenantStoreDTO tenantStoreDTO = new TenantStoreDTO();
 				StoreDetails storeDetails = storeDetailsOptional.get();

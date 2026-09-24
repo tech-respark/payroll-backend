@@ -66,8 +66,7 @@ public class AsyncAttendanceSummaryCalculation {
 		String timeZone = null;
 		if (isActualTimeBasedAttendance == null) {
 			Optional<TenantStoreProjection> tenantStoreProjectionOptional =
-					tenantCompanyMappingRepository.getTenantStoreMapping(tenantId, storeId,
-							BiometricApplicationNames.RESPARK.name());
+					tenantCompanyMappingRepository.getTenantStoreMapping(tenantId, storeId);
 			isActualTimeBasedAttendance = tenantStoreProjectionOptional
 					.map(TenantStoreProjection::getIsActualTimeBasedAttendance)
 					.orElse(false);
@@ -261,9 +260,8 @@ public class AsyncAttendanceSummaryCalculation {
 														List<DayWiseAttendanceSummary> dayWiseAttendanceSummaryList,
 														Instant firstCheckin, Instant lastCheckout, ZoneId zoneId) {
 		Optional<DayWiseAttendanceSummary> summaryOptional = dayWiseAttendanceSummaryRepository
-				.findByTenantIdAndStoreIdAndStaffIdAndApplicationNameAndAttendanceDate(
+				.findByTenantIdAndStoreIdAndStaffIdAndAttendanceDate(
 						tenantId, storeId, staffId,
-						BiometricApplicationNames.RESPARK.name(),
 						dateOfAttendance);
 		LocalTime firstCheckinTime = firstCheckin.atZone(zoneId).toLocalTime();
 		LocalTime lastCheckoutTime = lastCheckout.atZone(zoneId).toLocalTime();

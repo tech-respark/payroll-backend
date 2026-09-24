@@ -365,7 +365,7 @@ public class StaffShiftsService {
 				// CREATE OR UPDATE STAFF BREAK TIMES
 //				createOrUpdateShifts(result, createStaffShiftInput);
 				Optional<StoreDetails> storeDetailsOptional = storeDetailsRepository
-						.fetchStoreAndTenantDetails(BiometricApplicationNames.RESPARK.name(), createStaffShiftInput.getTenantId(), createStaffShiftInput.getStoreId());
+						.fetchStoreAndTenantDetails(createStaffShiftInput.getTenantId(), createStaffShiftInput.getStoreId());
 				if (storeDetailsOptional.isPresent()) {
 					rosterSummaryService.addRosterSummaryToAttendanceSummary(updatedStaffShiftList);
 				}
@@ -990,7 +990,7 @@ public class StaffShiftsService {
 			long tenantId = Long.parseLong(staff.get("tenantId").toString());
 			long storeId = Long.parseLong(staff.get("storeId").toString());
 			Optional<PersonnelDetails> personnelDetailsOptional = personnelDetailsRepository
-					.findByIdAndApplicationName(id, BiometricApplicationNames.RESPARK.name());
+					.findById(id);
 
 			if(personnelDetailsOptional.isPresent()){
 				java.time.LocalDate shiftDate = java.time.LocalDate.now();
@@ -1017,7 +1017,7 @@ public class StaffShiftsService {
 					if (!staffShiftsEdited.isEmpty()) {
 						staffShiftsRepository.saveAll(staffShiftsEdited);
 						Optional<StoreDetails> storeDetailsOptional = storeDetailsRepository
-								.fetchStoreAndTenantDetails(BiometricApplicationNames.RESPARK.name(), tenantId, storeId);
+								.fetchStoreAndTenantDetails(tenantId, storeId);
 						if (storeDetailsOptional.isPresent()) {
 							rosterSummaryService.addRosterSummaryToAttendanceSummary(staffShiftsEdited);
 						}
@@ -1040,7 +1040,7 @@ public class StaffShiftsService {
 		List<Map<String, Object>> tmp = new ArrayList<Map<String, Object>>();
 		ObjectMapper objectMapper = new ObjectMapper();
 		try {
-			Optional<StoreDetails> storeDetailsOpt = storeDetailsRepository.fetchStoreAndTenantDetails(BiometricApplicationNames.RESPARK.name(), tenantId, storeId);
+			Optional<StoreDetails> storeDetailsOpt = storeDetailsRepository.fetchStoreAndTenantDetails(tenantId, storeId);
 			String formatStr = storeDetailsOpt.isPresent() && storeDetailsOpt.get().getDateFormat() != null ? storeDetailsOpt.get().getDateFormat() : "dd-MM-yyyy";
 			java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern(formatStr);
 
@@ -1605,7 +1605,7 @@ public class StaffShiftsService {
 
 		try {
 			Optional<StoreDetails> storeDetailsOpt =
-					storeDetailsRepository.fetchStoreAndTenantDetails(BiometricApplicationNames.RESPARK.name(), request.tenantId,
+					storeDetailsRepository.fetchStoreAndTenantDetails(request.tenantId,
 							request.storeId);
 			String formatStr = storeDetailsOpt.isPresent() && storeDetailsOpt.get().getDateFormat() != null ? storeDetailsOpt.get().getDateFormat() : "dd-MM-yyyy";
 			java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern(formatStr);

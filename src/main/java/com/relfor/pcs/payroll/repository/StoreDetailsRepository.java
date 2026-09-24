@@ -14,8 +14,8 @@ public interface StoreDetailsRepository extends JpaRepository<StoreDetails,Long>
 
 	@Query(value = "SELECT s.* FROM store_details s " +
 			"JOIN tenant_company_mapping t ON s.tenant_company_mapping_id = t.id " +
-			"WHERE t.application_name = :applicationName AND t.tenant_id = :tenantId AND s.store_id = :storeId", nativeQuery = true)
-	Optional<StoreDetails> fetchStoreAndTenantDetails(String applicationName, Long tenantId, Long storeId);
+			"WHERE t.tenant_id = :tenantId AND s.store_id = :storeId", nativeQuery = true)
+	Optional<StoreDetails> fetchStoreAndTenantDetails(Long tenantId, Long storeId);
 
 	@Query(value = "SELECT sd.time_zone FROM store_details sd WHERE sd.store_id = ?1", nativeQuery = true)
 	String getStoreTimeZone(Long storeId);
@@ -26,5 +26,5 @@ public interface StoreDetailsRepository extends JpaRepository<StoreDetails,Long>
 			+ "WHERE tcm.application_name = :applicationName "
 			+ "AND tcm.tenant_id = :tenantId "
 			+ "AND (:storeId = 0 OR sd.store_id = :storeId)", nativeQuery = true)
-	List<StoreDetails> fetchStoreDetailListForTenant(@Param("applicationName") String applicationName, @Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
+	List<StoreDetails> fetchStoreDetailListForTenant(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
 }

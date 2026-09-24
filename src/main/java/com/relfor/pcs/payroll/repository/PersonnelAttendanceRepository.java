@@ -20,7 +20,7 @@ public interface PersonnelAttendanceRepository extends JpaRepository<PersonnelAt
 			"pa.punch_timestamp AS punchTimestamp, pa.iclock_transaction_id AS iclockTransactionId,\n" +
 			"pa.created_timestamp AS createdTimestamp, pa.created_by AS createdBy, pa.upload_source AS uploadSource,\n" +
 			"pa.modified_timestamp AS modifiedTimestamp, pa.modified_by AS modifiedBy,\n" +
-			"pa.sequence_number_of_punch AS sequenceNumberOfPunch, pa.application_name AS applicationName,\n" +
+			"pa.sequence_number_of_punch AS sequenceNumberOfPunch, \n" +
 			"pa.id AS personnelAttendanceId, \n" +
 			"pa.current_status AS currentStatus \n" +
 			"FROM personnel_attendance pa\n" +
@@ -28,9 +28,8 @@ public interface PersonnelAttendanceRepository extends JpaRepository<PersonnelAt
 			"ON pd.id = pa.staff_id \n" +
 			"WHERE pa.attendance_date BETWEEN :fromDate AND :toDate \n" +
 			"AND pa.tenant_id = :tenantId AND pa.store_id = :storeId \n" +
-			"AND pa.application_name = :applicationName AND pa.staff_id IN :staffIds ;", nativeQuery = true)
-	List<PersonnelAttendanceProjectionForInOutHistory> getInOutHistoryBetweenDates(LocalDate fromDate, LocalDate toDate, String applicationName,
-																				   Long tenantId, Long storeId, List<Long> staffIds);
+			"AND pa.staff_id IN :staffIds ;", nativeQuery = true)
+	List<PersonnelAttendanceProjectionForInOutHistory> getInOutHistoryBetweenDates(LocalDate fromDate, LocalDate toDate, Long tenantId, Long storeId, List<Long> staffIds);
 
 	List<PersonnelAttendance> findByIdIn(List<Long> personnelAttendanceIdList);
 
@@ -38,10 +37,10 @@ public interface PersonnelAttendanceRepository extends JpaRepository<PersonnelAt
 			+ "FROM personnel_attendance pa "
 			+ "WHERE pa.tenant_id = :tenantId "
 			+ "AND (:storeId = 0 OR pa.store_id = :storeId) "
-			+ "AND pa.application_name = :applicationName "
+			+ ""
 			+ "AND pa.upload_source = :uploadSource "
 			+ "AND punch_timestamp BETWEEN :fromDateTime AND :toDateTime", nativeQuery = true)
 	List<PersonnelAttendance> findExistingPersonnelAttendanceData(Long tenantId, Long storeId,
-													  String applicationName, String uploadSource,
+													  String uploadSource,
 													  LocalDateTime fromDateTime, LocalDateTime toDateTime);
 }

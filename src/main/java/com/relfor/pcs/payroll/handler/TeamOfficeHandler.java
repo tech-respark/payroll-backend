@@ -111,7 +111,7 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 							corporateId, userName, password, fromDateZoned, toDateZoned);
 					storeDetails.setTimestampOfLastAttendanceRetrieval(invocationTimestampForStore);
 					if (!ObjectUtils.isEmpty(teamOfficeResponseModel) && !Boolean.TRUE.equals(teamOfficeResponseModel.getError())) {
-						this.savePersonnelAttendanceData(teamOfficeResponseModel, terminalToStoreMap, tenantId, applicationName, personnelAttendanceListForProcessing);
+						this.savePersonnelAttendanceData(teamOfficeResponseModel, terminalToStoreMap, tenantId, personnelAttendanceListForProcessing);
 					}
 				}
 			} else if(invocationTimestampForStore != null) {
@@ -137,7 +137,6 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 	@Override
 	public void adhocRetrieveDataFromVendorAndSaveInDb(Long tenantId,
 													   Long storeId,
-													   String applicationName,
 													   String vendorUrl,
 													   String corporateId,
 													   String userName,
@@ -147,7 +146,7 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 													   Map<String, StoreDetails> terminalToStoreMap,
 													   List<String> outputList) {
 		List<PersonnelAttendance> personnelAttendanceListToBeDeleted = personnelAttendanceRepository
-				.findExistingPersonnelAttendanceData(tenantId, storeId, applicationName, BiometricEntryUploadSource.API.name(),
+				.findExistingPersonnelAttendanceData(tenantId, storeId, BiometricEntryUploadSource.API.name(),
 						fromDateZoned.toLocalDateTime(), toDateZoned.toLocalDateTime());
 		outputList.add(String.format("No of records to be deleted: %d", personnelAttendanceListToBeDeleted.size()));
 		if (!personnelAttendanceListToBeDeleted.isEmpty()) {
@@ -157,7 +156,7 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 				corporateId, userName, password, fromDateZoned, toDateZoned);
 		List<PersonnelAttendance> personnelAttendanceListForProcessing = new ArrayList<>();
 		if (!ObjectUtils.isEmpty(teamOfficeResponseModel) && !Boolean.TRUE.equals(teamOfficeResponseModel.getError())) {
-			this.savePersonnelAttendanceData(teamOfficeResponseModel, terminalToStoreMap, tenantId, applicationName, personnelAttendanceListForProcessing);
+			this.savePersonnelAttendanceData(teamOfficeResponseModel, terminalToStoreMap, tenantId, personnelAttendanceListForProcessing);
 		}
 		if (!personnelAttendanceListForProcessing.isEmpty()) {
 			Map<Long, List<PersonnelAttendance>> attendanceByStoreId = personnelAttendanceListForProcessing.stream()
@@ -212,8 +211,7 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 
 	private void savePersonnelAttendanceData(TeamOfficeResponseModel teamOfficeResponseModel,
 											 Map<String, StoreDetails> terminalToStoreMap,
-											 Long tenantId, String applicationName,
-											 List<PersonnelAttendance> personnelAttendanceListForProcessing) {
+											 Long tenantId, List<PersonnelAttendance> personnelAttendanceListForProcessing) {
 		if (!ObjectUtils.isEmpty(teamOfficeResponseModel.getPunchDataModelList().isEmpty())) {
 			List<TeamOfficePunchDataModel> punchDataModelList = teamOfficeResponseModel.getPunchDataModelList();
 			punchDataModelList.sort(Comparator.comparing(TeamOfficePunchDataModel::getEmpCode, Comparator.nullsLast(String::compareTo)));
@@ -255,7 +253,6 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 						PersonnelAttendance personnelAttendance = new PersonnelAttendance();
 						personnelAttendance.setTenantId(tenantId);
 						personnelAttendance.setStoreId(storeDetails != null ? storeDetails.getStoreId() : 0);
-						personnelAttendance.setApplicationName(applicationName);
 						personnelAttendance.setTerminalSerialNumber(individualPunches.getMcid());
 						personnelAttendance.setStaffId(personnelDetails.getId());
 						personnelAttendance.setAttendanceDate(localDateTime.toLocalDate());

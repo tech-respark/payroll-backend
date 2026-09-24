@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.Optional;
 
 public interface TenantCompanyMappingRepository extends JpaRepository<TenantCompanyMapping,Long> {
-	@Query(value = "SELECT tcm.tenant_id tenantId, sd.store_id AS storeId, tcm.application_name AS applicationName,\n" +
+	@Query(value = "SELECT tcm.tenant_id tenantId, sd.store_id AS storeId, \n" +
 			"tcm.personnel_company_id AS personnelCompanyId, sd.time_zone AS timeZone,\n" +
 			"sd.is_actual_time_based_attendance AS isActualTimeBasedAttendance,\n" +
 			"tcm.penalty_absent_days AS penaltyAbsentDays,\n" +
@@ -17,8 +17,8 @@ public interface TenantCompanyMappingRepository extends JpaRepository<TenantComp
 			"JOIN store_details sd ON tcm.id = sd.tenant_company_mapping_id \n" +
 			"WHERE tcm.tenant_id = :tenantId \n" +
 			"AND (:storeId = 0 OR sd.store_id = :storeId) " +
-			"AND tcm.application_name = :applicationName LIMIT 1;", nativeQuery = true)
-	Optional<TenantStoreProjection> getTenantStoreMapping(Long tenantId, Long storeId, String applicationName);
+			"LIMIT 1;", nativeQuery = true)
+	Optional<TenantStoreProjection> getTenantStoreMapping(Long tenantId, Long storeId);
 
-	Optional<TenantCompanyMapping> findByApplicationNameAndTenantId(String applicationName, Long tenantId);
+	Optional<TenantCompanyMapping> findByTenantId(Long tenantId);
 }

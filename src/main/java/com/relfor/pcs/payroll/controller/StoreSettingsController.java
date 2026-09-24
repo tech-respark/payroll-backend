@@ -36,7 +36,7 @@ public class StoreSettingsController {
         tenantId = SecurityUtils.getTenantId(tenantId);
         storeId = SecurityUtils.getStoreId(storeId);
 
-        Optional<StoreDetails> optStore = storeDetailsRepository.fetchStoreAndTenantDetails("RESPARK", tenantId,
+        Optional<StoreDetails> optStore = storeDetailsRepository.fetchStoreAndTenantDetails( tenantId,
 				storeId);
         if (optStore.isPresent()) {
             StoreDetails store = optStore.get();
@@ -57,7 +57,7 @@ public class StoreSettingsController {
         tenantId = SecurityUtils.getTenantId(tenantId);
         storeId = SecurityUtils.getStoreId(storeId);
 
-        Optional<StoreDetails> optStore = storeDetailsRepository.fetchStoreAndTenantDetails("RESPARK", tenantId,
+        Optional<StoreDetails> optStore = storeDetailsRepository.fetchStoreAndTenantDetails(tenantId,
 				storeId);
         if (optStore.isPresent()) {
             StoreDetails store = optStore.get();
