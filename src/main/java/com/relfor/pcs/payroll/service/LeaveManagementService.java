@@ -25,6 +25,7 @@ public class LeaveManagementService {
     private final LeaveApplicationLogRepository leaveApplicationLogRepository;
     private final AsyncLeaveAttendanceSyncService asyncAttendanceUpdater;
     private final StoreHolidayRepository storeHolidayRepository;
+    private final EmailService emailService;
 
     private LeaveApplicationDTO toDTO(LeaveApplication app) {
         String staffName = "Unknown Staff";
@@ -161,6 +162,26 @@ public class LeaveManagementService {
 
         logAction(application, LeaveApplicationLog.LogAction.APPLIED, staffId, reason);
 
+        try {
+            String applierEmail = personnel.getEmail();
+            String managerEmail = null;
+            if (personnel.getReportingTo() != null) {
+                Optional<PersonnelDetails> manager = personnelDetailsRepository.findById(personnel.getReportingTo());
+                if (manager.isPresent()) {
+                    managerEmail = manager.get().getEmail();
+                }
+            }
+            String name = personnel.getFirstName() + (personnel.getLastName() != null ? " " + personnel.getLastName() : "");
+            if (applierEmail != null) {
+                emailService.sendLeaveAppliedEmail(applierEmail, name, personnel.getEmployeeCode(), String.valueOf(application.getId()), LocalDate.now().toString(), type.getLeaveCode(), startDate.toString(), endDate.toString(), reason != null ? reason : "");
+            }
+            if (managerEmail != null) {
+                emailService.sendEmail(managerEmail, "New Leave Application", "A new leave application has been submitted by " + name + ".");
+            }
+        } catch (Exception e) {
+            // Ignored to avoid breaking transaction
+        }
+
         return application;
     }
 
@@ -205,6 +226,17 @@ public class LeaveManagementService {
         logAction(application, LeaveApplicationLog.LogAction.APPROVED, managerId, remarks);
         
         asyncAttendanceUpdater.syncApprovedLeaveToAttendance(application);
+        
+        try {
+            Optional<PersonnelDetails> personnelOpt = personnelDetailsRepository.findById(application.getStaffId());
+            if (personnelOpt.isPresent() && personnelOpt.get().getEmail() != null) {
+                PersonnelDetails personnel = personnelOpt.get();
+                String name = personnel.getFirstName() + (personnel.getLastName() != null ? " " + personnel.getLastName() : "");
+                emailService.sendLeaveApprovedEmail(personnel.getEmail(), name, personnel.getEmployeeCode(), String.valueOf(application.getId()), LocalDate.now().toString(), application.getLeaveType().getLeaveCode(), application.getStartDate().toString(), application.getEndDate().toString(), application.getReason() != null ? application.getReason() : "");
+            }
+        } catch (Exception e) {
+            // Ignored to avoid breaking transaction
+        }
     }
 
     @Transactional
@@ -225,6 +257,17 @@ public class LeaveManagementService {
         applicationRepository.save(application);
 
         logAction(application, LeaveApplicationLog.LogAction.REJECTED, managerId, remarks);
+        
+        try {
+            Optional<PersonnelDetails> personnelOpt = personnelDetailsRepository.findById(application.getStaffId());
+            if (personnelOpt.isPresent() && personnelOpt.get().getEmail() != null) {
+                PersonnelDetails personnel = personnelOpt.get();
+                String name = personnel.getFirstName() + (personnel.getLastName() != null ? " " + personnel.getLastName() : "");
+                emailService.sendLeaveRejectedEmail(personnel.getEmail(), name, personnel.getEmployeeCode(), String.valueOf(application.getId()), LocalDate.now().toString(), application.getLeaveType().getLeaveCode(), application.getStartDate().toString(), application.getEndDate().toString(), application.getReason() != null ? application.getReason() : "");
+            }
+        } catch (Exception e) {
+            // Ignored to avoid breaking transaction
+        }
     }
 
     @Transactional

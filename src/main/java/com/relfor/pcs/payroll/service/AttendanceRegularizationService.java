@@ -9,11 +9,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+import com.relfor.pcs.payroll.repository.PersonnelDetailsRepository;
+import com.relfor.pcs.payroll.entity.PersonnelDetails;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 public class AttendanceRegularizationService {
 
     private final AttendanceRegularizationRequestRepository requestRepository;
+    private final PersonnelDetailsRepository personnelDetailsRepository;
+    private final EmailService emailService;
 
     @Transactional(readOnly = true)
     public java.util.List<AttendanceRegularizationRequest> getPendingRegularizations(Long tenantId, Long storeId, Long managerId, boolean isHrAdmin) {
@@ -39,7 +45,33 @@ public class AttendanceRegularizationService {
                 .status(AttendanceRegularizationRequest.RegularizationStatus.PENDING)
                 .build();
                 
-        return requestRepository.save(request);
+        request = requestRepository.save(request);
+
+        try {
+            Optional<PersonnelDetails> personnelOpt = personnelDetailsRepository.findById(staffId);
+            if (personnelOpt.isPresent()) {
+                PersonnelDetails personnel = personnelOpt.get();
+                String applierEmail = personnel.getEmail();
+                String managerEmail = null;
+                if (personnel.getReportingTo() != null) {
+                    Optional<PersonnelDetails> manager = personnelDetailsRepository.findById(personnel.getReportingTo());
+                    if (manager.isPresent()) {
+                        managerEmail = manager.get().getEmail();
+                    }
+                }
+                String name = personnel.getFirstName() + (personnel.getLastName() != null ? " " + personnel.getLastName() : "");
+                if (applierEmail != null) {
+                    emailService.sendRegularizationAppliedEmail(applierEmail, name, personnel.getEmployeeCode(), String.valueOf(request.getId()), LocalDate.now().toString(), request.getReason() != null ? request.getReason() : "", request.getDateToRegularize().toString(), request.getRequestedInTime() != null ? request.getRequestedInTime().toString() : "", request.getRequestedOutTime() != null ? request.getRequestedOutTime().toString() : "", "");
+                }
+                if (managerEmail != null) {
+                    emailService.sendEmail(managerEmail, "New Regularization Request", "A new attendance regularization request has been submitted by " + name + ".");
+                }
+            }
+        } catch (Exception e) {
+            // Ignored to avoid breaking transaction
+        }
+
+        return request;
     }
 
     @Transactional
@@ -52,6 +84,17 @@ public class AttendanceRegularizationService {
         requestRepository.save(request);
         
         // Push the missing punch to the DayWiseAttendanceSummary / InOutHistory
+        
+        try {
+            Optional<PersonnelDetails> personnelOpt = personnelDetailsRepository.findById(request.getStaffId());
+            if (personnelOpt.isPresent() && personnelOpt.get().getEmail() != null) {
+                PersonnelDetails personnel = personnelOpt.get();
+                String name = personnel.getFirstName() + (personnel.getLastName() != null ? " " + personnel.getLastName() : "");
+                emailService.sendRegularizationApprovedEmail(personnel.getEmail(), name, personnel.getEmployeeCode(), String.valueOf(request.getId()), LocalDate.now().toString(), request.getReason() != null ? request.getReason() : "", request.getDateToRegularize().toString(), request.getRequestedInTime() != null ? request.getRequestedInTime().toString() : "", request.getRequestedOutTime() != null ? request.getRequestedOutTime().toString() : "", "");
+            }
+        } catch (Exception e) {
+            // Ignored to avoid breaking transaction
+        }
     }
 
     @Transactional
@@ -62,5 +105,16 @@ public class AttendanceRegularizationService {
         request.setStatus(AttendanceRegularizationRequest.RegularizationStatus.REJECTED);
         request.setApproverId(approverId);
         requestRepository.save(request);
+        
+        try {
+            Optional<PersonnelDetails> personnelOpt = personnelDetailsRepository.findById(request.getStaffId());
+            if (personnelOpt.isPresent() && personnelOpt.get().getEmail() != null) {
+                PersonnelDetails personnel = personnelOpt.get();
+                String name = personnel.getFirstName() + (personnel.getLastName() != null ? " " + personnel.getLastName() : "");
+                emailService.sendRegularizationRejectedEmail(personnel.getEmail(), name, personnel.getEmployeeCode(), String.valueOf(request.getId()), LocalDate.now().toString(), request.getReason() != null ? request.getReason() : "", request.getDateToRegularize().toString(), request.getRequestedInTime() != null ? request.getRequestedInTime().toString() : "", request.getRequestedOutTime() != null ? request.getRequestedOutTime().toString() : "", "");
+            }
+        } catch (Exception e) {
+            // Ignored to avoid breaking transaction
+        }
     }
 }

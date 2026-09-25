@@ -6,6 +6,7 @@ import com.relfor.pcs.payroll.dto.constants.BiometricApplicationNames;
 import com.relfor.pcs.payroll.dto.constants.BiometricEntryUploadSource;
 import com.relfor.pcs.payroll.dto.constants.RegularizationRequestStatuses;
 import com.relfor.pcs.payroll.entity.PersonnelAttendance;
+import com.relfor.pcs.payroll.entity.PersonnelDetails;
 import com.relfor.pcs.payroll.entity.StoreDetails;
 import com.relfor.pcs.payroll.model.*;
 import com.relfor.pcs.payroll.projection.TenantStoreProjection;
@@ -47,6 +48,10 @@ public class ResparkAttendanceService {
 	StoreDetailsRepository storeDetailsRepository;
 	@Autowired
 	StoreProfileConfigRepository storeProfileConfigRepository;
+	@Autowired
+	private EmailService emailService;
+	@Autowired
+	private PersonnelDetailsRepository personnelDetailsRepository;
 	
 	public ResponseModel regularizeAttendance(AttendanceRegularizationInputModel attendanceRegularizationInputModel){
 		ResponseModel responseModel = new ResponseModel();
@@ -87,6 +92,7 @@ public class ResparkAttendanceService {
 				for (PersonnelAttendance personnelAttendance: personnelAttendanceListToBeSaved) {
 					IndividualPunches outputIndividualPunch = this.createIndividualPunch(personnelAttendance, zoneId);
 					outputIndividualPunchesList.add(outputIndividualPunch);
+					sendRegularizationEmail(personnelAttendance, personnelAttendance.getCurrentStatus());
 				}
 
 				attendanceRegularizationInputModel.setIndividualPunchesList(outputIndividualPunchesList);
@@ -203,6 +209,40 @@ public class ResparkAttendanceService {
 			localDateTime = localDateTime.plusDays(individualPunch.getPunchDateOffset());
 		}
 		return localDateTime.atZone(zoneId).toInstant();
+	}
+
+	private void sendRegularizationEmail(PersonnelAttendance personnelAttendance, String status) {
+		try {
+			Optional<PersonnelDetails> employeeOpt = personnelDetailsRepository.findById(personnelAttendance.getStaffId());
+			if (employeeOpt.isPresent()) {
+				PersonnelDetails employee = employeeOpt.get();
+				String to = employee.getEmail();
+				String name = employee.getFirstName() + (employee.getLastName() != null ? " " + employee.getLastName() : "");
+				String code = employee.getEmployeeCode();
+				String appNumber = personnelAttendance.getId() != null ? String.valueOf(personnelAttendance.getId()) : "N/A";
+				String appDate = LocalDate.now().toString();
+				String reason = personnelAttendance.getPunchEvent() != null ? personnelAttendance.getPunchEvent() : "Regularization";
+				String date = personnelAttendance.getAttendanceDate() != null ? personnelAttendance.getAttendanceDate().toString() : "";
+				String timeStr = personnelAttendance.getPunchTimestamp() != null ? personnelAttendance.getPunchTimestamp().toString() : "";
+				String remark = personnelAttendance.getRemark() != null ? personnelAttendance.getRemark() : "";
+
+				if (RegularizationRequestStatuses.PENDING.name().equalsIgnoreCase(status)) {
+					emailService.sendRegularizationAppliedEmail(to, name, code, appNumber, appDate, reason, date, timeStr, timeStr, remark);
+					if (employee.getReportingTo() != null) {
+						Optional<PersonnelDetails> managerOpt = personnelDetailsRepository.findById(employee.getReportingTo());
+						if (managerOpt.isPresent() && managerOpt.get().getEmail() != null) {
+							emailService.sendRegularizationAppliedEmail(managerOpt.get().getEmail(), name, code, appNumber, appDate, reason, date, timeStr, timeStr, remark);
+						}
+					}
+				} else if (RegularizationRequestStatuses.APPROVED.name().equalsIgnoreCase(status)) {
+					emailService.sendRegularizationApprovedEmail(to, name, code, appNumber, appDate, reason, date, timeStr, timeStr, remark);
+				} else if (RegularizationRequestStatuses.REJECTED.name().equalsIgnoreCase(status)) {
+					emailService.sendRegularizationRejectedEmail(to, name, code, appNumber, appDate, reason, date, timeStr, timeStr, remark);
+				}
+			}
+		} catch (Exception e) {
+			logger.error("Failed to send regularization email", e);
+		}
 	}
 
 	public ResponseModel getRegularizationRequests(InOutHistoryInputModel inOutHistoryInputModel) {
@@ -373,6 +413,7 @@ public class ResparkAttendanceService {
 										|| StringUtils.equalsIgnoreCase(personnelAttendance.getCurrentStatus(),RegularizationRequestStatuses.REJECTED.name())) {
 									approvedOrRejectedPersonnelAttendanceList.add(personnelAttendance);
 								}
+								sendRegularizationEmail(personnelAttendance, personnelAttendance.getCurrentStatus());
 							} catch (ObjectOptimisticLockingFailureException ex) {
 								logger.error("OptimisticLockException has occurred for PersonnelAttendance ID: {}, Exception: {}", personnelAttendance.getId(), ex.getMessage());
 							}
