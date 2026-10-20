@@ -33,6 +33,9 @@ public interface PersonnelAttendanceRepository extends JpaRepository<PersonnelAt
 
 	List<PersonnelAttendance> findByIdIn(List<Long> personnelAttendanceIdList);
 
+	List<PersonnelAttendance> findByTenantIdAndStoreIdAndStaffIdAndAttendanceDateOrderByPunchTimestampAsc(
+			Long tenantId, Long storeId, Long staffId, LocalDate attendanceDate);
+
 	@Query(value = "SELECT * "
 			+ "FROM personnel_attendance pa "
 			+ "WHERE pa.tenant_id = :tenantId "

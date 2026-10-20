@@ -34,6 +34,9 @@ public class SShiftsSlots extends BaseEntity{
 	@Column(columnDefinition = "boolean default true", nullable = false)
 	private boolean active;
 
+	@Column(columnDefinition = "boolean default false", nullable = false)
+	private boolean overnight;
+
 	@OneToMany(cascade = CascadeType.ALL)
 	@JoinColumn(name = "break_type_id", referencedColumnName = "id")
 	List<BreakTypes> breakTypes;
@@ -76,6 +79,14 @@ public class SShiftsSlots extends BaseEntity{
 
 	public void setActive(boolean active) {
 		this.active = active;
+	}
+
+	public boolean isOvernight() {
+		return overnight;
+	}
+
+	public void setOvernight(boolean overnight) {
+		this.overnight = overnight;
 	}
 
 	public void setEndTime(String endTime) {

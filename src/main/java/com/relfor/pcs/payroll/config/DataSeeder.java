@@ -103,6 +103,20 @@ public class DataSeeder implements CommandLineRunner {
             System.out.println("Leave Management module seeded successfully.");
         }
 
+        boolean hasHospitality = existing.stream().anyMatch(m -> "Hospitality".equals(m.getCategory()));
+        if (!hasHospitality) {
+            AccessModule hospitality = new AccessModule();
+            hospitality.setTenantId(0L);
+            hospitality.setStoreId(0L);
+            hospitality.setCategory("Hospitality");
+            hospitality.setIcon("<svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2\"><path d=\"M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"></path></svg>");
+            List<AccessPermission> hospitalityPerms = new ArrayList<>();
+            hospitalityPerms.add(createPerm("VIEW_HOSPITALITY", "View hospitality payroll tools", hospitality));
+            hospitalityPerms.add(createPerm("MANAGE_HOSPITALITY", "Manage hospitality payroll tools", hospitality));
+            hospitality.setPermissions(hospitalityPerms);
+            accessModuleRepository.save(hospitality);
+        }
+
         // Seed Store 1 config
         java.util.Optional<com.relfor.pcs.payroll.entity.StoreDetails> sdOpt = 
             storeDetailsRepository.fetchStoreAndTenantDetails( 1L, 1L);

@@ -230,25 +230,29 @@ public class AsyncAttendanceSummaryCalculation {
 
 			Instant firstCheckin = attendanceList.get(0).getPunchTimestamp();
 			Instant lastCheckout = attendanceList.get(attendanceList.size() - 1).getPunchTimestamp();
+			if (lastCheckout != null && firstCheckin != null && lastCheckout.isBefore(firstCheckin)) {
+				lastCheckout = lastCheckout.plus(Duration.ofHours(24));
+			}
 			Duration totalWorkDuration = Duration.between(firstCheckin, lastCheckout);
-			BigDecimal totalHoursWorkedInADay = BigDecimal.valueOf(totalWorkDuration.toMinutes()).divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP);
+			BigDecimal totalHoursWorkedInADay = BigDecimal.valueOf(Math.max(totalWorkDuration.toMinutes(), 0)).divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP);
 
 			for (int i = 0; i < attendanceList.size()-1; i++) {
+				Instant start = attendanceList.get(i).getPunchTimestamp();
+				Instant end = attendanceList.get(i+1).getPunchTimestamp();
+				if (end != null && start != null && end.isBefore(start)) {
+					end = end.plus(Duration.ofHours(24));
+				}
+				Duration interval = Duration.between(start, end);
+				BigDecimal hours = BigDecimal.valueOf(Math.max(interval.toMinutes(), 0)).divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP);
 				if ((i+1) % 2 != 0) {
-					Duration workDuration = Duration.between(
-							attendanceList.get(i).getPunchTimestamp(),
-							attendanceList.get(i+1).getPunchTimestamp());
-					sumOfActualHoursWorkedInADay = sumOfActualHoursWorkedInADay.add(BigDecimal.valueOf(workDuration.toMinutes()).divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP));
+					sumOfActualHoursWorkedInADay = sumOfActualHoursWorkedInADay.add(hours);
 				} else {
-					Duration breakDuration = Duration.between(
-							attendanceList.get(i).getPunchTimestamp(),
-							attendanceList.get(i+1).getPunchTimestamp());
-					totalBreakTimeInADay = totalBreakTimeInADay.add(BigDecimal.valueOf(breakDuration.toMinutes()).divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP));
+					totalBreakTimeInADay = totalBreakTimeInADay.add(hours);
 				}
 			}
 			this.addUpdatedOrNewAttendanceSummaryToList(tenantId, storeId, staffId, dateOfAttendance,
 					totalHoursWorkedInADay, sumOfActualHoursWorkedInADay, totalBreakTimeInADay,dayWiseAttendanceSummaryList,
-					firstCheckin, lastCheckout, zoneId);
+					firstCheckin, lastCheckout, zoneId, attendanceList.size());
 		}
 	}
 
@@ -258,7 +262,8 @@ public class AsyncAttendanceSummaryCalculation {
 														BigDecimal sumOfActualHoursWorkedInADay,
 														BigDecimal totalBreakTimeInADay,
 														List<DayWiseAttendanceSummary> dayWiseAttendanceSummaryList,
-														Instant firstCheckin, Instant lastCheckout, ZoneId zoneId) {
+														Instant firstCheckin, Instant lastCheckout, ZoneId zoneId,
+														int punchCount) {
 		Optional<DayWiseAttendanceSummary> summaryOptional = dayWiseAttendanceSummaryRepository
 				.findByTenantIdAndStoreIdAndStaffIdAndAttendanceDate(
 						tenantId, storeId, staffId,
@@ -325,6 +330,11 @@ public class AsyncAttendanceSummaryCalculation {
 		summary.setTotalHoursWorkedInADay(totalHoursWorkedInADay);
 		summary.setSumOfActualHoursWorkedInADay(sumOfActualHoursWorkedInADay);
 		summary.setTotalBreakTimeInADay(totalBreakTimeInADay);
+		if (punchCount >= 4) {
+			summary.setDayCategory(DayWiseAttendanceSummary.DayCategory.SPLIT);
+		} else if (summary.getDayCategory() == null) {
+			summary.setDayCategory(DayWiseAttendanceSummary.DayCategory.PRESENT);
+		}
 
 		dayWiseAttendanceSummaryRepository.save(summary);
 		dayWiseAttendanceSummaryList.add(summary);

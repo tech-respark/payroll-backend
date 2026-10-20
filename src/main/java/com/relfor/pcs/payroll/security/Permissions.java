@@ -16,6 +16,7 @@ public final class Permissions {
     // Aligned with Frontend routing
     public static final String MANAGE_LEAVES = "MANAGE_LEAVES";
     public static final String MANAGE_SALARY = "MANAGE_SALARY";
+    public static final String VIEW_SALARY = "VIEW_SALARY";
     public static final String MANAGE_SHIFTS = "MANAGE_SHIFTS";
     public static final String MANAGE_ATTENDANCE = "MANAGE_ATTENDANCE";
     public static final String MANAGE_STAFF = "MANAGE_STAFF";
@@ -24,5 +25,7 @@ public final class Permissions {
     public static final String VIEW_REPORTS = "VIEW_REPORTS";
     public static final String VIEW_HR_DASHBOARD = "VIEW_HR_DASHBOARD";
     public static final String VIEW_OTHER_STAFF = "VIEW_OTHER_STAFF";
+    public static final String VIEW_HOSPITALITY = "VIEW_HOSPITALITY";
+    public static final String MANAGE_HOSPITALITY = "MANAGE_HOSPITALITY";
 
 }

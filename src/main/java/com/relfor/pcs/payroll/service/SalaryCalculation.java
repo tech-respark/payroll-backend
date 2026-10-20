@@ -46,6 +46,8 @@ public class SalaryCalculation {
     StoreProfileConfigRepository storeProfileConfigRepository;
     @Autowired
     private  PersonnelPayslipHistoryRepository personnelPayslipHistoryRepository;
+    @Autowired
+    private HospitalityService hospitalityService;
 
     public ResponseModel processSalaryComponents(SalaryComponentResponseDTO personnelComponents) {
         ResponseModel responseModel = new ResponseModel();
@@ -236,6 +238,14 @@ public class SalaryCalculation {
                 salaryComponentDefinitionsList = definitionsRepository.findByTenantIdAndStoreId(tenantId, 0L);
             }
             PersonnelPayslipHistory responseData =  this.calculateSalaryComponents(staffMonthWiseSummary, salaryComponentDefinitionsList, staffId, null);
+            if (!ObjectUtils.isEmpty(responseData)) {
+                PersonnelPayslipHistory hospitalityPayslip = hospitalityService.applyToPayslip(
+                        staffId, month, year != null ? year.intValue() : null, tenantId, storeId);
+                if (hospitalityPayslip != null) {
+                    responseData = hospitalityPayslip;
+                }
+                hospitalityService.notifyPayslip(staffId, month, year != null ? year.intValue() : null);
+            }
             responseModel.setCode(HttpStatus.OK);
             if(!ObjectUtils.isEmpty(responseData)) {
                 responseModel.setData(responseData);
@@ -266,6 +276,14 @@ public class SalaryCalculation {
                     }
                     if (!ObjectUtils.isEmpty(salaryComponentDefinitionsList)) {
                         this.calculateSalaryComponents(monthWiseAttendanceSummary, salaryComponentDefinitionsList, monthWiseAttendanceSummary.getStaffId(), storeDetailsListForMonthlySummary);
+                        if (monthWiseAttendanceSummary.getSalaryMonth() != null && monthWiseAttendanceSummary.getSalaryYear() != null) {
+                            hospitalityService.applyToPayslip(
+                                    monthWiseAttendanceSummary.getStaffId(),
+                                    monthWiseAttendanceSummary.getSalaryMonth(),
+                                    monthWiseAttendanceSummary.getSalaryYear(),
+                                    monthWiseAttendanceSummary.getTenantId(),
+                                    monthWiseAttendanceSummary.getStoreId());
+                        }
                     }
                 } catch (Exception ex) {
                     logger.error("Error calculating salary for StaffId={} : {}", monthWiseAttendanceSummary.getStaffId(), ex.getMessage());

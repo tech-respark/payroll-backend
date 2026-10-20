@@ -77,6 +77,22 @@ public class PersonnelDetails extends BaseEntity{
 	@Column(name = "salaryAmount", columnDefinition = "Decimal(19,2) default '0'")
 	private BigDecimal salaryAmount = BigDecimal.ZERO;
 	private Integer displayRank;
+	@Column(length = 20)
+	private String payCycle = "MONTHLY";
+	@Column(length = 20)
+	private String employmentType = "SALARIED";
+	@Column(length = 40)
+	private String jobCode;
+	@Column(length = 40)
+	private String secondaryJobCode;
+	@Column(precision = 19, scale = 4)
+	private BigDecimal secondaryHourlyRate;
+	@Column(precision = 6, scale = 2)
+	private BigDecimal overtimeMultiplier = new BigDecimal("2.00");
+	@Column(length = 30)
+	private String esiNumber;
+	@Column(length = 20)
+	private String panNumber;
 
 	public String getPassword() {
 		return password;
@@ -428,5 +444,69 @@ public class PersonnelDetails extends BaseEntity{
 
 	public void setDisplayRank(Integer displayRank) {
 		this.displayRank = displayRank;
+	}
+
+	public String getPayCycle() {
+		return payCycle;
+	}
+
+	public void setPayCycle(String payCycle) {
+		this.payCycle = payCycle;
+	}
+
+	public String getEmploymentType() {
+		return employmentType;
+	}
+
+	public void setEmploymentType(String employmentType) {
+		this.employmentType = employmentType;
+	}
+
+	public String getJobCode() {
+		return jobCode;
+	}
+
+	public void setJobCode(String jobCode) {
+		this.jobCode = jobCode;
+	}
+
+	public String getSecondaryJobCode() {
+		return secondaryJobCode;
+	}
+
+	public void setSecondaryJobCode(String secondaryJobCode) {
+		this.secondaryJobCode = secondaryJobCode;
+	}
+
+	public BigDecimal getSecondaryHourlyRate() {
+		return secondaryHourlyRate;
+	}
+
+	public void setSecondaryHourlyRate(BigDecimal secondaryHourlyRate) {
+		this.secondaryHourlyRate = secondaryHourlyRate;
+	}
+
+	public BigDecimal getOvertimeMultiplier() {
+		return overtimeMultiplier;
+	}
+
+	public void setOvertimeMultiplier(BigDecimal overtimeMultiplier) {
+		this.overtimeMultiplier = overtimeMultiplier;
+	}
+
+	public String getEsiNumber() {
+		return esiNumber;
+	}
+
+	public void setEsiNumber(String esiNumber) {
+		this.esiNumber = esiNumber;
+	}
+
+	public String getPanNumber() {
+		return panNumber;
+	}
+
+	public void setPanNumber(String panNumber) {
+		this.panNumber = panNumber;
 	}
 }

@@ -134,4 +134,40 @@ public class WhatsappNotificationService {
             logger.error("Failed to send WhatsApp OTP notification via RabbitMQ", e);
         }
     }
+
+    public void sendPayslipViaWhatsapp(PersonnelDetails staff, com.relfor.pcs.payroll.entity.PersonnelPayslipHistory payslip) {
+        try {
+            MessagingVariable messagingVariable = new MessagingVariable();
+            messagingVariable.setTenantId(staff.getApplicationTenantId());
+            messagingVariable.setStoreId(staff.getStoreId());
+            messagingVariable.setEventName("PAYSLIP");
+            messagingVariable.setRecipientName(staff.getFirstName());
+            messagingVariable.setRecipientCountryCode("");
+            messagingVariable.setRecipientNumber(staff.getPersonnelMobileNumber());
+            messagingVariable.setMonth(payslip.getSalaryMonth());
+            messagingVariable.setYear(payslip.getSalaryYear());
+            messagingVariable.setAmount(payslip.getSalaryAmount() != null ? payslip.getSalaryAmount().toPlainString() : "0");
+
+            MessagingPayload payload = new MessagingPayload();
+            payload.setNotificationTypes(List.of(NotificationType.WHATSAPP));
+            Map<String, Object> variables = objectMapper.convertValue(messagingVariable, new TypeReference<Map<String, Object>>() {});
+            payload.setVariables(variables);
+            payload.setEntity("PAYROLL");
+            payload.setStoreId(messagingVariable.getStoreId());
+            payload.setTenantId(messagingVariable.getTenantId());
+            payload.setType("template");
+            payload.setEventName(messagingVariable.getEventName());
+
+            String number = (StringUtils.isNotBlank(messagingVariable.getRecipientCountryCode()) ? messagingVariable.getRecipientCountryCode() : "") + messagingVariable.getRecipientNumber();
+            payload.setRecipient(List.of(Map.of(
+                    "name", Objects.toString(messagingVariable.getRecipientName(), "").trim(),
+                    "number", Objects.toString(number, "").trim(),
+                    "email", Objects.toString(staff.getEmail(), "").trim()
+            )));
+            produceMsgWithHeaders("notification.exchange.dl", "dead.letter", objectMapper.writeValueAsString(payload),
+                    staff.getApplicationTenantId(), staff.getStoreId());
+        } catch (Exception e) {
+            logger.error("Failed to send WhatsApp payslip notification via RabbitMQ", e);
+        }
+    }
 }

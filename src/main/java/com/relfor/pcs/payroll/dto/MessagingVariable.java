@@ -13,4 +13,7 @@ public class MessagingVariable {
     private String recipientName;
     private String recipientCountryCode;
     private String recipientNumber;
+    private String month;
+    private Integer year;
+    private String amount;
 }

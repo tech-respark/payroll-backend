@@ -153,6 +153,20 @@ public class AttendanceManagementService {
 			personnelDetails.setStoreId(staffDTO.getPersonnelJoiningDetails().getStoreId());
 			personnelDetails.setUanNumber(staffDTO.getPersonnelJoiningDetails().getUanNumber());
 			personnelDetails.setWorkingHours(staffDTO.getPersonnelJoiningDetails().getWorkingHours());
+			if (staffDTO.getPersonnelJoiningDetails().getPayCycle() != null) {
+				personnelDetails.setPayCycle(staffDTO.getPersonnelJoiningDetails().getPayCycle());
+			}
+			if (staffDTO.getPersonnelJoiningDetails().getEmploymentType() != null) {
+				personnelDetails.setEmploymentType(staffDTO.getPersonnelJoiningDetails().getEmploymentType());
+			}
+			personnelDetails.setJobCode(staffDTO.getPersonnelJoiningDetails().getJobCode());
+			personnelDetails.setSecondaryJobCode(staffDTO.getPersonnelJoiningDetails().getSecondaryJobCode());
+			personnelDetails.setSecondaryHourlyRate(staffDTO.getPersonnelJoiningDetails().getSecondaryHourlyRate());
+			if (staffDTO.getPersonnelJoiningDetails().getOvertimeMultiplier() != null) {
+				personnelDetails.setOvertimeMultiplier(staffDTO.getPersonnelJoiningDetails().getOvertimeMultiplier());
+			}
+			personnelDetails.setEsiNumber(staffDTO.getPersonnelJoiningDetails().getEsiNumber());
+			personnelDetails.setPanNumber(staffDTO.getPersonnelJoiningDetails().getPanNumber());
 		}
 
 		if (!ObjectUtils.isEmpty(staffDTO.getPersonnelBankAccountDetails())) {
@@ -279,6 +293,14 @@ public class AttendanceManagementService {
 		personnelJoiningDetailsDTO.setReportingTo(personnelDetails.getReportingTo());
 		personnelJoiningDetailsDTO.setWorkingHours(personnelDetails.getWorkingHours());
 		personnelJoiningDetailsDTO.setStoreId(personnelDetails.getStoreId());
+		personnelJoiningDetailsDTO.setPayCycle(personnelDetails.getPayCycle());
+		personnelJoiningDetailsDTO.setEmploymentType(personnelDetails.getEmploymentType());
+		personnelJoiningDetailsDTO.setJobCode(personnelDetails.getJobCode());
+		personnelJoiningDetailsDTO.setSecondaryJobCode(personnelDetails.getSecondaryJobCode());
+		personnelJoiningDetailsDTO.setSecondaryHourlyRate(personnelDetails.getSecondaryHourlyRate());
+		personnelJoiningDetailsDTO.setOvertimeMultiplier(personnelDetails.getOvertimeMultiplier());
+		personnelJoiningDetailsDTO.setEsiNumber(personnelDetails.getEsiNumber());
+		personnelJoiningDetailsDTO.setPanNumber(personnelDetails.getPanNumber());
 		staffDTO.setPersonnelJoiningDetails(personnelJoiningDetailsDTO);
 
 		staffDTO.setActive(personnelDetails.getActive() != null && personnelDetails.getActive() ? 1 : 0);
