@@ -1,0 +1,17 @@
+---
+description: Keep backend and shared payroll documentation current
+alwaysApply: true
+---
+
+# Backend documentation
+
+Service setup and code navigation live in this repository's `README.md` and `docs/`.
+
+Product, screen, API, permission, data-model, onboarding, and known-limitation docs live in the `payroll-frontend` repository under `docs/`.
+
+When changing an endpoint, permission, entity, schema, scheduler, integration, or runtime requirement:
+
+1. Update the affected page in the frontend documentation portal in the same change.
+2. Update this repository's `docs/` when startup, package location, or request flow changes.
+3. Describe current code as current behavior and label gaps explicitly.
+4. Never add credentials, tokens, private keys, personal data, salary data, or production endpoints.

@@ -51,6 +51,7 @@ CheckDB.java
 test-login.js
 
 ### Secrets / Keys ###
+.cursor/rules/local-login.mdc
 *.jks
 *.pem
 *.key
