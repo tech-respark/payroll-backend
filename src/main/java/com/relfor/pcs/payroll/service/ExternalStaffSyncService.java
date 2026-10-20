@@ -4,10 +4,11 @@ import com.relfor.pcs.payroll.dto.*;
 import com.relfor.pcs.payroll.entity.*;
 import com.relfor.pcs.payroll.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Collections;
 
@@ -29,9 +30,13 @@ public class ExternalStaffSyncService {
     @Autowired
     private StoreStaffRoleRepository storeStaffRoleRepo;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private final SecureRandom secureRandom = new SecureRandom();
+
     public void syncStaff(Long tenantId) {
         RestTemplate restTemplate = new RestTemplate();
-        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         
         List<TenantCompanyMapping> mappings;
         if (tenantId != null) {
@@ -89,7 +94,7 @@ public class ExternalStaffSyncService {
                                 pd.setEmployeeCode(staffDto.getExternalStaffId());
                                 pd.setApplicationTenantId(tenant.getTenantId());
                                 pd.setApplicationName(tenant.getApplicationName());
-                                pd.setPassword(passwordEncoder.encode("Welcome@123")); // default password
+                                pd.setPassword(passwordEncoder.encode(generateUnusableUntilResetPassword()));
                                 pd.setExperience(0.0f); // Default mandatory field
                             }
                             
@@ -126,5 +131,11 @@ public class ExternalStaffSyncService {
                 }
             }
         }
+    }
+
+    private String generateUnusableUntilResetPassword() {
+        byte[] bytes = new byte[24];
+        secureRandom.nextBytes(bytes);
+        return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }

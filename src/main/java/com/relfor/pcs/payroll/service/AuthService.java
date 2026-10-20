@@ -12,17 +12,26 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 import java.util.UUID;
 
 @Service
 public class AuthService {
 
+    private static final String GENERIC_OTP_MESSAGE = "If an account exists for that identifier, an OTP has been sent.";
+    private static final String GENERIC_OTP_FAILURE = "OTP is invalid or has expired.";
+    private static final int MIN_PASSWORD_LENGTH = 8;
+
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final SecureRandom secureRandom = new SecureRandom();
 
     @Autowired
     private PersonnelDetailsRepository personnelDetailsRepository;
@@ -38,51 +47,42 @@ public class AuthService {
 
     public ResponseModel generateOtp(String usernameOrMobile) {
         ResponseModel response = new ResponseModel();
+        response.setCode(HttpStatus.OK);
+        response.setMessage(GENERIC_OTP_MESSAGE);
         try {
-            Optional<PersonnelDetails> staffOpt = personnelDetailsRepository.findByUsername(usernameOrMobile);
-            
-            // If not found by username, try email, or mobile (if exists, but we only have findByEmail or username in repo, let's just stick to username/email for now or write findByPersonnelMobileNumber if needed)
-            if (!staffOpt.isPresent()) {
-                staffOpt = personnelDetailsRepository.findByEmail(usernameOrMobile);
-            }
-            
-            if (!staffOpt.isPresent()) {
-                response.setCode(HttpStatus.BAD_REQUEST);
-                response.setMessage("User not found with provided username or email.");
+            Optional<PersonnelDetails> staffOpt = findStaffForPasswordReset(usernameOrMobile);
+            if (staffOpt.isEmpty()) {
                 return response;
             }
 
             PersonnelDetails staff = staffOpt.get();
+            if (staff.getActive() == null || !staff.getActive()) {
+                return response;
+            }
 
-            // Invalidate existing OTPs
             List<StaffPasswordResetOTP> existingOtps = otpRepository.findValidOtpsByStaffId(staff.getId(), Instant.now());
             for (StaffPasswordResetOTP existing : existingOtps) {
                 existing.setExpired(true);
                 otpRepository.save(existing);
             }
 
-            // Generate 6-digit OTP
-            String otpStr = String.format("%06d", new Random().nextInt(999999));
+            String otpStr = String.format("%06d", secureRandom.nextInt(1_000_000));
             int expiryMinutes = 5;
 
             StaffPasswordResetOTP otpRecord = new StaffPasswordResetOTP();
             otpRecord.setStaffId(staff.getId());
             otpRecord.setMobileNo(staff.getPersonnelMobileNumber());
             otpRecord.setEmail(staff.getEmail());
-            otpRecord.setOtp(otpStr);
+            otpRecord.setOtp(passwordEncoder.encode(otpStr));
             otpRecord.setGenerationTime(Instant.now());
             otpRecord.setExpiryTime(Instant.now().plus(expiryMinutes, ChronoUnit.MINUTES));
             otpRepository.save(otpRecord);
 
-            // Send WhatsApp OTP
             whatsappNotificationService.sendOtpViaWhatsapp(staff, otpStr);
-
-            response.setCode(HttpStatus.OK);
-            response.setMessage("OTP sent successfully. Please check your registered mobile number.");
         } catch (Exception e) {
             logger.error("Error generating OTP", e);
             response.setCode(HttpStatus.INTERNAL_SERVER_ERROR);
-            response.setMessage("Failed to generate OTP.");
+            response.setMessage("Unable to process the request.");
         }
         return response;
     }
@@ -90,14 +90,10 @@ public class AuthService {
     public ResponseModel verifyOtp(String usernameOrMobile, String otp) {
         ResponseModel response = new ResponseModel();
         try {
-            Optional<PersonnelDetails> staffOpt = personnelDetailsRepository.findByUsername(usernameOrMobile);
-            if (!staffOpt.isPresent()) {
-                staffOpt = personnelDetailsRepository.findByEmail(usernameOrMobile);
-            }
-
-            if (!staffOpt.isPresent()) {
+            Optional<PersonnelDetails> staffOpt = findStaffForPasswordReset(usernameOrMobile);
+            if (staffOpt.isEmpty() || otp == null || otp.isBlank()) {
                 response.setCode(HttpStatus.BAD_REQUEST);
-                response.setMessage("User not found.");
+                response.setMessage(GENERIC_OTP_FAILURE);
                 return response;
             }
 
@@ -106,7 +102,7 @@ public class AuthService {
 
             if (validOtps.isEmpty()) {
                 response.setCode(HttpStatus.BAD_REQUEST);
-                response.setMessage("OTP is invalid or has expired.");
+                response.setMessage(GENERIC_OTP_FAILURE);
                 return response;
             }
 
@@ -116,31 +112,30 @@ public class AuthService {
                 currentOtp.setExpired(true);
                 otpRepository.save(currentOtp);
                 response.setCode(HttpStatus.BAD_REQUEST);
-                response.setMessage("Too many failed attempts. OTP is now expired.");
+                response.setMessage(GENERIC_OTP_FAILURE);
                 return response;
             }
 
-            if (!currentOtp.getOtp().equals(otp)) {
+            if (!passwordEncoder.matches(otp, currentOtp.getOtp())) {
                 currentOtp.setFailedAttempts(currentOtp.getFailedAttempts() + 1);
                 otpRepository.save(currentOtp);
                 response.setCode(HttpStatus.BAD_REQUEST);
-                response.setMessage("Incorrect OTP.");
+                response.setMessage(GENERIC_OTP_FAILURE);
                 return response;
             }
 
-            // Correct OTP
             currentOtp.setVerified(true);
             String resetToken = UUID.randomUUID().toString();
-            currentOtp.setResetToken(resetToken);
+            currentOtp.setResetToken(sha256(resetToken));
             otpRepository.save(currentOtp);
 
             response.setCode(HttpStatus.OK);
             response.setMessage("OTP verified successfully.");
-            response.setData(resetToken); // Return token for next step
+            response.setData(resetToken);
         } catch (Exception e) {
             logger.error("Error verifying OTP", e);
             response.setCode(HttpStatus.INTERNAL_SERVER_ERROR);
-            response.setMessage("Failed to verify OTP.");
+            response.setMessage("Unable to process the request.");
         }
         return response;
     }
@@ -148,26 +143,38 @@ public class AuthService {
     public ResponseModel resetPassword(String resetToken, String newPassword) {
         ResponseModel response = new ResponseModel();
         try {
-            Optional<StaffPasswordResetOTP> otpOpt = otpRepository.findByResetTokenAndExpiredFalse(resetToken);
-            
-            if (!otpOpt.isPresent()) {
+            if (newPassword == null || newPassword.length() < MIN_PASSWORD_LENGTH) {
+                response.setCode(HttpStatus.BAD_REQUEST);
+                response.setMessage("Password must be at least " + MIN_PASSWORD_LENGTH + " characters.");
+                return response;
+            }
+
+            if (resetToken == null || resetToken.isBlank()) {
+                response.setCode(HttpStatus.BAD_REQUEST);
+                response.setMessage("Invalid or expired reset token.");
+                return response;
+            }
+
+            Optional<StaffPasswordResetOTP> otpOpt = otpRepository.findByResetTokenAndExpiredFalse(sha256(resetToken));
+
+            if (otpOpt.isEmpty()) {
                 response.setCode(HttpStatus.BAD_REQUEST);
                 response.setMessage("Invalid or expired reset token.");
                 return response;
             }
 
             StaffPasswordResetOTP otpRecord = otpOpt.get();
-            
+
             if (!otpRecord.isVerified()) {
                 response.setCode(HttpStatus.BAD_REQUEST);
-                response.setMessage("OTP must be verified before resetting password.");
+                response.setMessage("Invalid or expired reset token.");
                 return response;
             }
 
             Optional<PersonnelDetails> staffOpt = personnelDetailsRepository.findById(otpRecord.getStaffId());
-            if (!staffOpt.isPresent()) {
+            if (staffOpt.isEmpty()) {
                 response.setCode(HttpStatus.BAD_REQUEST);
-                response.setMessage("Staff record not found.");
+                response.setMessage("Invalid or expired reset token.");
                 return response;
             }
 
@@ -175,7 +182,6 @@ public class AuthService {
             staff.setPassword(passwordEncoder.encode(newPassword));
             personnelDetailsRepository.save(staff);
 
-            // Invalidate the token
             otpRecord.setExpired(true);
             otpRepository.save(otpRecord);
 
@@ -184,8 +190,32 @@ public class AuthService {
         } catch (Exception e) {
             logger.error("Error resetting password", e);
             response.setCode(HttpStatus.INTERNAL_SERVER_ERROR);
-            response.setMessage("Failed to reset password.");
+            response.setMessage("Unable to process the request.");
         }
         return response;
+    }
+
+    private Optional<PersonnelDetails> findStaffForPasswordReset(String usernameOrMobile) {
+        if (usernameOrMobile == null || usernameOrMobile.isBlank()) {
+            return Optional.empty();
+        }
+        String value = usernameOrMobile.trim();
+        Optional<PersonnelDetails> staffOpt = personnelDetailsRepository.findByUsername(value);
+        if (staffOpt.isEmpty()) {
+            staffOpt = personnelDetailsRepository.findByEmail(value);
+        }
+        if (staffOpt.isEmpty()) {
+            staffOpt = personnelDetailsRepository.findByPersonnelMobileNumber(value);
+        }
+        return staffOpt;
+    }
+
+    private String sha256(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is required", e);
+        }
     }
 }

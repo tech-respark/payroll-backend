@@ -2,7 +2,7 @@
 
 > **Audience:** Backend developers and operators  
 > **Purpose:** Navigate service-specific documentation  
-> **Last verified:** 2026-10-19  
+> **Last verified:** 2026-10-20  
 > **Source of truth:** This repository's current code
 
 ## Pages
@@ -11,6 +11,7 @@
 - [Code map](code-map.md) — packages and where to change each feature
 - [Request lifecycle](request-lifecycle.md) — security, controllers, services, and responses
 - [Testing and operations](testing-and-operations.md) — tests, schedulers, logs, and safe changes
+- Shared QA and production deployment: frontend portal `docs/operations/qa-and-production-deployment.md`
 
 ## Shared product documentation
 

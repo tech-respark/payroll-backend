@@ -50,6 +50,7 @@ public class StoreSettingsController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_STORE_SETTINGS, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
     public ResponseEntity<Map<String, Object>> saveStoreSettings(
             @RequestHeader("Tenantid") Long tenantId,
             @RequestHeader("Storeid") Long storeId,

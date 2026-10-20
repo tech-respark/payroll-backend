@@ -19,8 +19,8 @@ public interface DayWiseAttendanceSummaryRepository extends JpaRepository<DayWis
 			"CONCAT(COALESCE(pd.first_name, ''), ' ', COALESCE(pd.last_name, '')) AS personnelName,\n" +
 			"dwas.attendance_date AS attendanceDate, dwas.attendance_day_of_week AS attendanceDayOfWeek,\n" +
 			"dwas.terminal_serial_number AS terminalSerialNumber,\n" +
-			"CASE WHEN :isActualTimeBasedAttendance = false THEN dwas.total_hours_worked_inaday ELSE dwas.sum_of_actual_hours_worked_inaday END AS totalHoursWorkedInADay,\n" +
-			"CASE WHEN :isActualTimeBasedAttendance = false THEN 0 ELSE dwas.total_break_time_inaday END AS totalBreakTimeInADay\n" +
+			"MAX(CASE WHEN :isActualTimeBasedAttendance = false THEN dwas.total_hours_worked_inaday ELSE dwas.sum_of_actual_hours_worked_inaday END) AS totalHoursWorkedInADay,\n" +
+			"MAX(CASE WHEN :isActualTimeBasedAttendance = false THEN 0 ELSE dwas.total_break_time_inaday END) AS totalBreakTimeInADay\n" +
 			"FROM day_wise_attendance_summary dwas \n" +
 			"JOIN personnel_details pd \n" +
 			"ON pd.id = dwas.staff_id\n" +

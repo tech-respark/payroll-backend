@@ -11,7 +11,9 @@ import com.relfor.pcs.payroll.entity.StoreDetails;
 import com.relfor.pcs.payroll.model.*;
 import com.relfor.pcs.payroll.projection.TenantStoreProjection;
 import com.relfor.pcs.payroll.repository.*;
+import com.relfor.pcs.payroll.security.Permissions;
 import com.relfor.pcs.payroll.util.AsyncAttendanceSummaryCalculation;
+import com.relfor.pcs.payroll.util.SecurityUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -159,7 +161,7 @@ public class ResparkAttendanceService {
 		personnelAttendance.setCreatedTimestamp(Instant.now());
 		personnelAttendance.setModifiedBy(individualPunch.getCreatedBy());
 		personnelAttendance.setModifiedTimestamp(Instant.now());
-		personnelAttendance.setCurrentStatus(individualPunch.getCurrentStatus());
+		personnelAttendance.setCurrentStatus(resolveRegularizationStatus(individualPunch.getCurrentStatus()));
 		personnelAttendance.setStaffId(attendanceRegularizationInputModel.getStaffId());
 		personnelAttendance.setPunchTimestamp(this.getPunchTimestamp(individualPunch, dateOfAttendance, zoneId));
 		personnelAttendance.setPunchEvent(individualPunch.getPunchEvent());
@@ -179,6 +181,10 @@ public class ResparkAttendanceService {
 									 List<PersonnelAttendance> approvedOrRejectedAttendanceList,
 									 LocalDate dateOfAttendance,
 									 ZoneId zoneId) {
+		if (!SecurityUtils.hasAuthority(Permissions.MANAGE_ATTENDANCE)) {
+			logger.info("Skipping existing punch update without MANAGE_ATTENDANCE for ID: {}", individualPunch.getPersonnelAttendanceId());
+			return;
+		}
 		Optional<PersonnelAttendance> personnelAttendanceOptional = personnelAttendanceRepository
 				.findById(individualPunch.getPersonnelAttendanceId());
 		if (personnelAttendanceOptional.isPresent()) {
@@ -188,7 +194,7 @@ public class ResparkAttendanceService {
 			personnelAttendanceOptional.get().setPunchEvent(individualPunch.getPunchEvent());
 			personnelAttendanceOptional.get().setModifiedBy(individualPunch.getCreatedBy());
 			personnelAttendanceOptional.get().setModifiedTimestamp(Instant.now());
-			personnelAttendanceOptional.get().setCurrentStatus(individualPunch.getCurrentStatus());
+			personnelAttendanceOptional.get().setCurrentStatus(resolveRegularizationStatus(individualPunch.getCurrentStatus()));
 
 			logger.info("Updating existing punch while regularizing: {}", personnelAttendanceOptional.get().toLogString());
 			personnelAttendanceListToBeSaved.add(personnelAttendanceOptional.get());
@@ -200,6 +206,17 @@ public class ResparkAttendanceService {
 		} else {
 			logger.info("Personnel Attendance Request does not exist for ID: {}", individualPunch.getPersonnelAttendanceId());
 		}
+	}
+
+	private String resolveRegularizationStatus(String requestedStatus) {
+		boolean canManage = SecurityUtils.hasAuthority(Permissions.MANAGE_ATTENDANCE);
+		if (!canManage) {
+			return RegularizationRequestStatuses.PENDING.name();
+		}
+		if (StringUtils.isBlank(requestedStatus)) {
+			return RegularizationRequestStatuses.APPROVED.name();
+		}
+		return requestedStatus;
 	}
 
 	private Instant getPunchTimestamp(IndividualPunches individualPunch, LocalDate dateOfAttendance, ZoneId zoneId) {

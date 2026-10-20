@@ -53,6 +53,11 @@ public class ResparkInOutHistoryService {
 
 	public ResponseModel getInOutHistoryInformation(InOutHistoryInputModel inOutHistoryInputModel) {
 		ResponseModel responseModel = new ResponseModel();
+		if (inOutHistoryInputModel.getStaffIds() == null || inOutHistoryInputModel.getStaffIds().isEmpty()) {
+			responseModel.setCode(HttpStatus.BAD_REQUEST);
+			responseModel.setMessage("staffIds is required");
+			return responseModel;
+		}
 		try {
 			List<PersonnelAttendanceModel> personnelAttendanceModelList = new ArrayList<>();
 			List<PersonnelAttendanceProjectionForInOutHistory> personnelAttendanceData =
@@ -247,6 +252,11 @@ public class ResparkInOutHistoryService {
 
 	public ResponseModel getAdvancedInOutHistoryInformation(InOutHistoryInputModel inOutHistoryInputModel) {
 		ResponseModel responseModel = new ResponseModel();
+		if (inOutHistoryInputModel.getStaffIds() == null || inOutHistoryInputModel.getStaffIds().isEmpty()) {
+			responseModel.setCode(HttpStatus.BAD_REQUEST);
+			responseModel.setMessage("staffIds is required");
+			return responseModel;
+		}
 		try {
 			List<ResparkPersonnelAttendanceDTO> personnelAttendanceModelList = new ArrayList<>();
 			List<PersonnelAttendanceProjectionForInOutHistory> personnelAttendanceData =
@@ -432,12 +442,20 @@ public class ResparkInOutHistoryService {
 			dayAttendance.setIndividualPunchesList(punchesList);
 			
 			if (!punchesList.isEmpty()) {
-			    String inTime = punchesList.get(0).getPunchTime().toString().substring(0, 5);
+			    List<ResparkIndividualPunchesDTO> effectivePunches = punchesList.stream()
+			            .filter(this::countsTowardAttendance)
+			            .collect(java.util.stream.Collectors.toList());
+
+			    if (!effectivePunches.isEmpty()) {
+			    String inTime = effectivePunches.get(0).getPunchTime().toString().substring(0, 5);
 			    dayAttendance.setFirstInTime(inTime);
 			    
 			    String outTime = null;
-			    if (punchesList.size() > 1 || punchesList.get(0).getCurrentStatus().equalsIgnoreCase("OUT")) {
-			        outTime = punchesList.get(punchesList.size() - 1).getPunchTime().toString().substring(0, 5);
+			    ResparkIndividualPunchesDTO firstPunch = effectivePunches.get(0);
+			    String firstEvent = firstPunch.getPunchEvent();
+			    boolean firstIsOut = firstEvent != null && (firstEvent.equalsIgnoreCase("OUT") || firstEvent.equalsIgnoreCase("CHECKOUT"));
+			    if (effectivePunches.size() > 1 || firstIsOut) {
+			        outTime = effectivePunches.get(effectivePunches.size() - 1).getPunchTime().toString().substring(0, 5);
 			        dayAttendance.setLastOutTime(outTime);
 			    }
 			    
@@ -462,6 +480,7 @@ public class ResparkInOutHistoryService {
 			        if (dur > 0) {
 			            dayAttendance.setTotalDurationMinutes(dur);
 			        }
+			    }
 			    }
 			}
 		}
@@ -490,7 +509,7 @@ public class ResparkInOutHistoryService {
 		    dayAttendance.setCurrentStatus("Weekly Off");
 		} else if (isFuture) {
 		    dayAttendance.setCurrentStatus(null);
-		} else if (dayAttendance.getIndividualPunchesList() != null && !dayAttendance.getIndividualPunchesList().isEmpty()) {
+		} else if (dayAttendance.getFirstInTime() != null || dayAttendance.getLastOutTime() != null) {
 		    if (dayAttendance.getLastOutTime() != null) {
 		        dayAttendance.setCurrentStatus("Present");
 		    } else {
@@ -503,6 +522,13 @@ public class ResparkInOutHistoryService {
 		return dayAttendance;
 	}
 	
+	private boolean countsTowardAttendance(ResparkIndividualPunchesDTO punch) {
+		if (punch == null) return false;
+		String status = punch.getCurrentStatus();
+		if (status == null || status.isBlank()) return true;
+		return !"PENDING".equalsIgnoreCase(status) && !"REJECTED".equalsIgnoreCase(status);
+	}
+
 	private int toMins(String time) {
 	    if (time == null || !time.contains(":")) return 0;
 	    String[] parts = time.split(":");

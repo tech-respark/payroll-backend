@@ -8,6 +8,7 @@ import com.relfor.pcs.payroll.repository.DayWiseAttendanceSummaryRepository;
 import com.relfor.pcs.payroll.repository.PersonnelDetailsRepository;
 import com.relfor.pcs.payroll.repository.SStaffShiftsRepository;
 import com.relfor.pcs.payroll.entity.SStaffShifts;
+import com.relfor.pcs.payroll.util.WeeklyOffUtils;
 
 import java.util.Date;
 import java.util.List;
@@ -39,17 +40,16 @@ public class AsyncLeaveAttendanceSyncService {
             PersonnelDetails personnel = personnelDetailsRepository.findById(staffId)
                     .orElseThrow(() -> new IllegalArgumentException("Personnel not found for ID: " + staffId));
 
-            Long tenantId = personnel.getApplicationTenantId(); // Defaulting to applicationTenantId
+            Long tenantId = application.getTenantId() != null ? application.getTenantId() : personnel.getApplicationTenantId();
             if (tenantId == null) {
-                // Try BaseEntity tenantId if there's a getter
-                tenantId = personnel.getTenantCompanyMappingId(); // Or whatever field maps tenant
+                tenantId = personnel.getTenantCompanyMappingId();
             }
-            Long storeId = personnel.getStoreId();
+            Long storeId = application.getStoreId() != null ? application.getStoreId() : personnel.getStoreId();
             String weeklyOffStr = personnel.getWeeklyOff();
 
             for (LocalDate date = application.getStartDate(); !date.isAfter(application.getEndDate()); date = date.plusDays(1)) {
-                if (weeklyOffStr != null && date.getDayOfWeek().name().equalsIgnoreCase(weeklyOffStr)) {
-                    continue; // Skip weekly offs, as they shouldn't consume leave
+                if (WeeklyOffUtils.isWeeklyOff(weeklyOffStr, date)) {
+                    continue;
                 }
 
                 Optional<DayWiseAttendanceSummary> summaryOpt = dayWiseAttendanceSummaryRepository
@@ -72,8 +72,8 @@ public class AsyncLeaveAttendanceSyncService {
                     summary.setTotalBreakTimeInADay(BigDecimal.ZERO);
                 }
 
-                // Update flags for Leave
                 summary.setIsOnLeave(true);
+                summary.setIsPresent(false);
                 summary.setIsAbsent(false);
                 summary.setIsPenaltyAbsent(false);
 
@@ -107,15 +107,15 @@ public class AsyncLeaveAttendanceSyncService {
             PersonnelDetails personnel = personnelDetailsRepository.findById(staffId)
                     .orElseThrow(() -> new IllegalArgumentException("Personnel not found for ID: " + staffId));
 
-            Long tenantId = personnel.getApplicationTenantId();
+            Long tenantId = application.getTenantId() != null ? application.getTenantId() : personnel.getApplicationTenantId();
             if (tenantId == null) {
                 tenantId = personnel.getTenantCompanyMappingId();
             }
-            Long storeId = personnel.getStoreId();
+            Long storeId = application.getStoreId() != null ? application.getStoreId() : personnel.getStoreId();
             String weeklyOffStr = personnel.getWeeklyOff();
 
             for (LocalDate date = application.getStartDate(); !date.isAfter(application.getEndDate()); date = date.plusDays(1)) {
-                if (weeklyOffStr != null && date.getDayOfWeek().name().equalsIgnoreCase(weeklyOffStr)) {
+                if (WeeklyOffUtils.isWeeklyOff(weeklyOffStr, date)) {
                     continue;
                 }
 
@@ -126,8 +126,8 @@ public class AsyncLeaveAttendanceSyncService {
                 if (summaryOpt.isPresent()) {
                     DayWiseAttendanceSummary summary = summaryOpt.get();
                     summary.setIsOnLeave(false);
+                    summary.setLeaveUnits(BigDecimal.ZERO);
 
-                    // Revert to absent if they didn't work at all that day and it's not a weekly off
                     if (summary.getSumOfActualHoursWorkedInADay() == null || summary.getSumOfActualHoursWorkedInADay().compareTo(BigDecimal.ZERO) == 0) {
                         summary.setIsAbsent(true);
                         summary.setIsPresent(false);

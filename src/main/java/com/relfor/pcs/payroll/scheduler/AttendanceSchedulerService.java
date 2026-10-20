@@ -27,9 +27,15 @@ public class AttendanceSchedulerService {
 	@Autowired
 	private AttendanceManagementService attendanceManagementService;
 
+	@Autowired
+	private com.relfor.pcs.payroll.service.SchedulerLockService schedulerLockService;
+
 	@Async
-	@Scheduled(fixedDelayString = "${scheduler.attendance.fixedRate:1200000}") // RUNS AFTER 2MIN default
+	@Scheduled(fixedDelayString = "${scheduler.attendance.fixedRate:1200000}")
 	public void schedulerReminders() {
+		if (!schedulerLockService.tryAcquire("attendance-reminder", java.time.Duration.ofMinutes(15))) {
+			return;
+		}
 		logger.debug("Attendance scheduler service has been started");
 		// Fetch everything from 1 hour ago up to 2 minutes from now to ensure we don't miss slightly delayed jobs
 		Instant startTime = Instant.now().minus(1, ChronoUnit.HOURS);

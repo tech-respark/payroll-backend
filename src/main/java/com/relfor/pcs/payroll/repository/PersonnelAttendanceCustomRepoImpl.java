@@ -72,7 +72,6 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 		sqlString.append("pa.created_by AS createdBy, ");
 		sqlString.append("pa.modified_timestamp AS modifiedTimestamp, ");
 		sqlString.append("pa.modified_by AS modifiedBy, ");
-		sqlString.append("");
 		sqlString.append("pa.remark AS remark, ");
 		sqlString.append("pa.current_status AS currentStatus, ");
 		sqlString.append("pa.punch_event AS punchEvent ");
@@ -306,16 +305,13 @@ public class PersonnelAttendanceCustomRepoImpl implements PersonnelAttendanceCus
 					attendanceRequestsDTO.setModifiedBy(Long.parseLong(String.valueOf(object[14])));
 				}
 				if (object[15]!=null) {
-					attendanceRequestsDTO.setApplicationName(String.valueOf(object[15]));
+					attendanceRequestsDTO.setRemark(String.valueOf(object[15]));
 				}
 				if (object[16]!=null) {
-					attendanceRequestsDTO.setRemark(String.valueOf(object[16]));
+					attendanceRequestsDTO.setCurrentStatus(String.valueOf(object[16]));
 				}
 				if (object[17]!=null) {
-					attendanceRequestsDTO.setCurrentStatus(String.valueOf(object[17]));
-				}
-				if (object[18]!=null) {
-					attendanceRequestsDTO.setPunchEvent(String.valueOf(object[18]));
+					attendanceRequestsDTO.setPunchEvent(String.valueOf(object[17]));
 				}
 				attendanceRequestsDTOList.add(attendanceRequestsDTO);
 			}

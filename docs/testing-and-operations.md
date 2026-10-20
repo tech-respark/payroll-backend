@@ -2,7 +2,7 @@
 
 > **Audience:** Backend developers and operators  
 > **Purpose:** Run tests and understand scheduled work  
-> **Last verified:** 2026-10-19  
+> **Last verified:** 2026-10-20  
 > **Source of truth:** `src/test`, scheduler classes, and `application.properties`
 
 ## Tests
@@ -47,10 +47,12 @@ The configured log file is `logs/payroll-service.log`, relative to the process w
 - Update the frontend documentation portal when the contract, permission, schema, or schedule changes.
 - Leave `PROJECT_REVIEW.md` unchanged unless the team explicitly refreshes that historical review.
 
+Shared QA and production steps live in the frontend portal: `payroll-frontend` `docs/operations/qa-and-production-deployment.md`.
+
 ## Production gaps to preserve in design
 
-- Move secrets and the JWT signing key out of source.
-- Replace `ddl-auto=update` with versioned migrations before sharing a database.
-- Add authorization and ownership checks to JWT-only sensitive routes.
-- Restrict `/actuator/**`.
+- Replace `ddl-auto=update` with versioned migrations before sharing a production database.
+- Add authorization and ownership checks to remaining JWT-only sensitive routes (including `/trigger/*`).
+- Keep actuator limited to `/actuator/health` on public paths.
 - Make payroll and leave jobs idempotent across restarts and multiple instances.
+- Rotate any secret that previously existed in source.

@@ -128,6 +128,15 @@ public class ExceptionAdvisor extends ResponseEntityExceptionHandler {
 		 return handleExceptionInternal(exception, errorResponse, new HttpHeaders(), HttpStatus.INTERNAL_SERVER_ERROR, request);
 	}
 	 
+	@ExceptionHandler({
+			org.springframework.security.access.AccessDeniedException.class,
+			org.springframework.security.authorization.AuthorizationDeniedException.class
+	})
+	public ResponseEntity<Object> handleAccessDenied(Exception exception, WebRequest request) {
+		ApiExceptionResponse errorResponse = getErrorResponse(HttpStatus.FORBIDDEN, "You do not have permission to perform this action.");
+		return handleExceptionInternal(exception, errorResponse, new HttpHeaders(), HttpStatus.FORBIDDEN, request);
+	}
+
 	@ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleAnyException(Exception exception, WebRequest webRequest) {
         final String ERROR_MESSAGE = "An unexpected error occurred";

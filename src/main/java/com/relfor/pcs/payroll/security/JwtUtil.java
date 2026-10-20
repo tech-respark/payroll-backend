@@ -2,11 +2,13 @@ package com.relfor.pcs.payroll.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,10 +17,21 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    // Use a static 256-bit (32 byte) key so it survives application restarts!
-    private final String SECRET = "mySuperSecretKeyThatIsAtLeast32BytesLongForHS256";
-    private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
-    private final long expirationTime = 1000 * 60 * 60 * 10; // 10 hours
+    @Value("${jwt.secret:}")
+    private String secret;
+
+    @Value("${jwt.expiration-ms:36000000}")
+    private long expirationTime;
+
+    private SecretKey key;
+
+    @PostConstruct
+    void initSigningKey() {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("jwt.secret must be configured and at least 32 bytes");
+        }
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);

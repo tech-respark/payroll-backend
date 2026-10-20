@@ -62,6 +62,7 @@ public class SalaryCalculationController {
 
     @GetMapping("/getPayslipData")
     public ResponseEntity<?> getPayslipData(@RequestParam Long staffId, @RequestParam String  month, @RequestParam Integer year){
+        SecurityUtils.requireSelfOrAnyAuthority(staffId, com.relfor.pcs.payroll.security.Permissions.MANAGE_SALARY);
         ResponseModel responseModel = salaryCalService.getPayslipData(staffId, month, year);
         return ResponseHandler.generateResponseModel(responseModel);
     }
@@ -76,6 +77,7 @@ public class SalaryCalculationController {
 
     @PostMapping("/printStaffPayslip")
     public ResponseEntity<?> printBillForStaffPayslip(@RequestParam Long staffId, @RequestParam String month, @RequestParam Integer year) {
+        SecurityUtils.requireSelfOrAnyAuthority(staffId, com.relfor.pcs.payroll.security.Permissions.MANAGE_SALARY);
         try {
             String result  = velocityService.postPersonnelPayslipData(staffId, month, year);
             return ResponseHandler.generateResponse("Ok", null, HttpStatus.OK, result);
@@ -88,18 +90,21 @@ public class SalaryCalculationController {
 
     @GetMapping("/personnelSalaryComponents")
     public ResponseEntity<?> getPersonnelSalaryComponents(@RequestParam Long staffId){
+        SecurityUtils.requireSelfOrAnyAuthority(staffId, com.relfor.pcs.payroll.security.Permissions.MANAGE_SALARY);
         ResponseModel responseModel = salaryCalService.getPersonnelSalaryComponents(staffId);
         return ResponseHandler.generateResponseModel(responseModel);
     }
 
     @GetMapping("/personnelSalaryComponentsForMonth")
     public ResponseEntity<?> getPersonnelSalaryComponentsForMonth(@RequestParam Long staffId, @RequestParam String month, @RequestParam Integer year){
+        SecurityUtils.requireSelfOrAnyAuthority(staffId, com.relfor.pcs.payroll.security.Permissions.MANAGE_SALARY);
         ResponseModel responseModel = salaryCalService.getPersonnelSalaryComponentsForMonth(staffId, month, year);
         return ResponseHandler.generateResponseModel(responseModel);
     }
 
     @PostMapping("/downloadBillPdf")
     public ResponseEntity<?> downloadBillPdf(@RequestParam Long staffId, @RequestParam String month, @RequestParam Integer year) {
+        SecurityUtils.requireSelfOrAnyAuthority(staffId, com.relfor.pcs.payroll.security.Permissions.MANAGE_SALARY);
 
         byte[] pdfBytes = velocityService.getPdfBytes(staffId, month, year);
         HttpHeaders headers = new HttpHeaders();

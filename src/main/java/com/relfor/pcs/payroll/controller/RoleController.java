@@ -20,7 +20,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/payroll-management/v1/roles")
-@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ROLES)")
 public class RoleController {
 
     @Autowired
@@ -48,6 +47,7 @@ public class RoleController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ROLES, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_STAFF)")
     public ResponseEntity<Map<String, Object>> getAllRoles(@RequestParam Long tenantId) {
         tenantId = SecurityUtils.getTenantId(tenantId);
         List<Role> roles = roleRepository.findByActiveAndTenantId(1, tenantId);
@@ -58,6 +58,7 @@ public class RoleController {
     }
 
     @PostMapping("/create")
+    @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ROLES)")
     public ResponseEntity<Map<String, Object>> createRole(@RequestBody RoleCreateRequest request) {
         request.setTenantId(SecurityUtils.getTenantId(request.getTenantId()));
         request.setStoreId(SecurityUtils.getStoreId(request.getStoreId()));
@@ -90,6 +91,7 @@ public class RoleController {
     }
 
     @PostMapping("/update")
+    @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ROLES)")
     public ResponseEntity<Map<String, Object>> updateRole(@RequestBody RoleCreateRequest request, @RequestParam Long roleId) {
         Role existingRole = roleRepository.findById(roleId).orElse(null);
         Map<String, Object> response = new HashMap<>();
@@ -137,6 +139,7 @@ public class RoleController {
     }
 
     @PostMapping("/assign")
+    @PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ROLES, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_STAFF)")
     public ResponseEntity<Map<String, Object>> assignRole(@RequestBody RoleAssignRequest request) {
         request.setTenantId(SecurityUtils.getTenantId(request.getTenantId()));
         request.setStoreId(SecurityUtils.getStoreId(request.getStoreId()));
@@ -173,6 +176,9 @@ public class RoleController {
     @GetMapping("/staff/{staffId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Map<String, Object>> getStaffRole(@PathVariable Long staffId) {
+        SecurityUtils.requireSelfOrAnyAuthority(staffId,
+                com.relfor.pcs.payroll.security.Permissions.MANAGE_ROLES,
+                com.relfor.pcs.payroll.security.Permissions.MANAGE_STAFF);
         Map<String, Object> response = new HashMap<>();
         List<Role> activeRoles = storeStaffRoleRepository.findActiveRolesByStaffId(staffId);
         

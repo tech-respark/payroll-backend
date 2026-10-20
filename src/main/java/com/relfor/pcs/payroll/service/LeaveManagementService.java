@@ -3,14 +3,20 @@ package com.relfor.pcs.payroll.service;
 import com.relfor.pcs.payroll.dto.LeaveApplicationDTO;
 import com.relfor.pcs.payroll.entity.*;
 import com.relfor.pcs.payroll.repository.*;
+import com.relfor.pcs.payroll.util.WeeklyOffUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -66,6 +72,27 @@ public class LeaveManagementService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getEligibleLeaveTypes(Long staffId) {
+        List<Map<String, Object>> types = new ArrayList<>();
+        for (LeavePlanRule rule : getEligibleLeaveRules(staffId)) {
+            LeaveType type = rule.getLeaveType();
+            if (type == null) {
+                continue;
+            }
+            Map<String, Object> row = new HashMap<>();
+            row.put("id", type.getId());
+            row.put("leaveCode", type.getLeaveCode());
+            row.put("leaveName", type.getLeaveName());
+            row.put("paid", type.isPaid());
+            row.put("applicableGender", type.getApplicableGender());
+            row.put("tenantId", type.getTenantId());
+            row.put("storeId", type.getStoreId());
+            types.add(row);
+        }
+        return types;
+    }
+
     @Transactional
     public LeaveApplication applyForLeave(Long tenantId, Long storeId, Long staffId, LeaveType type, LocalDate startDate, LocalDate endDate, String reason, String attachmentUrl, String leaveSession) {
         if (endDate.isBefore(startDate)) {
@@ -84,8 +111,8 @@ public class LeaveManagementService {
         long daysRequested = 0;
         
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-            if (weeklyOffStr != null && date.getDayOfWeek().name().equalsIgnoreCase(weeklyOffStr)) {
-                continue; 
+            if (WeeklyOffUtils.isWeeklyOff(weeklyOffStr, date)) {
+                continue;
             }
             daysRequested++;
         }
@@ -224,8 +251,8 @@ public class LeaveManagementService {
         );
 
         logAction(application, LeaveApplicationLog.LogAction.APPROVED, managerId, remarks);
-        
-        asyncAttendanceUpdater.syncApprovedLeaveToAttendance(application);
+
+        runAfterCommit(() -> asyncAttendanceUpdater.syncApprovedLeaveToAttendance(application));
         
         try {
             Optional<PersonnelDetails> personnelOpt = personnelDetailsRepository.findById(application.getStaffId());
@@ -271,7 +298,7 @@ public class LeaveManagementService {
     }
 
     @Transactional
-    public void requestCancellation(Long applicationId, Long staffId, String remarks) {
+    public LeaveApplication.ApplicationStatus requestCancellation(Long applicationId, Long staffId, String remarks) {
         LeaveApplication application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new IllegalArgumentException("Application not found"));
 
@@ -287,10 +314,14 @@ public class LeaveManagementService {
             application.setStatus(LeaveApplication.ApplicationStatus.CANCELLED);
             applicationRepository.save(application);
             logAction(application, LeaveApplicationLog.LogAction.CANCELLED, staffId, "Self cancelled before approval: " + remarks);
+            return LeaveApplication.ApplicationStatus.CANCELLED;
         } else if (application.getStatus() == LeaveApplication.ApplicationStatus.APPROVED) {
             application.setStatus(LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED);
             applicationRepository.save(application);
             logAction(application, LeaveApplicationLog.LogAction.CANCELLATION_REQUESTED, staffId, remarks);
+            return LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED;
+        } else {
+            throw new IllegalStateException("Cannot cancel a leave in status " + application.getStatus() + ".");
         }
     }
 
@@ -319,8 +350,8 @@ public class LeaveManagementService {
         );
 
         logAction(application, LeaveApplicationLog.LogAction.CANCELLED, managerId, "Cancellation Approved: " + remarks);
-        
-        asyncAttendanceUpdater.revertCancelledLeaveFromAttendance(application);
+
+        runAfterCommit(() -> asyncAttendanceUpdater.revertCancelledLeaveFromAttendance(application));
     }
 
     @Transactional
@@ -341,6 +372,19 @@ public class LeaveManagementService {
         applicationRepository.save(application);
 
         logAction(application, LeaveApplicationLog.LogAction.CANCELLATION_REJECTED, managerId, "Cancellation rejected: " + remarks);
+    }
+
+    private void runAfterCommit(Runnable task) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    task.run();
+                }
+            });
+        } else {
+            task.run();
+        }
     }
 
     private void logAction(LeaveApplication application, LeaveApplicationLog.LogAction action, Long actorId, String remarks) {

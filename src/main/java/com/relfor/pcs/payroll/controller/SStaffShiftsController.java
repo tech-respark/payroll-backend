@@ -5,6 +5,7 @@ import com.relfor.pcs.payroll.entity.SShiftsSlots;
 import com.relfor.pcs.payroll.entity.SStaffShifts;
 import com.relfor.pcs.payroll.repository.SShiftsSlotsRepository;
 import com.relfor.pcs.payroll.repository.SStaffShiftsRepository;
+import com.relfor.pcs.payroll.service.StaffIdentityService;
 import com.relfor.pcs.payroll.service.StaffShiftsService;
 import com.relfor.pcs.payroll.util.ResponseHandler;
 import com.relfor.pcs.payroll.util.SecurityUtils;
@@ -31,7 +32,6 @@ import java.util.Map;
 @RestController
 @CrossOrigin
 @RequestMapping("/payroll-management/v1")
-@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
 public class SStaffShiftsController {
 	/**
 	 * SStaffShiftsRepository is used to interact with the database and retrieve
@@ -47,15 +47,17 @@ public class SStaffShiftsController {
 	 * StaffShiftsService is used to create staff shifts based on the input data.
 	 */
 	private final StaffShiftsService staffShiftsService;
+	private final StaffIdentityService staffIdentityService;
 	/**
 	 * Logger is used for logging purposes.
 	 */
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public SStaffShiftsController(SStaffShiftsRepository stSfRepo, SShiftsSlotsRepository shStRepo, StaffShiftsService staffShiftsService) {
+    public SStaffShiftsController(SStaffShiftsRepository stSfRepo, SShiftsSlotsRepository shStRepo, StaffShiftsService staffShiftsService, StaffIdentityService staffIdentityService) {
         this.stSfRepo = stSfRepo;
         this.shStRepo = shStRepo;
         this.staffShiftsService = staffShiftsService;
+        this.staffIdentityService = staffIdentityService;
     }
 
     /**
@@ -66,6 +68,7 @@ public class SStaffShiftsController {
 	 * @return ResponseEntity with the created staff shifts or an error message
 	 */
 	@PostMapping("/staffshifts")
+	@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
 	public ResponseEntity<?> createStaffShifts(@RequestBody CreateStaffShiftInput createStaffShiftInput) {
 		try {
             createStaffShiftInput.setTenantId(SecurityUtils.getTenantId(createStaffShiftInput.getTenantId()));
@@ -95,6 +98,7 @@ public class SStaffShiftsController {
      * @return A ResponseEntity containing a list of SStaffShifts or an error response.
      */
     @GetMapping("/staffshifts")
+    @PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS, T(com.relfor.pcs.payroll.security.Permissions).VIEW_SHIFTS)")
     public ResponseEntity<?> getStaffShiftsByStoreId(@RequestParam long tenantId, @RequestParam long storeId,
                                                      @RequestParam(required = false) String date,
                                                      @RequestParam(required = false) Long staffId) {
@@ -103,13 +107,13 @@ public class SStaffShiftsController {
         List<SStaffShifts> staffShifts;
         try {
             if (staffId != null && date != null)
-                staffShifts = stSfRepo.findByTenantIdAndStoreIdAndShiftDateAndStaffId(tenantId, storeId,
-                        LocalDate.parse(date), staffId);
+                staffShifts = stSfRepo.findByTenantIdAndStoreIdAndShiftDateAndStaffIdIn(tenantId, storeId,
+                        LocalDate.parse(date), staffIdentityService.rosterKeysForStaffId(staffId));
             else if (date != null) staffShifts = stSfRepo.findByTenantIdAndStoreIdAndShiftDate(tenantId, storeId,
                     LocalDate.parse(date));
             else
                 staffShifts = stSfRepo.findByTenantIdAndStoreId(tenantId, storeId);
-            return ResponseEntity.ok().body(staffShifts);
+            return ResponseEntity.ok().body(staffIdentityService.canonicalizeShiftStaffIds(staffShifts));
         } catch (Exception e) {
             logger.error(e.getClass().getName(), e);
             return ResponseHandler.generateResponse("Internal Server error please contact to admin.", e.getMessage(),
@@ -118,6 +122,7 @@ public class SStaffShiftsController {
     }
 
 	@GetMapping("/staffshifts/store/weekly")
+	@PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS, T(com.relfor.pcs.payroll.security.Permissions).VIEW_SHIFTS)")
 	public ResponseEntity<?> getStoreWeeklyShifts(
 			@RequestParam long tenantId,
 			@RequestParam long storeId,
@@ -127,8 +132,8 @@ public class SStaffShiftsController {
 		try {
 			LocalDate start = LocalDate.parse(startDate);
 			LocalDate end = start.plusDays(6);
-			List<SStaffShifts> staffShifts = stSfRepo.findStoreShiftsForWeek(
-					tenantId, storeId, start, end);
+			List<SStaffShifts> staffShifts = staffIdentityService.canonicalizeShiftStaffIds(
+					stSfRepo.findStoreShiftsForWeek(tenantId, storeId, start, end));
 			return ResponseEntity.ok().body(staffShifts);
 		} catch (Exception e) {
 			logger.error(e.getClass().getName(), e);
@@ -137,6 +142,7 @@ public class SStaffShiftsController {
 	}
 
 	@GetMapping("/staffshifts/staff")
+	@PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS, T(com.relfor.pcs.payroll.security.Permissions).VIEW_SHIFTS)")
 	public ResponseEntity<?> getStaffShiftsForNext7Days(@RequestParam long tenantId, @RequestParam long storeId,
 														  @RequestParam long staffId, @RequestParam String startDate) {
         tenantId = SecurityUtils.getTenantId(tenantId);
@@ -145,8 +151,9 @@ public class SStaffShiftsController {
 		try {
 			LocalDate fromDate = LocalDate.parse(startDate);
 			LocalDate toDate = fromDate.plusDays(6);
-			staffShifts = stSfRepo.findByTenantIdAndStoreIdAndStaffIdAndShiftDateBetween(
-					tenantId, storeId, staffId, fromDate, toDate);
+			staffShifts = staffIdentityService.canonicalizeShiftStaffIds(
+					stSfRepo.findByTenantIdAndStoreIdAndStaffIdInAndShiftDateBetween(
+							tenantId, storeId, staffIdentityService.rosterKeysForStaffId(staffId), fromDate, toDate));
 			return ResponseEntity.ok().body(staffShifts);
 		} catch (Exception e) {
 			logger.error(e.getClass().getName(), e);
@@ -162,6 +169,7 @@ public class SStaffShiftsController {
 	 * @return ResponseEntity with the created shift slot or an error message
 	 */
 	@PostMapping("/shiftslots")
+	@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
 	public ResponseEntity<?> createShiftSlots(@RequestBody SShiftsSlots obj) {
 		try {
             obj.setTenantId(SecurityUtils.getTenantId(obj.getTenantId()));
@@ -182,6 +190,7 @@ public class SStaffShiftsController {
 	 * @return ResponseEntity with the shift slots or an error message
 	 */
 	@GetMapping("/shiftslots/all")
+	@PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS, T(com.relfor.pcs.payroll.security.Permissions).VIEW_SHIFTS)")
 	public ResponseEntity<?> getShiftSlots() {
 		try {
 			List<SShiftsSlots> staffShifs = shStRepo.findAll();
@@ -203,6 +212,7 @@ public class SStaffShiftsController {
 	 * @return ResponseEntity with the shift slots for the store or an error message
 	 */
 	@GetMapping("/shiftslots")
+	@PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS, T(com.relfor.pcs.payroll.security.Permissions).VIEW_SHIFTS)")
 	public ResponseEntity<?> getShiftSlotsByStoreId(@RequestParam long tenantId, @RequestParam long storeId) {
         tenantId = SecurityUtils.getTenantId(tenantId);
         storeId = SecurityUtils.getStoreId(storeId);
@@ -218,6 +228,7 @@ public class SStaffShiftsController {
 
 	// INTERNAL API
 	@PostMapping("/staffProductivity")
+	@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
 	public ResponseEntity<?> postStaffProductivity(@RequestParam Long tenantId, @RequestParam Long storeId,
 			@RequestParam String shiftDate, @RequestBody List<Map<String, Object>> result) {
         tenantId = SecurityUtils.getTenantId(tenantId);
@@ -234,6 +245,7 @@ public class SStaffShiftsController {
 
 	// INTERNAL API
 	@PostMapping("/staffProductivityForUpdatedOrder")
+	@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
 	public ResponseEntity<?> postStaffProductivityForUpdatedOrder(@RequestParam Long tenantId,
 			@RequestParam Long storeId, @RequestParam String shiftDate, @RequestBody List<Map<String, Object>> result) {
         tenantId = SecurityUtils.getTenantId(tenantId);
@@ -250,6 +262,7 @@ public class SStaffShiftsController {
 
 	// UTILITY
 	@PostMapping("/utility/stylistProductivity")
+	@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
 	public ResponseEntity<?> updateStylistProductivity(@RequestBody List<Object[]> list) {
 		try {
 			staffShiftsService.updateStylistProductivity(list);
@@ -262,6 +275,7 @@ public class SStaffShiftsController {
 
 	// UTILITY
 	@PostMapping("/staffBookedshifts/{startday}")
+	@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
 	public ResponseEntity<?> createStaffBookedShifts(@PathVariable(value = "startday") String startDate) {
 		try {
 
@@ -275,6 +289,7 @@ public class SStaffShiftsController {
 	}
 
 	@GetMapping("/availableStaffSlots")
+	@PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS, T(com.relfor.pcs.payroll.security.Permissions).VIEW_SHIFTS)")
 	public ResponseEntity<?> fetchAvailableStaffSlots(@RequestParam String startDate, @RequestParam long staffId,
 			@RequestParam long tenantId, @RequestParam long storeId, @RequestParam String timeZone) {
         tenantId = SecurityUtils.getTenantId(tenantId);
@@ -292,6 +307,7 @@ public class SStaffShiftsController {
 	}
 
 	@GetMapping("/allStaffsSlots")
+	@PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS, T(com.relfor.pcs.payroll.security.Permissions).VIEW_SHIFTS)")
 	public ResponseEntity<?> fetchAllStaffsSlots(@RequestParam String startDate, @RequestParam long tenantId,
 			@RequestParam long storeId, @RequestParam String timeZone) {
         tenantId = SecurityUtils.getTenantId(tenantId);
@@ -309,6 +325,7 @@ public class SStaffShiftsController {
 
 	// INTERNAL API
 	@GetMapping("/staffShifts/stylistRevenue")
+	@PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS, T(com.relfor.pcs.payroll.security.Permissions).VIEW_SHIFTS)")
 	public ResponseEntity<?> getStaffShiftsForStylistRevenueReport(@RequestParam String fromDate,
 			@RequestParam String toDate, @RequestParam long storeId, @RequestParam long tenantId) {
         tenantId = SecurityUtils.getTenantId(tenantId);
@@ -326,12 +343,14 @@ public class SStaffShiftsController {
 	}
 
 	@PostMapping("/staffs/weeklyOff")
+	@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
 	public ResponseEntity<?> updateWeeklyOff(@RequestBody Map<String, Object> staff) {
 		ResponseModel responseModel = staffShiftsService.updateWeeklyOff(staff);
 		return ResponseHandler.generateResponseModel(responseModel);
 	}
 
 	@PostMapping("/staff/report")
+    @PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).VIEW_REPORTS, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ATTENDANCE, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SALARY, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
     public ResponseEntity<?> fetchStaffAttendanceByTenantIdAndStoreIdAndShiftDateInBetween(
             @RequestBody ReportRequestDTO reportRequestDTO) {
         try {
@@ -348,6 +367,7 @@ public class SStaffShiftsController {
     }
 
 	@PostMapping("/staff/report/summary")
+    @PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).VIEW_REPORTS, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ATTENDANCE, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SALARY, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
     public ResponseEntity<?> fetchStaffAttendanceSummaryByTenantIdAndStoreIdAndShiftDateInBetween(
             @RequestBody ReportRequestDTO reportRequestDTO) {
         try {
@@ -364,6 +384,7 @@ public class SStaffShiftsController {
     }
 
 	@PostMapping("/staff/report/detailed")
+    @PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).VIEW_REPORTS, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ATTENDANCE, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SALARY, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
     public ResponseEntity<?> fetchDetailedStaffAttendanceByStaffId(
             @RequestBody ReportRequestDTO reportRequestDTO) {
         try {
@@ -386,6 +407,7 @@ public class SStaffShiftsController {
     }
 
 	@GetMapping("/availableStaffIds")
+	@PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS, T(com.relfor.pcs.payroll.security.Permissions).VIEW_SHIFTS)")
 	public ResponseEntity<?> fetchAvailableStaffIds(@RequestParam String startDate,
 													  @RequestParam long tenantId, @RequestParam long storeId) {
         tenantId = SecurityUtils.getTenantId(tenantId);
@@ -403,6 +425,7 @@ public class SStaffShiftsController {
 	}
 
 	@PostMapping("/staff/report/query")
+	@PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).VIEW_REPORTS, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ATTENDANCE, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SALARY, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_SHIFTS)")
 	public ResponseEntity<?> fetchStaffAttendenceDynamic(@RequestBody AttendanceQueryRequest request) {
 		try {
 			Object data = staffShiftsService.getAttendenceByTenantIdStoreIdInBetweenDynamic(request);

@@ -94,7 +94,7 @@ public class SalaryCalculation {
                             BigDecimal result = evaluateFormula(rule.getFormula(), context);
 
                             PersonnelSalaryComponents component = existingPersonnelComponents.stream()
-                                    .filter(ex -> ex.getSalaryComponentDefinitions().getId() == definition.getId())
+                                    .filter(ex -> Objects.equals(ex.getSalaryComponentDefinitions().getId(), definition.getId()))
                                     .findFirst()
                                     .orElse(new PersonnelSalaryComponents());
                             component.setStaffId(staffId);
@@ -115,6 +115,8 @@ public class SalaryCalculation {
                 
                 List<PersonnelSalaryComponents> finalResponseData = responseData;
                 List<PersonnelSalaryComponents> toDelete = existingPersonnelComponents.stream()
+                        .filter(ex -> ex.getSalaryComponentDefinitions() == null
+                                || !Boolean.TRUE.equals(ex.getSalaryComponentDefinitions().getIsCalculatedMonthly()))
                         .filter(ex -> finalResponseData.stream().noneMatch(res -> res.getId() != null && res.getId().equals(ex.getId())))
                         .collect(Collectors.toList());
                 if (!toDelete.isEmpty()) {
@@ -151,10 +153,15 @@ public class SalaryCalculation {
         }
 
         for(SalaryComponentDTO dto : allComponentsList) {
-            Optional<SalaryComponentDefinitions> salaryDefinition = salaryComponentDefinitions.stream().filter(definition -> definition.getId() == dto.getSalaryComponentDefinitionsId()).findFirst();
+            Optional<SalaryComponentDefinitions> salaryDefinition = salaryComponentDefinitions.stream()
+                    .filter(definition -> Objects.equals(definition.getId(), dto.getSalaryComponentDefinitionsId()))
+                    .findFirst();
+            if (salaryDefinition.isEmpty()) {
+                continue;
+            }
 
             PersonnelSalaryComponents salaryComponent = existingComponents.stream()
-                    .filter(ex -> ex.getSalaryComponentDefinitions().getId() == salaryDefinition.get().getId())
+                    .filter(ex -> Objects.equals(ex.getSalaryComponentDefinitions().getId(), salaryDefinition.get().getId()))
                     .findFirst()
                     .orElse(new PersonnelSalaryComponents());
             salaryComponent.setTenantId(tenantId);

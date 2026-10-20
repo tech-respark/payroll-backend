@@ -11,6 +11,9 @@ public interface PersonnelDetailsRepository extends JpaRepository<PersonnelDetai
 	Optional<PersonnelDetails> findById(Long id);
 	Optional<PersonnelDetails> findByUsername(String username);
 	Optional<PersonnelDetails> findByEmail(String email);
+	Optional<PersonnelDetails> findByPersonnelMobileNumber(String personnelMobileNumber);
+	Optional<PersonnelDetails> findByPersonnelCode(Long personnelCode);
+	List<PersonnelDetails> findByPersonnelCodeIn(java.util.Collection<Long> personnelCodes);
 	List<PersonnelDetails> findByApplicationTenantIdAndStoreId(Long applicationTenantId, Long storeId);
 
 	@Query(value = "SELECT * FROM personnel_details pd \n" +

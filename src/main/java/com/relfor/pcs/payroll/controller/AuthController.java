@@ -69,6 +69,11 @@ public class AuthController {
             }
 
             if (isPasswordValid) {
+                if (personnel.getActive() == null || !personnel.getActive()) {
+                    response.setSuccess(false);
+                    response.setMessage("Invalid username/email or password.");
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+                }
                 CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(personnel.getUsername());
                 
                 String token = jwtUtil.generateToken(userDetails);

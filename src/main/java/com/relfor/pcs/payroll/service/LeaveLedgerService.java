@@ -27,7 +27,11 @@ public class LeaveLedgerService {
     }
 
     @Transactional
-    public BigDecimal getOrAllocateBalance(Long tenantId, Long storeId, Long staffId, LeaveType type, BigDecimal annualAllotment, LocalDate asOfDate) {
+    public BigDecimal getOrAllocateBalance(Long tenantId, Long storeId, Long staffId, LeaveType type, BigDecimal annualAllotment, LocalDate asOfDate, com.relfor.pcs.payroll.entity.LeavePlanRule.AccrualFrequency accrualFrequency) {
+        if (accrualFrequency != null && accrualFrequency != com.relfor.pcs.payroll.entity.LeavePlanRule.AccrualFrequency.NONE) {
+            return getAvailableBalance(staffId, type.getId(), asOfDate);
+        }
+
         LocalDate yearStart = LocalDate.of(asOfDate.getYear(), 1, 1);
         long allocations = ledgerRepository.countAllocationsForYear(staffId, type.getId(), yearStart);
         

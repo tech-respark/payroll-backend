@@ -10,6 +10,7 @@ import com.relfor.pcs.payroll.util.SecurityUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +22,7 @@ public class AttendanceManagementController {
 	AttendanceManagementService attendanceManagementService;
 
 	@PostMapping("/personnelForAttendanceManagement")
+	@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_STAFF)")
 	public ResponseEntity<?> enrollPersonnelForAttendanceManagement(@RequestBody StaffDTO staffDTO){
 		ResponseModel responseModel = attendanceManagementService.enrollPersonnelForAttendanceManagement(staffDTO);
 		return ResponseHandler.generateResponseModel(responseModel);
@@ -34,11 +36,13 @@ public class AttendanceManagementController {
 
 	@PostMapping("/personnelDetailsForListOfStaffIds")
 	public ResponseEntity<?> getPersonnelDetailsForListOfStaffIds(@RequestBody List<Long> staffIds) {
+		staffIds = SecurityUtils.constrainStaffIds(staffIds);
 		ResponseModel responseModel = attendanceManagementService.getPersonnelDetailsForListOfStaffIds(staffIds);
 		return ResponseHandler.generateResponseModel(responseModel);
 	}
 
 	@PostMapping("/updatePasswordForPersonnel")
+	@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_STAFF)")
 	public void updatePasswordForPersonnel(@RequestBody StaffDTO staffDTO) {
 		attendanceManagementService.updatePasswordForPersonnel(staffDTO);
 	}
@@ -49,6 +53,10 @@ public class AttendanceManagementController {
         storeId = SecurityUtils.getStoreId(storeId);
 		try {
 			List<StaffDTO> result = attendanceManagementService.getAllPersonnelByTenantAndStore(tenantId, storeId);
+			if (!SecurityUtils.canViewOtherStaff()) {
+				Long selfId = SecurityUtils.getStaffId();
+				result = result.stream().filter(staff -> selfId != null && selfId.equals(staff.getId())).toList();
+			}
 			return ResponseHandler.generateResponse("OK", null, HttpStatus.OK, result);
 		} catch (Exception e) {
 			return ResponseHandler.generateResponse("Error", e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR, null);

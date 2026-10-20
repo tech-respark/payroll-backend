@@ -13,7 +13,7 @@ public interface LeaveApplicationRepository extends JpaRepository<LeaveApplicati
 
     @Query("SELECT COUNT(l) FROM LeaveApplication l " +
            "WHERE l.staffId = :staffId " +
-           "AND l.status IN ('PENDING', 'APPROVED') " +
+           "AND l.status IN ('PENDING', 'APPROVED', 'CANCELLATION_REQUESTED') " +
            "AND l.startDate <= :endDate " +
            "AND l.endDate >= :startDate")
     long countOverlappingLeaves(@Param("staffId") Long staffId, 
@@ -54,6 +54,13 @@ public interface LeaveApplicationRepository extends JpaRepository<LeaveApplicati
     long countByStatus(@Param("tenantId") Long tenantId, 
                        @Param("storeId") Long storeId, 
                        @Param("status") LeaveApplication.ApplicationStatus status);
+
+    @Query("SELECT COUNT(l) FROM LeaveApplication l " +
+           "WHERE l.tenantId = :tenantId AND l.storeId = :storeId " +
+           "AND l.status IN :statuses")
+    long countByStatusIn(@Param("tenantId") Long tenantId,
+                         @Param("storeId") Long storeId,
+                         @Param("statuses") List<LeaveApplication.ApplicationStatus> statuses);
 
     @Query("SELECT l FROM LeaveApplication l JOIN FETCH l.leaveType " +
            "WHERE l.tenantId = :tenantId AND l.storeId = :storeId " +

@@ -26,11 +26,15 @@ public class LeaveAccrualSchedulerService {
     private final LeaveTransactionLedgerRepository ledgerRepository;
     private final LeaveLedgerService ledgerService;
     private final LeaveRuleOverrideRepository overrideRepository;
+    private final SchedulerLockService schedulerLockService;
 
     // Run on the 1st day of every month at midnight
     @Scheduled(cron = "0 0 0 1 * ?")
     @Transactional
     public void processMonthlyAccruals() {
+        if (!schedulerLockService.tryAcquire("leave-accrual-monthly", java.time.Duration.ofHours(1))) {
+            return;
+        }
         logger.info("Starting monthly leave accrual process.");
         List<EmployeeLeaveEnrollment> enrollments = enrollmentRepository.findAll();
 
@@ -39,6 +43,10 @@ public class LeaveAccrualSchedulerService {
 
             for (LeavePlanRule rule : rules) {
                 if (rule.getAccrualFrequency() == LeavePlanRule.AccrualFrequency.MONTHLY) {
+                    LocalDate periodStart = LocalDate.now().withDayOfMonth(1);
+                    if (alreadyAccrued(enrollment.getStaffId(), rule.getLeaveType().getId(), periodStart, periodStart.plusMonths(1))) {
+                        continue;
+                    }
                     BigDecimal monthlyAmount = rule.getAnnualAllotment()
                             .divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
 
@@ -64,6 +72,9 @@ public class LeaveAccrualSchedulerService {
     @Scheduled(cron = "0 0 0 1 1,4,7,10 ?")
     @Transactional
     public void processQuarterlyAccruals() {
+        if (!schedulerLockService.tryAcquire("leave-accrual-quarterly", java.time.Duration.ofHours(1))) {
+            return;
+        }
         logger.info("Starting quarterly leave accrual process.");
         List<EmployeeLeaveEnrollment> enrollments = enrollmentRepository.findAll();
 
@@ -72,6 +83,12 @@ public class LeaveAccrualSchedulerService {
 
             for (LeavePlanRule rule : rules) {
                 if (rule.getAccrualFrequency() == LeavePlanRule.AccrualFrequency.QUARTERLY) {
+                    LocalDate today = LocalDate.now();
+                    int quarterStartMonth = ((today.getMonthValue() - 1) / 3) * 3 + 1;
+                    LocalDate periodStart = LocalDate.of(today.getYear(), quarterStartMonth, 1);
+                    if (alreadyAccrued(enrollment.getStaffId(), rule.getLeaveType().getId(), periodStart, periodStart.plusMonths(3))) {
+                        continue;
+                    }
                     BigDecimal quarterlyAmount = rule.getAnnualAllotment()
                             .divide(BigDecimal.valueOf(4), 2, RoundingMode.HALF_UP);
 
@@ -97,6 +114,9 @@ public class LeaveAccrualSchedulerService {
     @Scheduled(cron = "0 1 0 1 1 ?")
     @Transactional
     public void processYearEndExpiries() {
+        if (!schedulerLockService.tryAcquire("leave-accrual-year-end", java.time.Duration.ofHours(1))) {
+            return;
+        }
         logger.info("Starting year-end leave expiry process.");
         List<EmployeeLeaveEnrollment> enrollments = enrollmentRepository.findAll();
 
@@ -142,6 +162,10 @@ public class LeaveAccrualSchedulerService {
                 
                 // If it's an annual plan, grant the new year's bucket immediately after expiry
                 if (rule.getAccrualFrequency() == LeavePlanRule.AccrualFrequency.ANNUALLY) {
+                    LocalDate yearStart = LocalDate.now().withDayOfYear(1);
+                    if (alreadyAccrued(enrollment.getStaffId(), rule.getLeaveType().getId(), yearStart, yearStart.plusYears(1))) {
+                        continue;
+                    }
                      LeaveTransactionLedger transaction = LeaveTransactionLedger.builder()
                             .tenantId(enrollment.getTenantId())
                             .storeId(enrollment.getStoreId())
@@ -158,5 +182,14 @@ public class LeaveAccrualSchedulerService {
             }
         }
         logger.info("Year-end leave expiry process completed.");
+    }
+
+    private boolean alreadyAccrued(Long staffId, Long leaveTypeId, LocalDate periodStart, LocalDate periodEnd) {
+        return ledgerRepository.countByStaffTypeAndPeriod(
+                staffId,
+                leaveTypeId,
+                LeaveTransactionLedger.TransactionType.ACCRUAL,
+                periodStart,
+                periodEnd) > 0;
     }
 }

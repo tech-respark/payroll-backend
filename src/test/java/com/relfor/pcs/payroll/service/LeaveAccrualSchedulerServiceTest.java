@@ -11,12 +11,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,6 +29,7 @@ class LeaveAccrualSchedulerServiceTest {
     @Mock private LeaveTransactionLedgerRepository ledgerRepository;
     @Mock private LeaveLedgerService ledgerService;
     @Mock private LeaveRuleOverrideRepository overrideRepository;
+    @Mock private SchedulerLockService schedulerLockService;
 
     @InjectMocks
     private LeaveAccrualSchedulerService schedulerService;
@@ -52,6 +55,7 @@ class LeaveAccrualSchedulerServiceTest {
 
         when(enrollmentRepository.findAll()).thenReturn(List.of(enrollment));
         when(ruleRepository.findByLeavePlan_Id(plan.getId())).thenReturn(List.of(rule));
+        when(schedulerLockService.tryAcquire(anyString(), any(Duration.class))).thenReturn(true);
 
         // Act
         schedulerService.processMonthlyAccruals();
@@ -100,6 +104,7 @@ class LeaveAccrualSchedulerServiceTest {
         
         when(overrideRepository.findByStaffIdAndLeavePlanRuleId(10L, 50L))
                 .thenReturn(Optional.of(override));
+        when(schedulerLockService.tryAcquire(anyString(), any(Duration.class))).thenReturn(true);
 
         // Act
         schedulerService.processYearEndExpiries();

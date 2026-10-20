@@ -18,11 +18,14 @@ public interface SStaffShiftsRepository extends JpaRepository<SStaffShifts, Long
 
 	List<SStaffShifts> findByTenantIdAndStoreId(long tenantId, long storeId);
 
-	@Query(value = "SELECT ss.*, s.designation FROM staff_shifts ss join personnel_details s on ss.staff_id = s.staff_id WHERE ss.tenant_id = ?1 and ss.store_id = ?2 and ss.shift_date = ?3", nativeQuery = true)
+	@Query(value = "SELECT ss.* FROM staff_shifts ss WHERE ss.tenant_id = ?1 and ss.store_id = ?2 and ss.shift_date = ?3", nativeQuery = true)
 	List<SStaffShifts> findByTenantIdAndStoreIdAndShiftDate(long tenantId, long storeId, LocalDate day);
 
 	List<SStaffShifts> findByTenantIdAndStoreIdAndShiftDateAndStaffId(long tenantId, long storeId, LocalDate day,
 			long staffId);
+
+	List<SStaffShifts> findByTenantIdAndStoreIdAndShiftDateAndStaffIdIn(long tenantId, long storeId, LocalDate day,
+			List<Long> staffIds);
 
 	@Query(value = "SELECT * " + "FROM staff_shifts " + "WHERE staff_shifts.tenant_id = :tenantId "
 			+ "AND staff_shifts.store_id = :storeId " + "AND staff_shifts.staff_id = :staffId "
@@ -66,7 +69,8 @@ public interface SStaffShiftsRepository extends JpaRepository<SStaffShifts, Long
 
 	List<SStaffShifts> findByTenantIdAndStoreIdAndStaffIdAndShiftDateBetween(long tenantId, long storeId, long staffId, LocalDate startDate, LocalDate endDate);
 
-	@Query(value = "SELECT ss.*, s.designation FROM staff_shifts ss JOIN personnel_details s ON ss.staff_id = s.id " +
-			"WHERE ss.tenant_id = ?1 AND ss.store_id = ?2 AND ss.shift_date BETWEEN ?3 AND ?4", nativeQuery = true)
+	List<SStaffShifts> findByTenantIdAndStoreIdAndStaffIdInAndShiftDateBetween(long tenantId, long storeId, List<Long> staffIds, LocalDate startDate, LocalDate endDate);
+
+	@Query(value = "SELECT ss.* FROM staff_shifts ss WHERE ss.tenant_id = ?1 AND ss.store_id = ?2 AND ss.shift_date BETWEEN ?3 AND ?4", nativeQuery = true)
 	List<SStaffShifts> findStoreShiftsForWeek(long tenantId, long storeId, LocalDate startDate, LocalDate endDate);
 }

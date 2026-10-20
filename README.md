@@ -28,14 +28,15 @@ The service listens on HTTPS port **8092**. The frontend development server on p
 
 ```bash
 export JAVA_HOME='<path-to-java-21>'
+export SPRING_PROFILES_ACTIVE=local
 mvn test
 mvn spring-boot:run
 ```
 
-Database URL, username, and password must come from the environment. Do not commit local credentials. See [getting started](docs/getting-started.md).
+Database URL, username, password, SSL keystore passwords, and `JWT_SECRET` must come from the environment or gitignored `application-local.properties`. Do not commit local credentials. See [getting started](docs/getting-started.md). QA and production follow the frontend portal page `docs/operations/qa-and-production-deployment.md`.
 
 ## What not to treat as current
 
-`PROJECT_REVIEW.md` is a historical review from 2026-07-07. Some findings remain relevant, including committed secrets and incomplete tenant authorization. Other statements are stale: scheduling and async execution are now enabled on the application class, and the properties file exposes only health and Prometheus rather than every actuator endpoint. The security matcher still permits `/actuator/**` without authentication.
+`PROJECT_REVIEW.md` is a historical review from 2026-07-07. Some findings remain relevant, including incomplete trigger authorization and historically leaked secrets that still need rotation. Other statements are stale: scheduling and async execution are now enabled on the application class, tracked properties expose only `health`, and the security matcher permits `/actuator/health` rather than `/actuator/**`.
 
 Current executable code is the source of truth. Product behavior and known gaps are maintained in the frontend documentation portal.

@@ -6,6 +6,8 @@ import com.relfor.pcs.payroll.dto.StoreHolidayResponse;
 import com.relfor.pcs.payroll.service.StoreHolidayService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,7 +20,8 @@ public class StoreHolidayController {
     private StoreHolidayService storeHolidayService;
 
     @PostMapping
-    public ResponseModel createHoliday(@RequestBody StoreHolidayRequest request) {
+    @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_LEAVES)")
+    public ResponseEntity<ResponseModel> createHoliday(@RequestBody StoreHolidayRequest request) {
         ResponseModel responseModel = new ResponseModel();
         try {
             StoreHolidayResponse holiday = storeHolidayService.createHoliday(request);
@@ -29,11 +32,11 @@ public class StoreHolidayController {
             responseModel.setCode(HttpStatus.BAD_REQUEST);
             responseModel.setMessage(e.getMessage());
         }
-        return responseModel;
+        return ResponseEntity.status(responseModel.getCode()).body(responseModel);
     }
 
     @GetMapping
-    public ResponseModel getHolidays(
+    public ResponseEntity<ResponseModel> getHolidays(
             @RequestParam("tenantId") Long tenantId,
             @RequestParam("storeId") Long storeId) {
         ResponseModel responseModel = new ResponseModel();
@@ -46,11 +49,12 @@ public class StoreHolidayController {
             responseModel.setCode(HttpStatus.INTERNAL_SERVER_ERROR);
             responseModel.setMessage("Error retrieving holidays.");
         }
-        return responseModel;
+        return ResponseEntity.status(responseModel.getCode()).body(responseModel);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseModel deleteHoliday(@PathVariable Long id) {
+    @PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_LEAVES)")
+    public ResponseEntity<ResponseModel> deleteHoliday(@PathVariable Long id) {
         ResponseModel responseModel = new ResponseModel();
         try {
             storeHolidayService.deleteHoliday(id);
@@ -60,6 +64,6 @@ public class StoreHolidayController {
             responseModel.setCode(HttpStatus.BAD_REQUEST);
             responseModel.setMessage(e.getMessage());
         }
-        return responseModel;
+        return ResponseEntity.status(responseModel.getCode()).body(responseModel);
     }
 }

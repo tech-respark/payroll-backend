@@ -7,6 +7,7 @@ import com.relfor.pcs.payroll.entity.PersonnelDetails;
 import com.relfor.pcs.payroll.repository.DayWiseAttendanceSummaryRepository;
 import com.relfor.pcs.payroll.repository.LeaveApplicationRepository;
 import com.relfor.pcs.payroll.repository.PersonnelDetailsRepository;
+import com.relfor.pcs.payroll.util.WeeklyOffUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -24,7 +25,7 @@ public class HRDashboardService {
     private final DayWiseAttendanceSummaryRepository attendanceRepository;
 
     public DashboardMetricsDTO getDashboardMetrics(Long tenantId, Long storeId) {
-        LocalDate today = LocalDate.now(ZoneId.of("UTC")); // Adjust timezone as needed
+        LocalDate today = LocalDate.now(ZoneId.systemDefault());
         LocalDate startOfWeek = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
         LocalDate endOfWeek = startOfWeek.plusDays(6);
 
@@ -34,7 +35,11 @@ public class HRDashboardService {
         long totalHeadcount = allStaff.size();
 
         // 2. Pending Leave Requests
-        long pendingRequests = leaveApplicationRepository.countByStatus(tenantId, storeId, LeaveApplication.ApplicationStatus.PENDING);
+        long pendingRequests = leaveApplicationRepository.countByStatusIn(
+                tenantId,
+                storeId,
+                List.of(LeaveApplication.ApplicationStatus.PENDING, LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED)
+        );
 
         // 3. Staff on Leave Today
         List<LeaveApplication> leavesToday = leaveApplicationRepository.findApprovedLeavesForDate(tenantId, storeId, today);
@@ -119,13 +124,11 @@ public class HRDashboardService {
                 } catch (Exception e) {}
             }
             
-            String staffWeeklyOffs = staff.getWeeklyOff() != null ? staff.getWeeklyOff().toUpperCase() : "";
-            
             for (LocalDate wd : allDaysThisMonth) {
                 if (joining != null && wd.isBefore(joining)) continue;
                 
                 // Skip if this day of the week is in their weeklyOff string
-                if (staffWeeklyOffs.contains(wd.getDayOfWeek().toString())) continue;
+                if (WeeklyOffUtils.isWeeklyOff(staff.getWeeklyOff(), wd)) continue;
                 
                 if (!attDates.contains(wd) && !leaveDates.contains(wd)) {
                     awolDates.add(wd.toString());

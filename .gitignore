@@ -59,3 +59,5 @@ test-login.js
 *.pfx
 secrets.properties
 application-secret.properties
+application-local.properties
+**/application-local.properties

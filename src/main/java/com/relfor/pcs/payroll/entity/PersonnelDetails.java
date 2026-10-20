@@ -40,6 +40,8 @@ public class PersonnelDetails extends BaseEntity{
 	@JoinColumn(name = "personnel_details_id", referencedColumnName = "id")
 	private List<PersonnelDocumentDetails> personnelDocumentDetails;
 	private String employeeCode;
+	@Column(name = "personnel_code")
+	private Long personnelCode;
 	private Long reportingTo;
 	private Long storeId;
 	private String uanNumber;
@@ -314,6 +316,14 @@ public class PersonnelDetails extends BaseEntity{
 
 	public void setEmployeeCode(String employeeCode) {
 		this.employeeCode = employeeCode;
+	}
+
+	public Long getPersonnelCode() {
+		return personnelCode;
+	}
+
+	public void setPersonnelCode(Long personnelCode) {
+		this.personnelCode = personnelCode;
 	}
 
 	public String getWeeklyOff() {

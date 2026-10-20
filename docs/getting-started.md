@@ -2,7 +2,7 @@
 
 > **Audience:** New backend developers  
 > **Purpose:** Run the API against a local MySQL database  
-> **Last verified:** 2026-10-19  
+> **Last verified:** 2026-10-20  
 > **Source of truth:** `pom.xml`, `application.properties`, and `PayrollManagementApplication`
 
 ## Prerequisites
@@ -13,15 +13,34 @@
 - A local JKS keystore, because HTTPS is enabled
 - The frontend repository when exercising the UI
 
-The committed datasource default uses port 3306. A machine that already has another MySQL server on 3306 can run this project's MySQL on another port and override the JDBC URL.
+Tracked `application.properties` has no credential defaults. Local secrets belong in gitignored `src/main/resources/application-local.properties` or in environment variables.
 
 ## First run
 
+Copy the example local profile and fill values that exist only on this machine:
+
+```bash
+cp src/main/resources/application-local.example.properties src/main/resources/application-local.properties
+```
+
+`jwt.secret` must be at least 32 bytes. SSL keystore passwords must match `keystore.jks`.
+
 ```bash
 export JAVA_HOME='<path-to-java-21>'
+export SPRING_PROFILES_ACTIVE=local
+
+mvn spring-boot:run
+```
+
+Environment-variable alternative (no local profile file):
+
+```bash
 export SPRING_DATASOURCE_URL='jdbc:mysql://127.0.0.1:3307/payroll_management?useSSL=false&characterEncoding=utf8&useUnicode=true'
 export DB_USERNAME='<local-user>'
 export DB_PASSWORD='<local-database-secret>'
+export JWT_SECRET='<local-secret-at-least-32-bytes>'
+export SSL_KEY_STORE_PASSWORD='<local-keystore-secret>'
+export SSL_TRUST_STORE_PASSWORD='<local-keystore-secret>'
 
 mvn spring-boot:run
 ```
@@ -32,6 +51,7 @@ Expected startup:
 2. Hikari connects to `payroll_management`.
 3. Tomcat starts on HTTPS port 8092.
 4. The log says `Started PayrollManagementApplication`.
+5. Missing or short `jwt.secret` fails startup with `IllegalStateException`.
 
 Place the local keystore at `src/main/resources/keystore.jks`. `*.jks` is gitignored. The alias and store password must match the server SSL settings. Keep those values out of Git and out of documentation.
 
@@ -45,7 +65,9 @@ curl -sk -H 'Content-Type: application/json' \
   https://127.0.0.1:8092/payroll-management/v1/login
 ```
 
-A valid account returns `success: true` and a token. An unknown account returns HTTP 401 and `success: false`.
+A valid active account returns `success: true` and a token. An unknown, inactive, or wrong-password account returns HTTP 401 and `success: false`. `/actuator/health` is public; other actuator paths require a JWT.
+
+QA and production deployment, secret injection, reverse proxy, and acceptance checks live in the frontend portal: `payroll-frontend` `docs/operations/qa-and-production-deployment.md`. Do not copy this machine's `application-local.properties` onto a server.
 
 ## Frontend connection
 
@@ -64,4 +86,4 @@ Login and database-backed screens do not require every integration. These featur
 
 ## Schema warning
 
-`spring.jpa.hibernate.ddl-auto` is `update`. Starting the API can alter the local schema to match entities. Use a disposable local database, not a shared server. There is no Flyway or Liquibase history yet.
+`spring.jpa.hibernate.ddl-auto` defaults to `update` and can be overridden with `HIBERNATE_DDL_AUTO`. Starting the API can alter the local schema to match entities. Use a disposable local database, not a shared server. There is no Flyway or Liquibase history yet.

@@ -74,6 +74,8 @@ public class AttendanceManagementService {
 			this.convertToPersonnelDetails(staffDTO, personnelDetails);
 			personnelDetails.setActive(safeGetActive(staffDTO) == 1);
 			personnelDetails = personnelDetailsRepository.save(personnelDetails);
+			syncChildStaffIds(personnelDetails);
+			personnelDetails = personnelDetailsRepository.save(personnelDetails);
 
 			this.convertToStaffDTO(personnelDetails, staffDTO);
 			responseModel.setData(staffDTO);
@@ -197,6 +199,25 @@ public class AttendanceManagementService {
 			personnelDetails.setPersonnelEmergencyContactDetails(null);
 		}
 		return personnelDetails;
+	}
+
+	private void syncChildStaffIds(PersonnelDetails personnelDetails) {
+		Long savedId = personnelDetails.getId();
+		if (savedId == null) {
+			return;
+		}
+		if (personnelDetails.getPersonnelBankAccountDetails() != null) {
+			personnelDetails.getPersonnelBankAccountDetails().setStaffId(savedId);
+		}
+		if (personnelDetails.getPersonnelWorkExperienceDetails() != null) {
+			personnelDetails.getPersonnelWorkExperienceDetails().forEach(item -> item.setStaffId(savedId));
+		}
+		if (personnelDetails.getPersonnelDocumentDetails() != null) {
+			personnelDetails.getPersonnelDocumentDetails().forEach(item -> item.setStaffId(savedId));
+		}
+		if (personnelDetails.getPersonnelEmergencyContactDetails() != null) {
+			personnelDetails.getPersonnelEmergencyContactDetails().forEach(item -> item.setStaffId(savedId));
+		}
 	}
 
 	private void convertToStaffDTO(PersonnelDetails personnelDetails, StaffDTO staffDTO) {

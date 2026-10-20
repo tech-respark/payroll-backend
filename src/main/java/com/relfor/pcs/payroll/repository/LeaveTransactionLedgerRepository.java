@@ -36,4 +36,16 @@ public interface LeaveTransactionLedgerRepository extends JpaRepository<LeaveTra
     long countAllocationsForYear(@Param("staffId") Long staffId, 
                                  @Param("leaveTypeId") Long leaveTypeId, 
                                  @Param("yearStart") LocalDate yearStart);
+
+    @Query("SELECT COUNT(l) FROM LeaveTransactionLedger l " +
+           "WHERE l.staffId = :staffId " +
+           "AND l.leaveType.id = :leaveTypeId " +
+           "AND l.transactionType = :transactionType " +
+           "AND l.effectiveDate >= :periodStart " +
+           "AND l.effectiveDate < :periodEnd")
+    long countByStaffTypeAndPeriod(@Param("staffId") Long staffId,
+                                   @Param("leaveTypeId") Long leaveTypeId,
+                                   @Param("transactionType") LeaveTransactionLedger.TransactionType transactionType,
+                                   @Param("periodStart") LocalDate periodStart,
+                                   @Param("periodEnd") LocalDate periodEnd);
 }

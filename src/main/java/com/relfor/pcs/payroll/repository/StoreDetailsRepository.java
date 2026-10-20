@@ -23,8 +23,7 @@ public interface StoreDetailsRepository extends JpaRepository<StoreDetails,Long>
 	@Query(value = "SELECT sd.* "
 			+ "FROM store_details sd "
 			+ "JOIN tenant_company_mapping tcm ON sd.tenant_company_mapping_id = tcm.id "
-			+ "WHERE tcm.application_name = :applicationName "
-			+ "AND tcm.tenant_id = :tenantId "
+			+ "WHERE tcm.tenant_id = :tenantId "
 			+ "AND (:storeId = 0 OR sd.store_id = :storeId)", nativeQuery = true)
 	List<StoreDetails> fetchStoreDetailListForTenant(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
 }
