@@ -1,5 +1,9 @@
 package com.relfor.pcs.payroll.service;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.dto.ResponseModel;
 import com.relfor.pcs.payroll.entity.*;
 import com.relfor.pcs.payroll.projection.MonthlySummaryCalculationProjection;
@@ -34,6 +38,8 @@ public class PayrollTriggerService {
 	AttendanceManagementService attendanceManagementService;
 	@Autowired
 	SalaryCalculation salaryCalculationService;
+	@Autowired
+	ActivityRecorder activityRecorder;
 
 	// Assumptions:
 	// 1. All stores will be in same time zone
@@ -70,6 +76,14 @@ public class PayrollTriggerService {
 		responseModel.setData(outputList);
 		responseModel.setCode(HttpStatus.OK);
 		responseModel.setMessage("OK");
+		activityRecorder.record(ActivityEvent.builder()
+				.action(ActivityActions.ATTENDANCE_RETRIEVED)
+				.tenantId(tenantId)
+				.storeId(storeId)
+				.resourceType(ActivityResourceTypes.ATTENDANCE_SUMMARY)
+				.resourceId(storeId)
+				.summary("Retrieved attendance data")
+				.build());
 		return responseModel;
 	}
 
@@ -126,6 +140,17 @@ public class PayrollTriggerService {
 		responseModel.setData(outputList);
 		responseModel.setCode(HttpStatus.OK);
 		responseModel.setMessage("OK");
+		activityRecorder.record(ActivityEvent.builder()
+				.action(ActivityActions.ATTENDANCE_MONTH_CALCULATED)
+				.tenantId(tenantId)
+				.storeId(storeId)
+				.resourceType(ActivityResourceTypes.ATTENDANCE_SUMMARY)
+				.resourceId(month + "-" + year)
+				.resourceLabel(month + " " + year)
+				.summary("Calculated monthly attendance for " + month + " " + year)
+				.context("month", month)
+				.context("year", year)
+				.build());
 		return responseModel;
 	}
 
@@ -217,6 +242,17 @@ public class PayrollTriggerService {
 		responseModel.setData(outputList);
 		responseModel.setCode(HttpStatus.OK);
 		responseModel.setMessage("OK");
+		activityRecorder.record(ActivityEvent.builder()
+				.action(ActivityActions.PAYROLL_CALCULATED)
+				.tenantId(tenantId)
+				.storeId(storeId)
+				.resourceType(ActivityResourceTypes.PAYROLL_RUN)
+				.resourceId(month + "-" + year)
+				.resourceLabel(month + " " + year)
+				.summary("Calculated payroll for " + month + " " + year)
+				.context("month", month)
+				.context("year", year)
+				.build());
 		logger.info("END Salary Calculation");
 		return responseModel;
 	}

@@ -1,5 +1,10 @@
 package com.relfor.pcs.payroll.service;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityNames;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.dto.ResponseModel;
 import com.relfor.pcs.payroll.entity.PersonnelDetails;
 import com.relfor.pcs.payroll.entity.StaffPasswordResetOTP;
@@ -44,6 +49,9 @@ public class AuthService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private ActivityRecorder activityRecorder;
 
     public ResponseModel generateOtp(String usernameOrMobile) {
         ResponseModel response = new ResponseModel();
@@ -184,6 +192,19 @@ public class AuthService {
 
             otpRecord.setExpired(true);
             otpRepository.save(otpRecord);
+
+            activityRecorder.recordSafely(ActivityEvent.builder()
+                    .action(ActivityActions.AUTH_PASSWORD_RESET)
+                    .actorStaffId(staff.getId())
+                    .actorUsername(staff.getUsername())
+                    .actorDisplayName(ActivityNames.displayName(staff))
+                    .tenantId(staff.getApplicationTenantId())
+                    .storeId(staff.getStoreId())
+                    .resourceType(ActivityResourceTypes.STAFF)
+                    .resourceId(staff.getId())
+                    .resourceLabel(ActivityNames.displayName(staff))
+                    .summary("Reset password")
+                    .build());
 
             response.setCode(HttpStatus.OK);
             response.setMessage("Password has been reset successfully.");

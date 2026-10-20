@@ -1,5 +1,9 @@
 package com.relfor.pcs.payroll.controller;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.entity.LeavePlan;
 import com.relfor.pcs.payroll.entity.LeavePlanRule;
 import com.relfor.pcs.payroll.entity.LeaveType;
@@ -18,6 +22,7 @@ import java.util.stream.Collectors;
 
 import com.relfor.pcs.payroll.entity.EmployeeLeaveEnrollment;
 import com.relfor.pcs.payroll.repository.EmployeeLeaveEnrollmentRepository;
+import com.relfor.pcs.payroll.util.SecurityUtils;
 import java.time.LocalDate;
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -33,6 +38,7 @@ public class LeavePlanAdminController {
     private final EmployeeLeaveEnrollmentRepository enrollmentRepository;
     private final com.relfor.pcs.payroll.repository.LeaveRuleOverrideRepository overrideRepository;
     private final com.relfor.pcs.payroll.service.LeaveLedgerService ledgerService;
+    private final ActivityRecorder activityRecorder;
 
     @GetMapping("/leave-types")
     public ResponseEntity<?> getAllLeaveTypes(@RequestParam Long tenantId, @RequestParam Long storeId) {
@@ -60,6 +66,15 @@ public class LeavePlanAdminController {
                 leaveType.setLocationId(leaveType.getStoreId());
             }
             LeaveType saved = leaveTypeRepository.save(leaveType);
+            activityRecorder.record(ActivityEvent.builder()
+                    .action(ActivityActions.LEAVE_TYPE_SAVED)
+                    .tenantId(saved.getTenantId())
+                    .storeId(saved.getStoreId())
+                    .resourceType(ActivityResourceTypes.LEAVE_TYPE)
+                    .resourceId(saved.getId())
+                    .resourceLabel(saved.getLeaveName())
+                    .summary("Created leave type " + saved.getLeaveName())
+                    .build());
             return ResponseEntity.ok(Map.of("message", "Leave Type created", "data", saved));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -80,6 +95,15 @@ public class LeavePlanAdminController {
             }
             
             LeaveType saved = leaveTypeRepository.save(existing);
+            activityRecorder.record(ActivityEvent.builder()
+                    .action(ActivityActions.LEAVE_TYPE_SAVED)
+                    .tenantId(saved.getTenantId())
+                    .storeId(saved.getStoreId())
+                    .resourceType(ActivityResourceTypes.LEAVE_TYPE)
+                    .resourceId(saved.getId())
+                    .resourceLabel(saved.getLeaveName())
+                    .summary("Updated leave type " + saved.getLeaveName())
+                    .build());
             return ResponseEntity.ok(Map.of("message", "Leave Type updated", "data", saved));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -98,6 +122,15 @@ public class LeavePlanAdminController {
                 leavePlan.setLocationId(leavePlan.getStoreId());
             }
             LeavePlan saved = leavePlanRepository.save(leavePlan);
+            activityRecorder.record(ActivityEvent.builder()
+                    .action(ActivityActions.LEAVE_PLAN_SAVED)
+                    .tenantId(saved.getTenantId())
+                    .storeId(saved.getStoreId())
+                    .resourceType(ActivityResourceTypes.LEAVE_PLAN)
+                    .resourceId(saved.getId())
+                    .resourceLabel(saved.getPlanName())
+                    .summary("Created leave plan " + saved.getPlanName())
+                    .build());
             return ResponseEntity.ok(Map.of("message", "Leave Plan created", "data", saved));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -129,6 +162,16 @@ public class LeavePlanAdminController {
             }
                     
             enrollmentRepository.save(enrollment);
+            activityRecorder.record(ActivityEvent.builder()
+                    .action(ActivityActions.LEAVE_PLAN_ASSIGNED)
+                    .tenantId(tenantId)
+                    .storeId(storeId)
+                    .resourceType(ActivityResourceTypes.STAFF)
+                    .resourceId(staffId)
+                    .resourceLabel(plan.getPlanName())
+                    .summary("Assigned leave plan " + plan.getPlanName())
+                    .context("planId", planId)
+                    .build());
             return ResponseEntity.ok(Map.of("message", "Staff successfully enrolled in Leave Plan"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -170,6 +213,13 @@ public class LeavePlanAdminController {
                     .build();
 
             ruleRepository.save(rule);
+            activityRecorder.record(ActivityEvent.builder()
+                    .action(ActivityActions.LEAVE_RULE_SAVED)
+                    .resourceType(ActivityResourceTypes.LEAVE_PLAN_RULE)
+                    .resourceId(rule.getId())
+                    .resourceLabel(plan.getPlanName())
+                    .summary("Mapped a leave rule to " + plan.getPlanName())
+                    .build());
             return ResponseEntity.ok(Map.of("message", "Rule successfully mapped to Leave Plan", "ruleId", rule.getId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -198,6 +248,12 @@ public class LeavePlanAdminController {
     public ResponseEntity<?> deleteRule(@PathVariable Long ruleId) {
         try {
             ruleRepository.deleteById(ruleId);
+            activityRecorder.record(ActivityEvent.builder()
+                    .action(ActivityActions.LEAVE_RULE_DELETED)
+                    .resourceType(ActivityResourceTypes.LEAVE_PLAN_RULE)
+                    .resourceId(ruleId)
+                    .summary("Deleted a leave rule")
+                    .build());
             return ResponseEntity.ok(Map.of("message", "Rule deleted"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -238,6 +294,12 @@ public class LeavePlanAdminController {
             }
             
             LeavePlanRule saved = ruleRepository.save(rule);
+            activityRecorder.record(ActivityEvent.builder()
+                    .action(ActivityActions.LEAVE_RULE_SAVED)
+                    .resourceType(ActivityResourceTypes.LEAVE_PLAN_RULE)
+                    .resourceId(saved.getId())
+                    .summary("Updated a leave rule")
+                    .build());
             return ResponseEntity.ok(Map.of("message", "Rule updated", "ruleId", saved.getId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -257,6 +319,15 @@ public class LeavePlanAdminController {
                 plan.setEffectiveYear(Integer.valueOf(payload.get("effectiveYear").toString()));
             }
             leavePlanRepository.save(plan);
+            activityRecorder.record(ActivityEvent.builder()
+                    .action(ActivityActions.LEAVE_PLAN_SAVED)
+                    .tenantId(plan.getTenantId())
+                    .storeId(plan.getStoreId())
+                    .resourceType(ActivityResourceTypes.LEAVE_PLAN)
+                    .resourceId(plan.getId())
+                    .resourceLabel(plan.getPlanName())
+                    .summary("Updated leave plan " + plan.getPlanName())
+                    .build());
             return ResponseEntity.ok(Map.of("message", "Plan updated successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -281,8 +352,8 @@ public class LeavePlanAdminController {
     @PostMapping("/overrides")
     public ResponseEntity<?> setLeaveRuleOverride(@RequestBody Map<String, Object> payload) {
         try {
-            Long tenantId = Long.valueOf(payload.get("tenantId").toString());
-            Long storeId = Long.valueOf(payload.get("storeId").toString());
+            Long tenantId = SecurityUtils.getTenantId(Long.valueOf(payload.get("tenantId").toString()));
+            Long storeId = SecurityUtils.getStoreId(Long.valueOf(payload.get("storeId").toString()));
             Long staffId = Long.valueOf(payload.get("staffId").toString());
             Long leavePlanRuleId = Long.valueOf(payload.get("leavePlanRuleId").toString());
             Integer maxCarryForwardOverride = payload.containsKey("maxCarryForwardOverride") && payload.get("maxCarryForwardOverride") != null && !payload.get("maxCarryForwardOverride").toString().isEmpty() ? Integer.valueOf(payload.get("maxCarryForwardOverride").toString()) : null;
@@ -307,6 +378,16 @@ public class LeavePlanAdminController {
             }
 
             overrideRepository.save(override);
+            activityRecorder.record(ActivityEvent.builder()
+                    .action(ActivityActions.LEAVE_OVERRIDE_SAVED)
+                    .tenantId(tenantId)
+                    .storeId(storeId)
+                    .resourceType(ActivityResourceTypes.STAFF)
+                    .resourceId(staffId)
+                    .summary("Saved a leave rule override")
+                    .context("staffId", staffId)
+                    .context("leavePlanRuleId", leavePlanRuleId)
+                    .build());
             return ResponseEntity.ok(Map.of("message", "Leave rule override saved successfully"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -316,8 +397,8 @@ public class LeavePlanAdminController {
     @PostMapping("/adjust-balance")
     public ResponseEntity<?> adjustBalance(@RequestBody Map<String, Object> payload) {
         try {
-            Long tenantId = Long.valueOf(payload.get("tenantId").toString());
-            Long storeId = Long.valueOf(payload.get("storeId").toString());
+            Long tenantId = SecurityUtils.getTenantId(Long.valueOf(payload.get("tenantId").toString()));
+            Long storeId = SecurityUtils.getStoreId(Long.valueOf(payload.get("storeId").toString()));
             Long staffId = Long.valueOf(payload.get("staffId").toString());
             Long leaveTypeId = Long.valueOf(payload.get("leaveTypeId").toString());
             BigDecimal adjustmentValue = new BigDecimal(payload.get("adjustmentValue").toString());
@@ -335,6 +416,16 @@ public class LeavePlanAdminController {
                     null, 
                     LocalDate.now()
             );
+            activityRecorder.record(ActivityEvent.builder()
+                    .action(ActivityActions.LEAVE_BALANCE_ADJUSTED)
+                    .tenantId(tenantId)
+                    .storeId(storeId)
+                    .resourceType(ActivityResourceTypes.STAFF)
+                    .resourceId(staffId)
+                    .resourceLabel(type.getLeaveName())
+                    .summary("Adjusted " + type.getLeaveName() + " balance")
+                    .context("days", adjustmentValue)
+                    .build());
 
             return ResponseEntity.ok(Map.of("message", "Balance adjusted successfully"));
         } catch (Exception e) {

@@ -1,5 +1,9 @@
 package com.relfor.pcs.payroll.controller;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.dto.*;
 import com.relfor.pcs.payroll.entity.SShiftsSlots;
 import com.relfor.pcs.payroll.entity.SStaffShifts;
@@ -48,16 +52,18 @@ public class SStaffShiftsController {
 	 */
 	private final StaffShiftsService staffShiftsService;
 	private final StaffIdentityService staffIdentityService;
+	private final ActivityRecorder activityRecorder;
 	/**
 	 * Logger is used for logging purposes.
 	 */
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    public SStaffShiftsController(SStaffShiftsRepository stSfRepo, SShiftsSlotsRepository shStRepo, StaffShiftsService staffShiftsService, StaffIdentityService staffIdentityService) {
+    public SStaffShiftsController(SStaffShiftsRepository stSfRepo, SShiftsSlotsRepository shStRepo, StaffShiftsService staffShiftsService, StaffIdentityService staffIdentityService, ActivityRecorder activityRecorder) {
         this.stSfRepo = stSfRepo;
         this.shStRepo = shStRepo;
         this.staffShiftsService = staffShiftsService;
         this.staffIdentityService = staffIdentityService;
+        this.activityRecorder = activityRecorder;
     }
 
     /**
@@ -175,6 +181,15 @@ public class SStaffShiftsController {
             obj.setTenantId(SecurityUtils.getTenantId(obj.getTenantId()));
             obj.setStoreId(SecurityUtils.getStoreId(obj.getStoreId()));
 			SShiftsSlots staffShift = shStRepo.save(obj);
+			activityRecorder.record(ActivityEvent.builder()
+					.action(ActivityActions.SHIFT_SLOT_SAVED)
+					.tenantId(staffShift.getTenantId())
+					.storeId(staffShift.getStoreId())
+					.resourceType(ActivityResourceTypes.SHIFT_SLOT)
+					.resourceId(staffShift.getId())
+					.resourceLabel(staffShift.getShiftName())
+					.summary("Saved shift template " + staffShift.getShiftName())
+					.build());
 			return ResponseEntity.ok().body(staffShift);
 		} catch (Exception e) {
 			logger.error(e.getClass().getName(), e);

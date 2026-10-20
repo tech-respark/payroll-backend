@@ -4,6 +4,7 @@ import com.relfor.pcs.payroll.entity.PersonnelAttendance;
 import com.relfor.pcs.payroll.projection.PersonnelAttendanceProjectionForInOutHistory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -35,6 +36,15 @@ public interface PersonnelAttendanceRepository extends JpaRepository<PersonnelAt
 
 	List<PersonnelAttendance> findByTenantIdAndStoreIdAndStaffIdAndAttendanceDateOrderByPunchTimestampAsc(
 			Long tenantId, Long storeId, Long staffId, LocalDate attendanceDate);
+
+	@Query("SELECT COUNT(p) FROM PersonnelAttendance p "
+			+ "WHERE p.tenantId = :tenantId AND p.storeId = :storeId "
+			+ "AND UPPER(p.currentStatus) = 'PENDING' "
+			+ "AND UPPER(p.uploadSource) = 'REGULARIZATION' "
+			+ "AND p.attendanceDate >= :fromDate")
+	long countPendingRegularizations(@Param("tenantId") Long tenantId,
+			@Param("storeId") Long storeId,
+			@Param("fromDate") LocalDate fromDate);
 
 	@Query(value = "SELECT * "
 			+ "FROM personnel_attendance pa "

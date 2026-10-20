@@ -62,6 +62,14 @@ public interface LeaveApplicationRepository extends JpaRepository<LeaveApplicati
                          @Param("storeId") Long storeId,
                          @Param("statuses") List<LeaveApplication.ApplicationStatus> statuses);
 
+    @Query("SELECT COUNT(l) FROM LeaveApplication l " +
+           "WHERE l.tenantId = :tenantId AND l.storeId = :storeId " +
+           "AND l.staffId = :staffId AND l.status IN :statuses")
+    long countByStaffIdAndStatusIn(@Param("tenantId") Long tenantId,
+                                   @Param("storeId") Long storeId,
+                                   @Param("staffId") Long staffId,
+                                   @Param("statuses") List<LeaveApplication.ApplicationStatus> statuses);
+
     @Query("SELECT l FROM LeaveApplication l JOIN FETCH l.leaveType " +
            "WHERE l.tenantId = :tenantId AND l.storeId = :storeId " +
            "AND l.status = 'APPROVED' " +

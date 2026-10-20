@@ -10,6 +10,7 @@
 - [Getting started](getting-started.md) — Java, database, HTTPS, and first run
 - [Code map](code-map.md) — packages and where to change each feature
 - [Request lifecycle](request-lifecycle.md) — security, controllers, services, and responses
+- [Activity log](activity-log.md) — how to record store activity from a new feature
 - [Testing and operations](testing-and-operations.md) — tests, schedulers, logs, and safe changes
 - Shared QA and production deployment: frontend portal `docs/operations/qa-and-production-deployment.md`
 

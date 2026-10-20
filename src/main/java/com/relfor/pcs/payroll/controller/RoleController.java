@@ -1,10 +1,16 @@
 package com.relfor.pcs.payroll.controller;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityNames;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.dto.RoleAssignRequest;
 import com.relfor.pcs.payroll.dto.RoleCreateRequest;
 import com.relfor.pcs.payroll.entity.Role;
 import com.relfor.pcs.payroll.entity.StoreStaffRole;
 import com.relfor.pcs.payroll.repository.AccessModuleRepository;
+import com.relfor.pcs.payroll.repository.PersonnelDetailsRepository;
 import com.relfor.pcs.payroll.repository.RoleRepository;
 import com.relfor.pcs.payroll.repository.StoreStaffRoleRepository;
 import com.relfor.pcs.payroll.util.SecurityUtils;
@@ -30,6 +36,12 @@ public class RoleController {
 
     @Autowired
     private AccessModuleRepository accessModuleRepository;
+
+    @Autowired
+    private ActivityRecorder activityRecorder;
+
+    @Autowired
+    private PersonnelDetailsRepository personnelDetailsRepository;
 
     @GetMapping("/permissions/modules")
     @PreAuthorize("isAuthenticated()")
@@ -82,6 +94,15 @@ public class RoleController {
         }
 
         Role savedRole = roleRepository.save(newRole);
+        activityRecorder.record(ActivityEvent.builder()
+                .action(ActivityActions.ROLE_CREATED)
+                .tenantId(savedRole.getTenantId())
+                .storeId(request.getStoreId())
+                .resourceType(ActivityResourceTypes.ROLE)
+                .resourceId(savedRole.getId())
+                .resourceLabel(savedRole.getName())
+                .summary("Created role " + savedRole.getName())
+                .build());
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -131,6 +152,14 @@ public class RoleController {
         }
 
         Role savedRole = roleRepository.save(existingRole);
+        activityRecorder.record(ActivityEvent.builder()
+                .action(ActivityActions.ROLE_UPDATED)
+                .tenantId(savedRole.getTenantId())
+                .resourceType(ActivityResourceTypes.ROLE)
+                .resourceId(savedRole.getId())
+                .resourceLabel(savedRole.getName())
+                .summary("Updated role " + savedRole.getName())
+                .build());
 
         response.put("success", true);
         response.put("message", "Role updated successfully");
@@ -166,6 +195,22 @@ public class RoleController {
         assignment.setSystemUpdatedOn(LocalDateTime.now());
 
         storeStaffRoleRepository.save(assignment);
+        String staffName = ActivityNames.displayName(personnelDetailsRepository.findById(request.getStaffId()).orElse(null));
+        if (staffName == null) {
+            staffName = "staff " + request.getStaffId();
+        }
+        String roleName = roleRepository.findById(request.getRoleId()).map(Role::getName).orElse("role " + request.getRoleId());
+        activityRecorder.record(ActivityEvent.builder()
+                .action(ActivityActions.ROLE_ASSIGNED)
+                .tenantId(request.getTenantId())
+                .storeId(request.getStoreId())
+                .resourceType(ActivityResourceTypes.STAFF)
+                .resourceId(request.getStaffId())
+                .resourceLabel(staffName)
+                .summary("Assigned " + roleName + " to " + staffName)
+                .context("roleId", request.getRoleId())
+                .context("roleName", roleName)
+                .build());
 
 		Map<String, Object> response = new HashMap<>();
 		response.put("success", true);

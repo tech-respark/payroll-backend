@@ -1,5 +1,10 @@
 package com.relfor.pcs.payroll.service;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityNames;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.dto.ResponseModel;
 import com.relfor.pcs.payroll.dto.IndividualPunches;
 import com.relfor.pcs.payroll.dto.constants.BiometricApplicationNames;
@@ -54,6 +59,8 @@ public class ResparkAttendanceService {
 	private EmailService emailService;
 	@Autowired
 	private PersonnelDetailsRepository personnelDetailsRepository;
+	@Autowired
+	private ActivityRecorder activityRecorder;
 	
 	public ResponseModel regularizeAttendance(AttendanceRegularizationInputModel attendanceRegularizationInputModel){
 		ResponseModel responseModel = new ResponseModel();
@@ -98,6 +105,7 @@ public class ResparkAttendanceService {
 				}
 
 				attendanceRegularizationInputModel.setIndividualPunchesList(outputIndividualPunchesList);
+				recordPunchCorrection(personnelAttendanceListToBeSaved, attendanceRegularizationInputModel);
 			}
 
 			if (!approvedOrRejectedAttendanceList.isEmpty()) {
@@ -439,6 +447,7 @@ public class ResparkAttendanceService {
 
 					if (!approvedOrRejectedPersonnelAttendanceList.isEmpty()) {
 						asyncAttendanceSummaryCalculation.syncCalculateAttendanceSummaryForApprovalOrRejection(approvedOrRejectedPersonnelAttendanceList, null);
+						recordFlaggedCorrections(approvedOrRejectedPersonnelAttendanceList);
 					}
 				}
 				responseModel.setData(inputAttendanceRequestsDTOList);
@@ -501,5 +510,84 @@ public class ResparkAttendanceService {
 			throw ex;
 		}
 		return responseModel;
+	}
+
+	private void recordPunchCorrection(List<PersonnelAttendance> saved, AttendanceRegularizationInputModel input) {
+		if (saved == null || saved.isEmpty()) {
+			return;
+		}
+		boolean pending = saved.stream().anyMatch(row -> RegularizationRequestStatuses.PENDING.name().equalsIgnoreCase(row.getCurrentStatus()));
+		boolean approved = saved.stream().anyMatch(row -> RegularizationRequestStatuses.APPROVED.name().equalsIgnoreCase(row.getCurrentStatus()));
+		PersonnelAttendance first = saved.get(0);
+		PersonnelDetails person = staffFor(input.getStaffId() != null ? input.getStaffId() : first.getStaffId());
+		String name = ActivityNames.displayName(person);
+		String dateLabel = ActivityNames.formatDate(first.getAttendanceDate());
+		if (pending) {
+			activityRecorder.record(ActivityEvent.builder()
+					.action(ActivityActions.ATTENDANCE_REGULARIZATION_REQUESTED)
+					.tenantId(first.getTenantId())
+					.storeId(first.getStoreId())
+					.resourceType(ActivityResourceTypes.REGULARIZATION)
+					.resourceId(first.getId())
+					.resourceLabel(name)
+					.summary("Requested punch correction for " + dateLabel)
+					.context("date", first.getAttendanceDate())
+					.build());
+		} else if (approved) {
+			activityRecorder.record(ActivityEvent.builder()
+					.action(ActivityActions.ATTENDANCE_REGULARIZATION_APPROVED)
+					.tenantId(first.getTenantId())
+					.storeId(first.getStoreId())
+					.resourceType(ActivityResourceTypes.REGULARIZATION)
+					.resourceId(first.getId())
+					.resourceLabel(name)
+					.summary("Corrected attendance" + (name != null ? " for " + name : "") + " on " + dateLabel)
+					.context("date", first.getAttendanceDate())
+					.build());
+		}
+	}
+
+	private void recordFlaggedCorrections(List<PersonnelAttendance> flagged) {
+		List<PersonnelAttendance> approved = flagged.stream()
+				.filter(row -> RegularizationRequestStatuses.APPROVED.name().equalsIgnoreCase(row.getCurrentStatus()))
+				.toList();
+		List<PersonnelAttendance> rejected = flagged.stream()
+				.filter(row -> RegularizationRequestStatuses.REJECTED.name().equalsIgnoreCase(row.getCurrentStatus()))
+				.toList();
+		recordFlaggedBatch(approved, ActivityActions.ATTENDANCE_REGULARIZATION_APPROVED, "Approved");
+		recordFlaggedBatch(rejected, ActivityActions.ATTENDANCE_REGULARIZATION_REJECTED, "Rejected");
+	}
+
+	private void recordFlaggedBatch(List<PersonnelAttendance> rows, String action, String verb) {
+		if (rows.isEmpty()) {
+			return;
+		}
+		PersonnelAttendance first = rows.get(0);
+		PersonnelDetails person = staffFor(first.getStaffId());
+		String name = ActivityNames.displayName(person);
+		String dateLabel = ActivityNames.formatDate(first.getAttendanceDate());
+		String summary = rows.size() == 1
+				? verb + " punch correction" + (name != null ? " for " + name : "") + " on " + dateLabel
+				: verb + " " + ActivityNames.countLabel(rows.size(), "punch correction", "punch corrections");
+		activityRecorder.record(ActivityEvent.builder()
+				.action(action)
+				.tenantId(first.getTenantId())
+				.storeId(first.getStoreId())
+				.resourceType(ActivityResourceTypes.REGULARIZATION)
+				.resourceId(first.getId())
+				.resourceLabel(name)
+				.summary(summary)
+				.context("count", rows.size())
+				.context("date", first.getAttendanceDate())
+				.build());
+	}
+
+	private PersonnelDetails staffFor(Long staffId) {
+		if (staffId == null) {
+			return null;
+		}
+		return personnelDetailsRepository.findById(staffId)
+				.or(() -> personnelDetailsRepository.findByPersonnelCode(staffId))
+				.orElse(null);
 	}
 }

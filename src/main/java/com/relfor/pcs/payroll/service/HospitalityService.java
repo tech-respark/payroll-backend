@@ -1,5 +1,10 @@
 package com.relfor.pcs.payroll.service;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityNames;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.dto.HospitalityDtos;
 import com.relfor.pcs.payroll.dto.SalaryComponentDTO;
 import com.relfor.pcs.payroll.entity.*;
@@ -49,6 +54,7 @@ public class HospitalityService {
     private final MonthWiseAttendanceSummaryRepository monthSummaryRepository;
     private final WhatsappNotificationService whatsappNotificationService;
     private final StaffIdentityService staffIdentityService;
+    private final ActivityRecorder activityRecorder;
 
     public HospitalityService(
             StaffAdvanceRepository advanceRepository,
@@ -67,7 +73,8 @@ public class HospitalityService {
             SStaffShiftsRepository staffShiftsRepository,
             MonthWiseAttendanceSummaryRepository monthSummaryRepository,
             WhatsappNotificationService whatsappNotificationService,
-            StaffIdentityService staffIdentityService) {
+            StaffIdentityService staffIdentityService,
+            ActivityRecorder activityRecorder) {
         this.advanceRepository = advanceRepository;
         this.commissionPlanRepository = commissionPlanRepository;
         this.salesRepository = salesRepository;
@@ -85,6 +92,7 @@ public class HospitalityService {
         this.monthSummaryRepository = monthSummaryRepository;
         this.whatsappNotificationService = whatsappNotificationService;
         this.staffIdentityService = staffIdentityService;
+        this.activityRecorder = activityRecorder;
     }
 
     public List<StaffAdvance> listAdvances(Long tenantId, Long storeId, Long staffId) {
@@ -120,7 +128,10 @@ public class HospitalityService {
         advance.setStartYear(request.getStartYear() != null ? request.getStartYear() : issued.getYear());
         advance.setIssuedOn(issued);
         advance.setRemarks(request.getRemarks());
-        return advanceRepository.save(advance);
+        StaffAdvance saved = advanceRepository.save(advance);
+        recordHospitality(ActivityActions.HOSPITALITY_ADVANCE_CREATED, ActivityResourceTypes.ADVANCE, saved.getId(),
+                staffLabel(saved.getStaffId()), "Issued an advance", tenantId, storeId);
+        return saved;
     }
 
     @Transactional
@@ -129,7 +140,10 @@ public class HospitalityService {
         advance.setStatus("CLOSED");
         advance.setOutstandingBalance(BigDecimal.ZERO);
         advance.setRemainingInstallments(0);
-        return advanceRepository.save(advance);
+        StaffAdvance saved = advanceRepository.save(advance);
+        recordHospitality(ActivityActions.HOSPITALITY_ADVANCE_CLOSED, ActivityResourceTypes.ADVANCE, saved.getId(),
+                staffLabel(saved.getStaffId()), "Closed an advance", tenantId, storeId);
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -159,7 +173,10 @@ public class HospitalityService {
                 plan.getSlabs().add(slab);
             }
         }
-        return commissionPlanRepository.save(plan);
+        CommissionPlan saved = commissionPlanRepository.save(plan);
+        recordHospitality(ActivityActions.HOSPITALITY_COMMISSION_SAVED, ActivityResourceTypes.COMMISSION_PLAN, saved.getId(),
+                saved.getPlanName(), "Saved commission plan " + saved.getPlanName(), tenantId, storeId);
+        return saved;
     }
 
     @Transactional
@@ -170,6 +187,8 @@ public class HospitalityService {
             throw new ResourceNotFoundException("Commission plan not found.");
         }
         commissionPlanRepository.delete(plan);
+        recordHospitality(ActivityActions.HOSPITALITY_COMMISSION_DELETED, ActivityResourceTypes.COMMISSION_PLAN, plan.getId(),
+                plan.getPlanName(), "Deleted commission plan " + plan.getPlanName(), tenantId, storeId);
     }
 
     public List<StaffSalesEntry> listSales(Long tenantId, Long storeId, LocalDate from, LocalDate to, Long staffId) {
@@ -199,7 +218,12 @@ public class HospitalityService {
         entry.setExternalRef(request.getExternalRef());
         entry.setJobCode(request.getJobCode());
         entry.setNotes(request.getNotes());
-        return salesRepository.save(entry);
+        StaffSalesEntry saved = salesRepository.save(entry);
+        if (!"CSV".equalsIgnoreCase(saved.getSource())) {
+            recordHospitality(ActivityActions.HOSPITALITY_SALE_RECORDED, ActivityResourceTypes.SALES_ENTRY, saved.getId(),
+                    staffLabel(saved.getStaffId()), "Recorded a sale", tenantId, storeId);
+        }
+        return saved;
     }
 
     @Transactional
@@ -212,6 +236,9 @@ public class HospitalityService {
             row.setSource(defaultText(row.getSource(), "CSV"));
             saved.add(createSale(tenantId, storeId, row));
         }
+        recordHospitality(ActivityActions.HOSPITALITY_SALES_IMPORTED, ActivityResourceTypes.SALES_ENTRY, null,
+                ActivityNames.countLabel(saved.size(), "sales row", "sales rows"),
+                "Imported " + ActivityNames.countLabel(saved.size(), "sales row", "sales rows"), tenantId, storeId);
         return saved;
     }
 
@@ -237,7 +264,11 @@ public class HospitalityService {
         run.setMethod(defaultText(request.getMethod(), "HOURS").toUpperCase(Locale.ROOT));
         run.setStatus("DRAFT");
         run.setRemarks(request.getRemarks());
-        return tipPoolRepository.save(run);
+        TipPoolRun saved = tipPoolRepository.save(run);
+        recordHospitality(ActivityActions.HOSPITALITY_TIP_POOL_CREATED, ActivityResourceTypes.TIP_POOL, saved.getId(),
+                ActivityNames.formatDate(saved.getPeriodFrom()) + " to " + ActivityNames.formatDate(saved.getPeriodTo()),
+                "Created a tip pool", tenantId, storeId);
+        return saved;
     }
 
     @Transactional
@@ -294,7 +325,10 @@ public class HospitalityService {
             run.getShares().add(share);
         }
         run.setStatus("DISTRIBUTED");
-        return tipPoolRepository.save(run);
+        TipPoolRun saved = tipPoolRepository.save(run);
+        recordHospitality(ActivityActions.HOSPITALITY_TIP_POOL_DISTRIBUTED, ActivityResourceTypes.TIP_POOL, saved.getId(),
+                saved.getPeriodFrom() + " to " + saved.getPeriodTo(), "Distributed a tip pool", tenantId, storeId);
+        return saved;
     }
 
     public StatutoryConfig getStatutory(Long tenantId, Long storeId) {
@@ -321,7 +355,10 @@ public class HospitalityService {
         if (request.getLwfEmployeeAmount() != null) config.setLwfEmployeeAmount(request.getLwfEmployeeAmount());
         if (request.getLwfEmployerAmount() != null) config.setLwfEmployerAmount(request.getLwfEmployerAmount());
         if (request.getTdsRate() != null) config.setTdsRate(request.getTdsRate());
-        return statutoryConfigRepository.save(config);
+        StatutoryConfig saved = statutoryConfigRepository.save(config);
+        recordHospitality(ActivityActions.HOSPITALITY_STATUTORY_SAVED, ActivityResourceTypes.STORE, storeId,
+                "Statutory", "Updated statutory payroll settings", tenantId, storeId);
+        return saved;
     }
 
     public List<StoreDailySales> listDailySales(Long tenantId, Long storeId, LocalDate from, LocalDate to) {
@@ -343,7 +380,11 @@ public class HospitalityService {
         row.setNetSales(nvl(request.getNetSales()));
         row.setCovers(request.getCovers());
         row.setNotes(request.getNotes());
-        return dailySalesRepository.save(row);
+        StoreDailySales saved = dailySalesRepository.save(row);
+        recordHospitality(ActivityActions.HOSPITALITY_DAILY_SALES_SAVED, ActivityResourceTypes.STORE, storeId,
+                ActivityNames.formatDate(saved.getSaleDate()),
+                "Saved daily sales for " + ActivityNames.formatDate(saved.getSaleDate()), tenantId, storeId);
+        return saved;
     }
 
     public List<Map<String, Object>> laborReport(Long tenantId, Long storeId, LocalDate from, LocalDate to) {
@@ -491,7 +532,10 @@ public class HospitalityService {
         fnf.setOtherDeductions(other);
         fnf.setNetPayable(unpaid.add(leaveEncashment).subtract(advanceRecovery).subtract(other));
         fnf.setRemarks(request.getRemarks());
-        return fnfRepository.save(fnf);
+        FullAndFinalSettlement saved = fnfRepository.save(fnf);
+        recordHospitality(ActivityActions.HOSPITALITY_FNF_CREATED, ActivityResourceTypes.FNF, saved.getId(),
+                staffLabel(saved.getStaffId()), "Created full and final for " + staffLabel(saved.getStaffId()), tenantId, storeId);
+        return saved;
     }
 
     @Transactional
@@ -513,7 +557,10 @@ public class HospitalityService {
             staff.setActive(false);
             personnelDetailsRepository.save(staff);
         });
-        return fnfRepository.save(fnf);
+        FullAndFinalSettlement saved = fnfRepository.save(fnf);
+        recordHospitality(ActivityActions.HOSPITALITY_FNF_SETTLED, ActivityResourceTypes.FNF, saved.getId(),
+                staffLabel(saved.getStaffId()), "Settled full and final for " + staffLabel(saved.getStaffId()), tenantId, storeId);
+        return saved;
     }
 
     public List<ShiftSwapRequest> listSwaps(Long tenantId, Long storeId) {
@@ -549,7 +596,11 @@ public class HospitalityService {
         swap.setShiftDate(request.getShiftDate());
         swap.setStatus("PENDING");
         swap.setReason(request.getReason());
-        return swapRepository.save(swap);
+        ShiftSwapRequest saved = swapRepository.save(swap);
+        recordHospitality(ActivityActions.HOSPITALITY_SWAP_REQUESTED, ActivityResourceTypes.SHIFT_SWAP, saved.getId(),
+                staffLabel(self) + " → " + staffLabel(request.getTargetStaffId()),
+                "Requested a shift swap", tenantId, storeId);
+        return saved;
     }
 
     @Transactional
@@ -565,7 +616,10 @@ public class HospitalityService {
         swap.setDecidedBy(SecurityUtils.getStaffId());
         if (!approved) {
             swap.setStatus("REJECTED");
-            return swapRepository.save(swap);
+            ShiftSwapRequest saved = swapRepository.save(swap);
+            recordHospitality(ActivityActions.HOSPITALITY_SWAP_DECIDED, ActivityResourceTypes.SHIFT_SWAP, saved.getId(),
+                    staffLabel(saved.getRequesterStaffId()), "Rejected a shift swap", tenantId, storeId);
+            return saved;
         }
         List<SStaffShifts> requester = rosteredShifts(tenantId, storeId, swap.getShiftDate(), swap.getRequesterStaffId());
         List<SStaffShifts> target = rosteredShifts(tenantId, storeId, swap.getShiftDate(), swap.getTargetStaffId());
@@ -583,7 +637,11 @@ public class HospitalityService {
             staffShiftsRepository.save(row);
         }
         swap.setStatus("APPROVED");
-        return swapRepository.save(swap);
+        ShiftSwapRequest saved = swapRepository.save(swap);
+        recordHospitality(ActivityActions.HOSPITALITY_SWAP_DECIDED, ActivityResourceTypes.SHIFT_SWAP, saved.getId(),
+                staffLabel(saved.getRequesterStaffId()),
+                approved ? "Approved a shift swap" : "Rejected a shift swap", tenantId, storeId);
+        return saved;
     }
 
     public List<StaffAvailability> listAvailability(Long tenantId, Long storeId, Long staffId) {
@@ -615,7 +673,10 @@ public class HospitalityService {
         row.setAvailableFrom(request.getAvailableFrom());
         row.setAvailableTo(request.getAvailableTo());
         row.setAvailable(request.getAvailable() == null || request.getAvailable());
-        return availabilityRepository.save(row);
+        StaffAvailability saved = availabilityRepository.save(row);
+        recordHospitality(ActivityActions.HOSPITALITY_AVAILABILITY_SAVED, ActivityResourceTypes.STAFF, self,
+                staffLabel(self), "Updated availability for " + weekday, tenantId, storeId);
+        return saved;
     }
 
     @Transactional
@@ -662,7 +723,10 @@ public class HospitalityService {
             remark = remark == null || remark.isBlank() ? geo : remark + " " + geo;
         }
         punch.setRemark(remark);
-        return attendanceRepository.save(punch);
+        PersonnelAttendance saved = attendanceRepository.save(punch);
+        recordHospitality(ActivityActions.ATTENDANCE_CLOCKED, ActivityResourceTypes.PUNCH, saved.getId(),
+                staffLabel(self), "Clocked " + event.toLowerCase(Locale.ROOT), tenantId, storeId);
+        return saved;
     }
 
     public Map<String, Object> mySummary(Long tenantId, Long storeId) {
@@ -715,6 +779,8 @@ public class HospitalityService {
                 applied++;
             }
         }
+        recordHospitality(ActivityActions.PAYROLL_APPLIED, ActivityResourceTypes.PAYROLL_RUN, salaryMonth + "-" + year,
+                salaryMonth + " " + year, "Applied hospitality payroll for " + salaryMonth + " " + year, tenantId, storeId);
         return Map.of("applied", applied, "month", salaryMonth, "year", year);
     }
 
@@ -1039,6 +1105,27 @@ public class HospitalityService {
 
     private String defaultText(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private void recordHospitality(String action, String resourceType, Object resourceId, String resourceLabel,
+                                  String summary, Long tenantId, Long storeId) {
+        activityRecorder.record(ActivityEvent.builder()
+                .action(action)
+                .tenantId(tenantId)
+                .storeId(storeId)
+                .resourceType(resourceType)
+                .resourceId(resourceId)
+                .resourceLabel(resourceLabel)
+                .summary(summary)
+                .build());
+    }
+
+    private String staffLabel(Long staffId) {
+        if (staffId == null) {
+            return "staff";
+        }
+        String name = ActivityNames.displayName(personnelDetailsRepository.findById(staffId).orElse(null));
+        return name != null ? name : "staff " + staffId;
     }
 
     private String displayName(PersonnelDetails person) {

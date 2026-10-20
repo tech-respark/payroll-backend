@@ -2,7 +2,7 @@
 
 > **Audience:** Backend developers  
 > **Purpose:** Explain how an HTTP call becomes a database change  
-> **Last verified:** 2026-10-19  
+> **Last verified:** 2026-10-20  
 > **Source of truth:** `SecurityConfig`, `JwtAuthFilter`, controllers, and `ExceptionAdvisor`
 
 ## Path
@@ -11,7 +11,8 @@
 flowchart LR
     Client[Browser or curl] --> Cors[CORS and security chain]
     Cors --> Jwt[JwtAuthFilter]
-    Jwt --> Controller[Controller]
+    Jwt --> Activity[ActivityRequestFilter]
+    Activity --> Controller[Controller]
     Controller --> Service[Service]
     Service --> Repository[Repository]
     Repository --> MySQL[(MySQL)]
@@ -42,7 +43,7 @@ Class-level `@PreAuthorize` protects:
 - `LeavePlanAdminController` with `MANAGE_LEAVES`
 - `SStaffShiftsController` with `MANAGE_SHIFTS`
 
-Selected salary and leave-approval methods add their own checks. Many staff, attendance, holiday, dashboard, payslip, sync, and payroll-trigger routes are only JWT-authenticated. Hidden frontend controls are not a security boundary.
+Selected salary and leave-approval methods add their own checks. `GET /home/operations` requires an operations permission. `GET /home/staff` is authenticated and always scoped to the JWT staff id. Many staff, attendance, holiday, payslip, sync, and payroll-trigger routes are only JWT-authenticated. Hidden frontend controls are not a security boundary.
 
 `SecurityUtils` replaces positive request tenant and store IDs with JWT values when a controller calls it. It does not prove that a requested staff or record belongs to that tenant.
 

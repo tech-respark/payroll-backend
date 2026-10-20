@@ -27,5 +27,6 @@ public final class Permissions {
     public static final String VIEW_OTHER_STAFF = "VIEW_OTHER_STAFF";
     public static final String VIEW_HOSPITALITY = "VIEW_HOSPITALITY";
     public static final String MANAGE_HOSPITALITY = "MANAGE_HOSPITALITY";
+    public static final String VIEW_ACTIVITY_LOG = "VIEW_ACTIVITY_LOG";
 
 }

@@ -1,5 +1,10 @@
 package com.relfor.pcs.payroll.service;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityNames;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.dto.*;
 import com.relfor.pcs.payroll.entity.*;
 import com.relfor.pcs.payroll.projection.MonthlySummaryCalculationProjection;
@@ -44,6 +49,9 @@ public class AttendanceManagementService {
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
+	@Autowired
+	private ActivityRecorder activityRecorder;
+
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	private static final String SUCCESS = "SUCCESS";
 
@@ -51,11 +59,15 @@ public class AttendanceManagementService {
 		ResponseModel responseModel = new ResponseModel();
 		try {
 			PersonnelDetails personnelDetails;
+			boolean creating = staffDTO.getId() == null || staffDTO.getId() == 0;
+			boolean passwordSet = staffDTO.getPwd() != null && !staffDTO.getPwd().isEmpty();
+			String previousWeeklyOff = null;
 			
-			if (staffDTO.getId() != null && staffDTO.getId() != 0) {
+			if (!creating) {
 				Optional<PersonnelDetails> personnelDetailsOptional = personnelDetailsRepository
 						.findById(staffDTO.getId());
 				personnelDetails = personnelDetailsOptional.orElseGet(PersonnelDetails::new);
+				previousWeeklyOff = personnelDetails.getWeeklyOff();
 			} else {
 				personnelDetails = new PersonnelDetails();
 			}
@@ -81,6 +93,38 @@ public class AttendanceManagementService {
 			responseModel.setData(staffDTO);
 			responseModel.setCode(HttpStatus.OK);
 			responseModel.setMessage(SUCCESS);
+			activityRecorder.record(ActivityEvent.builder()
+					.action(creating ? ActivityActions.STAFF_CREATED : ActivityActions.STAFF_UPDATED)
+					.tenantId(personnelDetails.getApplicationTenantId())
+					.storeId(personnelDetails.getStoreId())
+					.resourceType(ActivityResourceTypes.STAFF)
+					.resourceId(personnelDetails.getId())
+					.resourceLabel(ActivityNames.displayName(personnelDetails))
+					.summary((creating ? "Created staff " : "Updated staff ") + ActivityNames.displayName(personnelDetails))
+					.context("username", personnelDetails.getUsername())
+					.build());
+			if (!creating && passwordSet) {
+				activityRecorder.record(ActivityEvent.builder()
+						.action(ActivityActions.AUTH_PASSWORD_UPDATED)
+						.tenantId(personnelDetails.getApplicationTenantId())
+						.storeId(personnelDetails.getStoreId())
+						.resourceType(ActivityResourceTypes.STAFF)
+						.resourceId(personnelDetails.getId())
+						.resourceLabel(ActivityNames.displayName(personnelDetails))
+						.summary("Updated password for " + ActivityNames.displayName(personnelDetails))
+						.build());
+			}
+			if (!creating && !java.util.Objects.equals(previousWeeklyOff, personnelDetails.getWeeklyOff())) {
+				activityRecorder.record(ActivityEvent.builder()
+						.action(ActivityActions.SHIFT_WEEKLY_OFF_UPDATED)
+						.tenantId(personnelDetails.getApplicationTenantId())
+						.storeId(personnelDetails.getStoreId())
+						.resourceType(ActivityResourceTypes.STAFF)
+						.resourceId(personnelDetails.getId())
+						.resourceLabel(ActivityNames.displayName(personnelDetails))
+						.summary("Updated weekly off for " + ActivityNames.displayName(personnelDetails))
+						.build());
+			}
 		} catch (Exception ex) {
 			logger.error("Exception in enrollPersonnelForAttendanceManagement: {}", ex.getMessage());
 			throw ex;
@@ -676,6 +720,15 @@ public class AttendanceManagementService {
 					PersonnelDetails personnelDetails = personnelDetailsOptional.get();
 					personnelDetails.setPassword(passwordEncoder.encode(staffDTO.getPwd()));
 					personnelDetailsRepository.save(personnelDetails);
+					activityRecorder.record(ActivityEvent.builder()
+							.action(ActivityActions.AUTH_PASSWORD_UPDATED)
+							.tenantId(personnelDetails.getApplicationTenantId())
+							.storeId(personnelDetails.getStoreId())
+							.resourceType(ActivityResourceTypes.STAFF)
+							.resourceId(personnelDetails.getId())
+							.resourceLabel(ActivityNames.displayName(personnelDetails))
+							.summary("Updated password for " + ActivityNames.displayName(personnelDetails))
+							.build());
 				}
 			}
 		} catch (Exception ex) {

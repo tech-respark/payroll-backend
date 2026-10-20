@@ -1,5 +1,9 @@
 package com.relfor.pcs.payroll.controller;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.entity.StoreDetails;
 import com.relfor.pcs.payroll.repository.StoreDetailsRepository;
 import com.relfor.pcs.payroll.util.SecurityUtils;
@@ -20,6 +24,9 @@ public class StoreSettingsController {
 
     @Autowired
     private StoreDetailsRepository storeDetailsRepository;
+
+    @Autowired
+    private ActivityRecorder activityRecorder;
 
     private Map<String, Object> createResponse(String message, String code, Object data) {
         Map<String, Object> map = new HashMap<>();
@@ -65,6 +72,17 @@ public class StoreSettingsController {
             store.setStoreOpenTime(payload.get("storeOpenTime"));
             store.setStoreCloseTime(payload.get("storeCloseTime"));
             storeDetailsRepository.save(store);
+            activityRecorder.record(ActivityEvent.builder()
+                    .action(ActivityActions.SETTINGS_STORE_SAVED)
+                    .tenantId(tenantId)
+                    .storeId(storeId)
+                    .resourceType(ActivityResourceTypes.STORE)
+                    .resourceId(storeId)
+                    .resourceLabel(store.getStoreName())
+                    .summary("Updated store hours")
+                    .context("open", payload.get("storeOpenTime"))
+                    .context("close", payload.get("storeCloseTime"))
+                    .build());
             return ResponseEntity.ok(createResponse("Store settings saved", "SUCCESS", store));
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(createResponse("Store not found", "ERROR", null));

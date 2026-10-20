@@ -1,5 +1,11 @@
 package com.relfor.pcs.payroll.service;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityActorType;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityNames;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.dto.*;
 import com.relfor.pcs.payroll.entity.*;
 import com.relfor.pcs.payroll.repository.*;
@@ -32,6 +38,9 @@ public class ExternalStaffSyncService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private ActivityRecorder activityRecorder;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -74,6 +83,16 @@ public class ExternalStaffSyncService {
                                 newRole.setPermissions(""); // Zero permissions by default
                                 newRole.setActive(1);
                                 roleRepo.save(newRole);
+                                activityRecorder.recordSafely(ActivityEvent.builder()
+                                        .action(ActivityActions.ROLE_CREATED)
+                                        .actorType(ActivityActorType.SYSTEM)
+                                        .tenantId(tenant.getTenantId())
+                                        .storeId(store.getStoreId())
+                                        .resourceType(ActivityResourceTypes.ROLE)
+                                        .resourceId(newRole.getId())
+                                        .resourceLabel(newRole.getName())
+                                        .summary("Created role " + newRole.getName())
+                                        .build());
                             }
                         }
                     }
@@ -86,10 +105,12 @@ public class ExternalStaffSyncService {
                         for (ExternalStaffDTO staffDto : staffResponse.getStaff()) {
                             // Find or create personnel
                             PersonnelDetails pd = null;
+                            boolean creatingStaff = false;
                             List<PersonnelDetails> matches = personnelRepo.getPersonnelByEmployeeCode(tenant.getTenantId(), Collections.singletonList(staffDto.getExternalStaffId()));
                             if (!matches.isEmpty()) {
                                 pd = matches.get(0);
                             } else {
+                                creatingStaff = true;
                                 pd = new PersonnelDetails();
                                 pd.setEmployeeCode(staffDto.getExternalStaffId());
                                 pd.setApplicationTenantId(tenant.getTenantId());
@@ -107,6 +128,18 @@ public class ExternalStaffSyncService {
                             pd.setActive(Boolean.TRUE.equals(staffDto.getIsActive()));
                             
                             pd = personnelRepo.save(pd);
+                            if (creatingStaff) {
+                                activityRecorder.recordSafely(ActivityEvent.builder()
+                                        .action(ActivityActions.STAFF_CREATED)
+                                        .actorType(ActivityActorType.SYSTEM)
+                                        .tenantId(tenant.getTenantId())
+                                        .storeId(store.getStoreId())
+                                        .resourceType(ActivityResourceTypes.STAFF)
+                                        .resourceId(pd.getId())
+                                        .resourceLabel(ActivityNames.displayName(pd))
+                                        .summary("Created staff " + ActivityNames.displayName(pd))
+                                        .build());
+                            }
 
                             // Link to Role and Store
                             if (staffDto.getRoleName() != null && !staffDto.getRoleName().isEmpty()) {

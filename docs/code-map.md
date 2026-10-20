@@ -18,6 +18,7 @@ The base package is `com.relfor.pcs.payroll`. The application entry point is `Pa
 | `dto`, `model`, `projection` | Request, response, and query shapes | DTO named in the controller signature |
 | `security` | JWT filter, user loading, permission constants | `JwtAuthFilter`, `CustomUserDetailsService`, `Permissions` |
 | `config` | Security chain, startup seeding, request scope | `SecurityConfig`, `DataSeeder` |
+| `activity` | Append-only store activity log API | `ActivityRecorder`, `ActivityActions`, `ActivityLogController` |
 | `handler` | Vendor-specific attendance retrieval | `TeamOfficeHandler` |
 | `scheduler` | Due biometric jobs | `AttendanceSchedulerService` |
 | `exceptions` | Shared API error body | `ExceptionAdvisor` |
@@ -41,6 +42,8 @@ The base package is `com.relfor.pcs.payroll`. The application entry point is `Pa
 | Manual payroll jobs | `PayrollTriggerController` | `PayrollTriggerService` |
 | External staff import | `StaffSyncController` | `ExternalStaffSyncService` |
 | HR metrics | `HRDashboardController` | `HRDashboardService` |
+| Home landing | `HomeDashboardController` | `HomeDashboardService` |
+| Activity log | `ActivityLogController` | `ActivityLogService` (`ActivityRecorder`) |
 
 Leave accrual jobs live in `LeaveAccrualSchedulerService`, not under `scheduler`.
 

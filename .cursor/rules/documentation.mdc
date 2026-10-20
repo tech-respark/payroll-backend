@@ -1,17 +1,24 @@
 ---
-description: Keep backend and shared payroll documentation current
+description: Auto-update shared payroll docs whenever backend code changes
 alwaysApply: true
 ---
 
-# Backend documentation
+# Documentation stays current
 
-Service setup and code navigation live in this repository's `README.md` and `docs/`.
+Never finish a backend change with stale documentation. Update matching pages in the same change. Do not defer docs to a later task.
 
-Product, screen, API, permission, data-model, onboarding, and known-limitation docs live in the `payroll-frontend` repository under `docs/`.
+## Where docs live
 
-When changing an endpoint, permission, entity, schema, scheduler, integration, or runtime requirement:
+- Product, screens, API, permissions, data model, onboarding, limitations: `payroll-frontend/docs/`
+- User-facing workflow or copy changes: also `payroll-frontend/src/docs/content/`
+- Startup, package location, request flow: this repository `README.md` and `docs/`
 
-1. Update the affected page in the frontend documentation portal in the same change.
-2. Update this repository's `docs/` when startup, package location, or request flow changes.
-3. Describe current code as current behavior and label gaps explicitly.
-4. Never add credentials, tokens, private keys, personal data, salary data, or production endpoints.
+## When to update
+
+Update whenever an endpoint, permission, entity, schema, scheduler, integration, runtime requirement, or operator procedure changes.
+
+Skip only no-behavior edits (formatting, comments, unused-code cleanup). If you skip, say so in the reply.
+
+Treat current code as current behavior and label gaps explicitly. Never add credentials, tokens, personal data, salary data, or production endpoints.
+
+After editing the frontend portal, run `npm run docs:check` in `payroll-frontend`.

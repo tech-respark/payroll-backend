@@ -14,6 +14,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityNames;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.dto.*;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -72,6 +77,8 @@ public class StaffShiftsService {
 	private EntityManager entityManager;
 	@Autowired
 	AttendanceManagementService attendanceManagementService;
+	@Autowired
+	ActivityRecorder activityRecorder;
 
 	public List<SStaffShifts> createStaffShiftNewInput(CreateStaffShiftInput createStaffShiftInput) {
 
@@ -375,6 +382,20 @@ public class StaffShiftsService {
 		} catch (Exception e) {
 			logger.error(e.getClass().getName(), e);
 			throw new IllegalStateException(e.getMessage(), e);
+		}
+		if (!result.isEmpty()) {
+			activityRecorder.record(ActivityEvent.builder()
+					.action(ActivityActions.SHIFT_ROSTER_UPDATED)
+					.tenantId(createStaffShiftInput.getTenantId())
+					.storeId(createStaffShiftInput.getStoreId())
+					.resourceType(ActivityResourceTypes.SHIFT_ROSTER)
+					.resourceId(createStaffShiftInput.getStartDate())
+					.resourceLabel(formatRosterDate(createStaffShiftInput.getStartDate()))
+					.summary("Updated roster for " + ActivityNames.countLabel(result.size(), "shift row", "shift rows"))
+					.context("startDate", createStaffShiftInput.getStartDate())
+					.context("days", createStaffShiftInput.getNoOfDays())
+					.context("rows", result.size())
+					.build());
 		}
 		return result;
 
@@ -1025,6 +1046,15 @@ public class StaffShiftsService {
 					}
 				}
 				responseModel.setData(staff);
+				activityRecorder.record(ActivityEvent.builder()
+						.action(ActivityActions.SHIFT_WEEKLY_OFF_UPDATED)
+						.tenantId(tenantId)
+						.storeId(storeId)
+						.resourceType(ActivityResourceTypes.STAFF)
+						.resourceId(id)
+						.resourceLabel(ActivityNames.displayName(personnelDetails))
+						.summary("Updated weekly off for " + ActivityNames.displayName(personnelDetails))
+						.build());
 			}
 			responseModel.setMessage("SUCCESS");
 			responseModel.setCode(HttpStatus.OK);
@@ -2088,6 +2118,17 @@ public class StaffShiftsService {
 		}
 
 		return resultShifts;
+	}
+
+	private String formatRosterDate(String startDate) {
+		if (startDate == null || startDate.isBlank()) {
+			return startDate;
+		}
+		try {
+			return ActivityNames.formatDate(LocalDate.parse(startDate));
+		} catch (Exception ignored) {
+			return startDate;
+		}
 	}
 }
 

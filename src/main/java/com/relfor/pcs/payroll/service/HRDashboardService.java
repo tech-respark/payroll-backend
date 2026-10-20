@@ -25,7 +25,7 @@ public class HRDashboardService {
     private final DayWiseAttendanceSummaryRepository attendanceRepository;
 
     public DashboardMetricsDTO getDashboardMetrics(Long tenantId, Long storeId) {
-        LocalDate today = LocalDate.now(ZoneId.systemDefault());
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Kolkata"));
         LocalDate startOfWeek = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
         LocalDate endOfWeek = startOfWeek.plusDays(6);
 

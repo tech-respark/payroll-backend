@@ -12,6 +12,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityNames;
+import com.relfor.pcs.payroll.activity.ActivityOutcome;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.relfor.pcs.payroll.dto.GenerateOtpRequest;
 import com.relfor.pcs.payroll.dto.ResetPasswordRequest;
@@ -39,6 +45,9 @@ public class AuthController {
 
     @Autowired
     private com.relfor.pcs.payroll.service.AuthService authService;
+
+    @Autowired
+    private ActivityRecorder activityRecorder;
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
@@ -72,6 +81,7 @@ public class AuthController {
                 if (personnel.getActive() == null || !personnel.getActive()) {
                     response.setSuccess(false);
                     response.setMessage("Invalid username/email or password.");
+                    recordLoginFailure(personnel, loginRequest.getUsername());
                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
                 }
                 CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(personnel.getUsername());
@@ -93,15 +103,48 @@ public class AuthController {
                 response.setStoreId(personnel.getStoreId());
                 response.setTenantId(personnel.getApplicationTenantId());
                 response.setActive(personnel.getActive() != null ? personnel.getActive() : true);
-				response.setStaffId(personnel.getId());
-                
+                response.setStaffId(personnel.getId());
+                activityRecorder.recordSafely(ActivityEvent.builder()
+                        .action(ActivityActions.AUTH_LOGIN_SUCCESS)
+                        .outcome(ActivityOutcome.SUCCESS)
+                        .actorType(com.relfor.pcs.payroll.activity.ActivityActorType.USER)
+                        .actorStaffId(personnel.getId())
+                        .actorUsername(personnel.getUsername())
+                        .actorDisplayName(ActivityNames.displayName(personnel))
+                        .tenantId(personnel.getApplicationTenantId())
+                        .storeId(personnel.getStoreId())
+                        .resourceType(ActivityResourceTypes.SESSION)
+                        .summary("Signed in")
+                        .build());
                 return ResponseEntity.ok(response);
             }
         }
 
         response.setSuccess(false);
         response.setMessage("Invalid username/email or password.");
+        recordLoginFailure(personnelOptional.orElse(null), loginRequest.getUsername());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
+    private void recordLoginFailure(PersonnelDetails personnel, String attemptedUsername) {
+        var builder = ActivityEvent.builder()
+                .action(ActivityActions.AUTH_LOGIN_FAILURE)
+                .outcome(ActivityOutcome.FAILURE)
+                .actorType(com.relfor.pcs.payroll.activity.ActivityActorType.USER)
+                .resourceType(ActivityResourceTypes.SESSION)
+                .summary("Sign-in failed");
+        if (personnel != null) {
+            String name = ActivityNames.displayName(personnel);
+            builder.actorStaffId(personnel.getId())
+                    .actorUsername(personnel.getUsername())
+                    .actorDisplayName(name)
+                    .tenantId(personnel.getApplicationTenantId())
+                    .storeId(personnel.getStoreId())
+                    .summary("Sign-in failed" + (name != null ? " for " + name : ""));
+        } else {
+            builder.actorUsername(attemptedUsername).tenantId(0L);
+        }
+        activityRecorder.recordSafely(builder.build());
     }
 
     @PostMapping("/forgot-password/generate-otp")

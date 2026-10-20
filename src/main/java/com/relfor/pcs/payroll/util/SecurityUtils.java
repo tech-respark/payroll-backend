@@ -95,4 +95,32 @@ public class SecurityUtils {
     public static boolean canViewOtherStaff() {
         return hasAuthority(Permissions.MANAGE_STAFF) || hasAuthority(Permissions.VIEW_OTHER_STAFF);
     }
+
+    public static boolean hasAnyAuthority(String... authorities) {
+        if (authorities == null) {
+            return false;
+        }
+        for (String authority : authorities) {
+            if (hasAuthority(authority)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isOperationsUser() {
+        return hasAnyAuthority(
+                Permissions.VIEW_OTHER_STAFF,
+                Permissions.MANAGE_STAFF,
+                Permissions.MANAGE_ROLES,
+                Permissions.MANAGE_SHIFTS,
+                Permissions.MANAGE_ATTENDANCE,
+                Permissions.MANAGE_SALARY,
+                Permissions.MANAGE_LEAVES,
+                Permissions.VIEW_REPORTS,
+                Permissions.VIEW_HR_DASHBOARD,
+                Permissions.VIEW_HOSPITALITY,
+                Permissions.MANAGE_HOSPITALITY
+        );
+    }
 }

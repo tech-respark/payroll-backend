@@ -1,5 +1,6 @@
 package com.relfor.pcs.payroll.config;
 
+import com.relfor.pcs.payroll.activity.ActivityRequestFilter;
 import com.relfor.pcs.payroll.security.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,6 +14,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.MediaType;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -25,6 +27,9 @@ public class SecurityConfig {
 
     @Autowired
     private JwtAuthFilter jwtAuthFilter;
+
+    @Autowired
+    private ActivityRequestFilter activityRequestFilter;
 
     @Value("${cors.allowed-origins:http://127.0.0.1:5174,http://localhost:5174}")
     private String allowedOrigins;
@@ -58,11 +63,20 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(activityRequestFilter, JwtAuthFilter.class)
                 .build();
     }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(); // Or NoOpPasswordEncoder if hashing isn't used yet
+    }
+
+    @Bean
+    public FilterRegistrationBean<ActivityRequestFilter> activityRequestFilterRegistration(
+            ActivityRequestFilter activityRequestFilter) {
+        FilterRegistrationBean<ActivityRequestFilter> registration = new FilterRegistrationBean<>(activityRequestFilter);
+        registration.setEnabled(false);
+        return registration;
     }
 }

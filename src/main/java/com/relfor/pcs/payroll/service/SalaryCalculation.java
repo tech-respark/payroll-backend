@@ -1,5 +1,10 @@
 package com.relfor.pcs.payroll.service;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityNames;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.dto.ResponseModel;
 import com.relfor.pcs.payroll.dto.STenantStore;
 import com.relfor.pcs.payroll.dto.SalaryComponentDTO;
@@ -48,6 +53,8 @@ public class SalaryCalculation {
     private  PersonnelPayslipHistoryRepository personnelPayslipHistoryRepository;
     @Autowired
     private HospitalityService hospitalityService;
+    @Autowired
+    private ActivityRecorder activityRecorder;
 
     public ResponseModel processSalaryComponents(SalaryComponentResponseDTO personnelComponents) {
         ResponseModel responseModel = new ResponseModel();
@@ -127,6 +134,18 @@ public class SalaryCalculation {
                 
                 logger.info("Successfully saved {} salary components for StaffId={}",
                         responseData.size(), staffId);
+                PersonnelDetails staff = personnelDetailsRepository.findById(staffId).orElse(null);
+                activityRecorder.record(ActivityEvent.builder()
+                        .action(ActivityActions.PAYROLL_COMPONENTS_SAVED)
+                        .tenantId(tenantId)
+                        .storeId(storeId)
+                        .resourceType(ActivityResourceTypes.STAFF)
+                        .resourceId(staffId)
+                        .resourceLabel(ActivityNames.displayName(staff))
+                        .summary("Updated salary components for " + (ActivityNames.displayName(staff) != null
+                                ? ActivityNames.displayName(staff)
+                                : "staff"))
+                        .build());
 
                 SalaryComponentResponseDTO salaryResponse = getSalaryResponse(responseData, true);
                 responseModel.setData(salaryResponse);

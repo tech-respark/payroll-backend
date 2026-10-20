@@ -1,5 +1,10 @@
 package com.relfor.pcs.payroll.service;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityNames;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.dto.LeaveApplicationDTO;
 import com.relfor.pcs.payroll.entity.*;
 import com.relfor.pcs.payroll.repository.*;
@@ -32,6 +37,7 @@ public class LeaveManagementService {
     private final AsyncLeaveAttendanceSyncService asyncAttendanceUpdater;
     private final StoreHolidayRepository storeHolidayRepository;
     private final EmailService emailService;
+    private final ActivityRecorder activityRecorder;
 
     private LeaveApplicationDTO toDTO(LeaveApplication app) {
         String staffName = "Unknown Staff";
@@ -188,6 +194,19 @@ public class LeaveManagementService {
         application = applicationRepository.save(application);
 
         logAction(application, LeaveApplicationLog.LogAction.APPLIED, staffId, reason);
+        activityRecorder.record(ActivityEvent.builder()
+                .action(ActivityActions.LEAVE_APPLIED)
+                .tenantId(tenantId)
+                .storeId(storeId)
+                .resourceType(ActivityResourceTypes.LEAVE_APPLICATION)
+                .resourceId(application.getId())
+                .resourceLabel(staffName(personnel))
+                .summary("Applied for " + leaveLabel(type) + " (" + requestedDuration.stripTrailingZeros().toPlainString()
+                        + (requestedDuration.compareTo(BigDecimal.ONE) == 0 ? " day)" : " days)"))
+                .context("from", startDate)
+                .context("to", endDate)
+                .context("leaveCode", type.getLeaveCode())
+                .build());
 
         try {
             String applierEmail = personnel.getEmail();
@@ -251,6 +270,8 @@ public class LeaveManagementService {
         );
 
         logAction(application, LeaveApplicationLog.LogAction.APPROVED, managerId, remarks);
+        activityRecorder.record(leaveEvent(application, ActivityActions.LEAVE_APPROVED,
+                "Approved " + leaveLabel(application.getLeaveType()) + " for " + staffName(application.getStaffId())));
 
         runAfterCommit(() -> asyncAttendanceUpdater.syncApprovedLeaveToAttendance(application));
         
@@ -284,6 +305,8 @@ public class LeaveManagementService {
         applicationRepository.save(application);
 
         logAction(application, LeaveApplicationLog.LogAction.REJECTED, managerId, remarks);
+        activityRecorder.record(leaveEvent(application, ActivityActions.LEAVE_REJECTED,
+                "Rejected " + leaveLabel(application.getLeaveType()) + " for " + staffName(application.getStaffId())));
         
         try {
             Optional<PersonnelDetails> personnelOpt = personnelDetailsRepository.findById(application.getStaffId());
@@ -314,11 +337,15 @@ public class LeaveManagementService {
             application.setStatus(LeaveApplication.ApplicationStatus.CANCELLED);
             applicationRepository.save(application);
             logAction(application, LeaveApplicationLog.LogAction.CANCELLED, staffId, "Self cancelled before approval: " + remarks);
+            activityRecorder.record(leaveEvent(application, ActivityActions.LEAVE_CANCELLED,
+                    "Cancelled " + leaveLabel(application.getLeaveType()) + " before approval"));
             return LeaveApplication.ApplicationStatus.CANCELLED;
         } else if (application.getStatus() == LeaveApplication.ApplicationStatus.APPROVED) {
             application.setStatus(LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED);
             applicationRepository.save(application);
             logAction(application, LeaveApplicationLog.LogAction.CANCELLATION_REQUESTED, staffId, remarks);
+            activityRecorder.record(leaveEvent(application, ActivityActions.LEAVE_CANCEL_REQUESTED,
+                    "Requested cancellation of " + leaveLabel(application.getLeaveType())));
             return LeaveApplication.ApplicationStatus.CANCELLATION_REQUESTED;
         } else {
             throw new IllegalStateException("Cannot cancel a leave in status " + application.getStatus() + ".");
@@ -350,6 +377,8 @@ public class LeaveManagementService {
         );
 
         logAction(application, LeaveApplicationLog.LogAction.CANCELLED, managerId, "Cancellation Approved: " + remarks);
+        activityRecorder.record(leaveEvent(application, ActivityActions.LEAVE_CANCELLED,
+                "Approved cancellation of " + leaveLabel(application.getLeaveType()) + " for " + staffName(application.getStaffId())));
 
         runAfterCommit(() -> asyncAttendanceUpdater.revertCancelledLeaveFromAttendance(application));
     }
@@ -372,6 +401,8 @@ public class LeaveManagementService {
         applicationRepository.save(application);
 
         logAction(application, LeaveApplicationLog.LogAction.CANCELLATION_REJECTED, managerId, "Cancellation rejected: " + remarks);
+        activityRecorder.record(leaveEvent(application, ActivityActions.LEAVE_CANCEL_REJECTED,
+                "Rejected cancellation of " + leaveLabel(application.getLeaveType()) + " for " + staffName(application.getStaffId())));
     }
 
     private void runAfterCommit(Runnable task) {
@@ -395,5 +426,41 @@ public class LeaveManagementService {
                 .remarks(remarks)
                 .build();
         leaveApplicationLogRepository.save(log);
+    }
+
+    private ActivityEvent leaveEvent(LeaveApplication application, String action, String summary) {
+        return ActivityEvent.builder()
+                .action(action)
+                .tenantId(application.getTenantId())
+                .storeId(application.getStoreId())
+                .resourceType(ActivityResourceTypes.LEAVE_APPLICATION)
+                .resourceId(application.getId())
+                .resourceLabel(staffName(application.getStaffId()))
+                .summary(summary)
+                .context("from", application.getStartDate())
+                .context("to", application.getEndDate())
+                .context("leaveCode", application.getLeaveType() != null ? application.getLeaveType().getLeaveCode() : null)
+                .build();
+    }
+
+    private String staffName(Long staffId) {
+        if (staffId == null) {
+            return null;
+        }
+        return staffName(personnelDetailsRepository.findById(staffId).orElse(null));
+    }
+
+    private String staffName(PersonnelDetails person) {
+        return ActivityNames.displayName(person);
+    }
+
+    private String leaveLabel(LeaveType type) {
+        if (type == null) {
+            return "leave";
+        }
+        if (type.getLeaveName() != null && !type.getLeaveName().isBlank()) {
+            return type.getLeaveName();
+        }
+        return type.getLeaveCode() != null ? type.getLeaveCode() : "leave";
     }
 }

@@ -1,5 +1,10 @@
 package com.relfor.pcs.payroll.service;
 
+import com.relfor.pcs.payroll.activity.ActivityActions;
+import com.relfor.pcs.payroll.activity.ActivityEvent;
+import com.relfor.pcs.payroll.activity.ActivityNames;
+import com.relfor.pcs.payroll.activity.ActivityRecorder;
+import com.relfor.pcs.payroll.activity.ActivityResourceTypes;
 import com.relfor.pcs.payroll.entity.AttendanceRegularizationRequest;
 import com.relfor.pcs.payroll.repository.AttendanceRegularizationRequestRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +25,7 @@ public class AttendanceRegularizationService {
     private final AttendanceRegularizationRequestRepository requestRepository;
     private final PersonnelDetailsRepository personnelDetailsRepository;
     private final EmailService emailService;
+    private final ActivityRecorder activityRecorder;
 
     @Transactional(readOnly = true)
     public java.util.List<AttendanceRegularizationRequest> getPendingRegularizations(Long tenantId, Long storeId, Long managerId, boolean isHrAdmin) {
@@ -46,6 +52,14 @@ public class AttendanceRegularizationService {
                 .build();
                 
         request = requestRepository.save(request);
+        activityRecorder.record(ActivityEvent.builder()
+                .action(ActivityActions.ATTENDANCE_REGULARIZATION_REQUESTED)
+                .resourceType(ActivityResourceTypes.REGULARIZATION)
+                .resourceId(request.getId())
+                .resourceLabel(ActivityNames.displayName(personnelDetailsRepository.findById(staffId).orElse(null)))
+                .summary("Requested punch correction for " + ActivityNames.formatDate(date))
+                .context("date", date)
+                .build());
 
         try {
             Optional<PersonnelDetails> personnelOpt = personnelDetailsRepository.findById(staffId);
@@ -82,9 +96,8 @@ public class AttendanceRegularizationService {
         request.setStatus(AttendanceRegularizationRequest.RegularizationStatus.APPROVED);
         request.setApproverId(approverId);
         requestRepository.save(request);
-        
-        // Push the missing punch to the DayWiseAttendanceSummary / InOutHistory
-        
+        activityRecorder.record(regularizationEvent(request, ActivityActions.ATTENDANCE_REGULARIZATION_APPROVED, "Approved punch correction"));
+
         try {
             Optional<PersonnelDetails> personnelOpt = personnelDetailsRepository.findById(request.getStaffId());
             if (personnelOpt.isPresent() && personnelOpt.get().getEmail() != null) {
@@ -105,7 +118,8 @@ public class AttendanceRegularizationService {
         request.setStatus(AttendanceRegularizationRequest.RegularizationStatus.REJECTED);
         request.setApproverId(approverId);
         requestRepository.save(request);
-        
+        activityRecorder.record(regularizationEvent(request, ActivityActions.ATTENDANCE_REGULARIZATION_REJECTED, "Rejected punch correction"));
+
         try {
             Optional<PersonnelDetails> personnelOpt = personnelDetailsRepository.findById(request.getStaffId());
             if (personnelOpt.isPresent() && personnelOpt.get().getEmail() != null) {
@@ -116,5 +130,17 @@ public class AttendanceRegularizationService {
         } catch (Exception e) {
             // Ignored to avoid breaking transaction
         }
+    }
+
+    private ActivityEvent regularizationEvent(AttendanceRegularizationRequest request, String action, String verb) {
+        String name = ActivityNames.displayName(personnelDetailsRepository.findById(request.getStaffId()).orElse(null));
+        return ActivityEvent.builder()
+                .action(action)
+                .resourceType(ActivityResourceTypes.REGULARIZATION)
+                .resourceId(request.getId())
+                .resourceLabel(name)
+                .summary(verb + " for " + (name != null ? name : "staff") + " on " + ActivityNames.formatDate(request.getDateToRegularize()))
+                .context("date", request.getDateToRegularize())
+                .build();
     }
 }

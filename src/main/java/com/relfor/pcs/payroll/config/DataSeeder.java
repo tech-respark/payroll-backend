@@ -2,7 +2,9 @@ package com.relfor.pcs.payroll.config;
 
 import com.relfor.pcs.payroll.entity.AccessModule;
 import com.relfor.pcs.payroll.entity.AccessPermission;
+import com.relfor.pcs.payroll.entity.Role;
 import com.relfor.pcs.payroll.repository.AccessModuleRepository;
+import com.relfor.pcs.payroll.repository.RoleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -18,6 +20,9 @@ public class DataSeeder implements CommandLineRunner {
 
     @Autowired
     private com.relfor.pcs.payroll.repository.StoreDetailsRepository storeDetailsRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
 
     @Override
     public void run(String... args) throws Exception {
@@ -81,6 +86,7 @@ public class DataSeeder implements CommandLineRunner {
             List<AccessPermission> p5 = new ArrayList<>();
             p5.add(createPerm("VIEW_ROLES", "View Security Roles", m5));
             p5.add(createPerm("MANAGE_ROLES", "Create & Edit Roles", m5));
+            p5.add(createPerm("VIEW_ACTIVITY_LOG", "View activity log", m5));
             m5.setPermissions(p5);
             accessModuleRepository.save(m5);
             
@@ -144,6 +150,8 @@ public class DataSeeder implements CommandLineRunner {
                 System.out.println("Store 1 configurations seeded.");
             }
         }
+
+        ensureActivityLogPermission();
     }
 
     private AccessPermission createPerm(String id, String label, AccessModule module) {
@@ -152,5 +160,36 @@ public class DataSeeder implements CommandLineRunner {
         ap.setLabel(label);
         ap.setAccessModule(module);
         return ap;
+    }
+
+    private void ensureActivityLogPermission() {
+        List<AccessModule> modules = accessModuleRepository.findByTenantIdAndStoreId(0L, 0L);
+        AccessModule security = modules.stream()
+                .filter(m -> "Security & Roles".equals(m.getCategory()))
+                .findFirst()
+                .orElse(null);
+        if (security != null) {
+            boolean exists = security.getPermissions() != null && security.getPermissions().stream()
+                    .anyMatch(p -> "VIEW_ACTIVITY_LOG".equals(p.getPermissionId()));
+            if (!exists) {
+                if (security.getPermissions() == null) {
+                    security.setPermissions(new ArrayList<>());
+                }
+                security.getPermissions().add(createPerm("VIEW_ACTIVITY_LOG", "View activity log", security));
+                accessModuleRepository.save(security);
+                System.out.println("VIEW_ACTIVITY_LOG permission seeded.");
+            }
+        }
+
+        for (Role role : roleRepository.findAll()) {
+            String perms = role.getPermissions();
+            if (perms == null || perms.isBlank() || perms.contains("VIEW_ACTIVITY_LOG")) {
+                continue;
+            }
+            if (perms.contains("MANAGE_ROLES") || perms.contains("VIEW_HR_DASHBOARD")) {
+                role.setPermissions(perms + ",VIEW_ACTIVITY_LOG");
+                roleRepository.save(role);
+            }
+        }
     }
 }
