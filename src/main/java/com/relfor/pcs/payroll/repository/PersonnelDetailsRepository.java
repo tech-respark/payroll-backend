@@ -16,6 +16,8 @@ public interface PersonnelDetailsRepository extends JpaRepository<PersonnelDetai
 	List<PersonnelDetails> findByPersonnelCodeIn(java.util.Collection<Long> personnelCodes);
 	List<PersonnelDetails> findByApplicationTenantIdAndStoreId(Long applicationTenantId, Long storeId);
 
+	List<PersonnelDetails> findByApplicationTenantId(Long applicationTenantId);
+
 	@Query(value = "SELECT * FROM personnel_details pd \n" +
 			"WHERE id IN (:idList) ;", nativeQuery = true)
 	List<PersonnelDetails> getPersonnelById(List<Long> idList);
@@ -29,4 +31,6 @@ public interface PersonnelDetailsRepository extends JpaRepository<PersonnelDetai
 	Float getPersonnelWorkingHours(Long staffId);
 
 	long countByApplicationTenantIdAndStoreId(Long applicationTenantId, Long storeId);
+
+	long countByApplicationTenantId(Long applicationTenantId);
 }

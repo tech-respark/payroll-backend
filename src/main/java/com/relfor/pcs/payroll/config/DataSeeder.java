@@ -2,11 +2,20 @@ package com.relfor.pcs.payroll.config;
 
 import com.relfor.pcs.payroll.entity.AccessModule;
 import com.relfor.pcs.payroll.entity.AccessPermission;
+import com.relfor.pcs.payroll.entity.PlatformProduct;
+import com.relfor.pcs.payroll.entity.PlatformUser;
 import com.relfor.pcs.payroll.entity.Role;
+import com.relfor.pcs.payroll.entity.TenantCompanyMapping;
+import com.relfor.pcs.payroll.entity.TenantSubscription;
 import com.relfor.pcs.payroll.repository.AccessModuleRepository;
+import com.relfor.pcs.payroll.repository.PlatformProductRepository;
+import com.relfor.pcs.payroll.repository.PlatformUserRepository;
 import com.relfor.pcs.payroll.repository.RoleRepository;
+import com.relfor.pcs.payroll.repository.TenantCompanyMappingRepository;
+import com.relfor.pcs.payroll.repository.TenantSubscriptionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -23,6 +32,21 @@ public class DataSeeder implements CommandLineRunner {
 
     @Autowired
     private RoleRepository roleRepository;
+
+    @Autowired
+    private PlatformUserRepository platformUserRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private TenantCompanyMappingRepository tenantCompanyMappingRepository;
+
+    @Autowired
+    private TenantSubscriptionRepository tenantSubscriptionRepository;
+
+    @Autowired
+    private PlatformProductRepository platformProductRepository;
 
     @Override
     public void run(String... args) throws Exception {
@@ -152,6 +176,11 @@ public class DataSeeder implements CommandLineRunner {
         }
 
         ensureActivityLogPermission();
+        ensureMissingCatalogPermissions();
+        ensureMasterPlatformUser();
+        ensureSubscriptionsForExistingTenants();
+        ensureSubscriptionSalesOwners();
+        ensurePlatformProducts();
     }
 
     private AccessPermission createPerm(String id, String label, AccessModule module) {
@@ -190,6 +219,166 @@ public class DataSeeder implements CommandLineRunner {
                 role.setPermissions(perms + ",VIEW_ACTIVITY_LOG");
                 roleRepository.save(role);
             }
+        }
+    }
+
+    private void ensureMissingCatalogPermissions() {
+        List<AccessModule> modules = accessModuleRepository.findByTenantIdAndStoreId(0L, 0L);
+        AccessModule payroll = findModule(modules, "Payroll & Salary");
+        if (payroll != null) {
+            addPermissionIfMissing(payroll, "VIEW_REPORTS", "View payroll and attendance reports");
+        }
+        AccessModule staff = findModule(modules, "Staff Management");
+        if (staff != null) {
+            addPermissionIfMissing(staff, "VIEW_HR_DASHBOARD", "View HR dashboard metrics");
+        }
+        AccessModule shifts = findModule(modules, "Shift & Roster");
+        if (shifts != null) {
+            addPermissionIfMissing(shifts, "MANAGE_STORE_SETTINGS", "Manage store hours and settings");
+        }
+    }
+
+    private AccessModule findModule(List<AccessModule> modules, String category) {
+        return modules.stream().filter(m -> category.equals(m.getCategory())).findFirst().orElse(null);
+    }
+
+    private void addPermissionIfMissing(AccessModule module, String permissionId, String label) {
+        boolean exists = module.getPermissions() != null && module.getPermissions().stream()
+                .anyMatch(p -> permissionId.equals(p.getPermissionId()));
+        if (exists) {
+            return;
+        }
+        if (module.getPermissions() == null) {
+            module.setPermissions(new ArrayList<>());
+        }
+        module.getPermissions().add(createPerm(permissionId, label, module));
+        accessModuleRepository.save(module);
+    }
+
+    private void ensureMasterPlatformUser() {
+        if (platformUserRepository.count() > 0) {
+            return;
+        }
+        PlatformUser master = new PlatformUser();
+        master.setUsername("superadmin");
+        master.setDisplayName("Super Admin");
+        master.setEmail("superadmin@local");
+        master.setRole(PlatformUser.Role.SUPERADMIN);
+        master.setActive(true);
+        master.setPasswordHash(passwordEncoder.encode("sadmin1234"));
+        platformUserRepository.save(master);
+    }
+
+    private void ensureSubscriptionsForExistingTenants() {
+        for (TenantCompanyMapping tenant : tenantCompanyMappingRepository.findAll()) {
+            if (tenantSubscriptionRepository.findByTenantId(tenant.getTenantId()).isPresent()) {
+                continue;
+            }
+            TenantSubscription subscription = new TenantSubscription();
+            subscription.setTenantId(tenant.getTenantId());
+            subscription.setStatus(TenantSubscription.Status.ACTIVE);
+            subscription.setPlanCode(TenantSubscription.PlanCode.STANDARD);
+            platformUserRepository.findAllByOrderByIdAsc().stream().findFirst()
+                    .ifPresent((owner) -> subscription.setSalesOwnerId(owner.getId()));
+            tenantSubscriptionRepository.save(subscription);
+        }
+    }
+
+    private void ensureSubscriptionSalesOwners() {
+        Long ownerId = platformUserRepository.findAllByOrderByIdAsc().stream()
+                .findFirst()
+                .map(PlatformUser::getId)
+                .orElse(null);
+        if (ownerId == null) {
+            return;
+        }
+        for (TenantSubscription subscription : tenantSubscriptionRepository.findAll()) {
+            if (subscription.getSalesOwnerId() == null) {
+                subscription.setSalesOwnerId(ownerId);
+                tenantSubscriptionRepository.save(subscription);
+            }
+        }
+    }
+
+    private void ensurePlatformProducts() {
+        ensureProduct(
+                "devourin",
+                "Devourin",
+                "First-party billing suite. Default source product for existing and new tenants until a connector exists.",
+                PlatformProduct.Category.BILLING,
+                PlatformProduct.Origin.FIRST_PARTY,
+                10);
+        ensureProduct(
+                "respark",
+                "Respark",
+                "First-party billing suite. Cataloged alongside Devourin. Add more products from ops when a public integration is needed.",
+                PlatformProduct.Category.BILLING,
+                PlatformProduct.Origin.FIRST_PARTY,
+                20);
+        Long defaultId = platformProductRepository.findFirstByDefaultProductTrue()
+                .or(() -> platformProductRepository.findByCodeIgnoreCase("devourin"))
+                .map(PlatformProduct::getId)
+                .orElse(null);
+        if (defaultId == null) {
+            return;
+        }
+        for (TenantCompanyMapping tenant : tenantCompanyMappingRepository.findAll()) {
+            if (tenant.getProductId() == null) {
+                tenant.setProductId(defaultId);
+                tenantCompanyMappingRepository.save(tenant);
+            }
+        }
+    }
+
+    private void ensureProduct(
+            String code,
+            String displayName,
+            String description,
+            PlatformProduct.Category category,
+            PlatformProduct.Origin origin,
+            int sortOrder) {
+        PlatformProduct product = platformProductRepository.findByCodeIgnoreCase(code).orElseGet(PlatformProduct::new);
+        boolean creating = product.getId() == null;
+        if (creating) {
+            product.setCode(code);
+            product.setDisplayName(displayName);
+            product.setDescription(description);
+            product.setCategory(category);
+            product.setOrigin(origin);
+            product.setIntegrationMode(PlatformProduct.IntegrationMode.STANDALONE);
+            product.setActive(true);
+            product.setSortOrder(sortOrder);
+            product.setDefaultProduct(false);
+        } else {
+            if (product.getDisplayName() == null || product.getDisplayName().isBlank()) {
+                product.setDisplayName(displayName);
+            }
+            if (product.getDescription() == null || product.getDescription().isBlank()) {
+                product.setDescription(description);
+            }
+            if (product.getCategory() == null) {
+                product.setCategory(category);
+            }
+            if (product.getOrigin() == null) {
+                product.setOrigin(origin);
+            }
+            if (product.getIntegrationMode() == null) {
+                product.setIntegrationMode(PlatformProduct.IntegrationMode.STANDALONE);
+            }
+            if (product.getActive() == null) {
+                product.setActive(true);
+            }
+            if (product.getDefaultProduct() == null) {
+                product.setDefaultProduct(false);
+            }
+        }
+        platformProductRepository.save(product);
+        if (platformProductRepository.findFirstByDefaultProductTrue().isEmpty()) {
+            platformProductRepository.findByCodeIgnoreCase("devourin").ifPresent((row) -> {
+                row.setDefaultProduct(true);
+                row.setActive(true);
+                platformProductRepository.save(row);
+            });
         }
     }
 }

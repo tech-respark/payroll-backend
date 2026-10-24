@@ -14,10 +14,28 @@ import java.util.Objects;
 @Component
 public class SecurityUtils {
 
+    public static boolean isPlatformPrincipal() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null
+                && auth.getPrincipal() instanceof CustomUserDetails details
+                && details.isPlatform();
+    }
+
+    public static String currentUsername() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof CustomUserDetails details) {
+            return details.getUsername();
+        }
+        return auth != null ? auth.getName() : null;
+    }
+
     public static Long getTenantId(Long fallbackTenantId) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof CustomUserDetails) {
-            Long tenantId = ((CustomUserDetails) auth.getPrincipal()).getTenantId();
+        if (auth != null && auth.getPrincipal() instanceof CustomUserDetails details) {
+            if (details.isPlatform()) {
+                return fallbackTenantId;
+            }
+            Long tenantId = details.getTenantId();
             if (tenantId != null && tenantId > 0) {
                 return tenantId;
             }
@@ -34,6 +52,15 @@ public class SecurityUtils {
             }
         }
         return fallbackStoreId;
+    }
+
+    public static Long currentPlatformUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof CustomUserDetails details && details.isPlatform()
+                && details.getPlatformUser() != null) {
+            return details.getPlatformUser().getId();
+        }
+        return null;
     }
 
     public static Long getStaffId() {

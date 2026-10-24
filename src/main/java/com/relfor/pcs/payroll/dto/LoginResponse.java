@@ -16,6 +16,10 @@ public class LoginResponse {
     private Boolean active;
     private String token;
     private java.util.List<String> roles;
+    private String principalType;
+    private String opsRole;
+    private boolean requires2fa;
+    private String challengeToken;
 
     public java.util.List<String> getRoles() {
         return roles;
@@ -119,5 +123,37 @@ public class LoginResponse {
 
     public void setActive(Boolean active) {
         this.active = active;
+    }
+
+    public String getPrincipalType() {
+        return principalType;
+    }
+
+    public void setPrincipalType(String principalType) {
+        this.principalType = principalType;
+    }
+
+    public String getOpsRole() {
+        return opsRole;
+    }
+
+    public void setOpsRole(String opsRole) {
+        this.opsRole = opsRole;
+    }
+
+    public boolean isRequires2fa() {
+        return requires2fa;
+    }
+
+    public void setRequires2fa(boolean requires2fa) {
+        this.requires2fa = requires2fa;
+    }
+
+    public String getChallengeToken() {
+        return challengeToken;
+    }
+
+    public void setChallengeToken(String challengeToken) {
+        this.challengeToken = challengeToken;
     }
 }

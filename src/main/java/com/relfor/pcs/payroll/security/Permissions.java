@@ -20,6 +20,9 @@ public final class Permissions {
     public static final String MANAGE_SHIFTS = "MANAGE_SHIFTS";
     public static final String MANAGE_ATTENDANCE = "MANAGE_ATTENDANCE";
     public static final String MANAGE_STAFF = "MANAGE_STAFF";
+    public static final String VIEW_STAFF = "VIEW_STAFF";
+    public static final String VIEW_ATTENDANCE = "VIEW_ATTENDANCE";
+    public static final String VIEW_ROLES = "VIEW_ROLES";
 
     public static final String VIEW_SHIFTS = "VIEW_SHIFTS";
     public static final String VIEW_REPORTS = "VIEW_REPORTS";
@@ -28,5 +31,8 @@ public final class Permissions {
     public static final String VIEW_HOSPITALITY = "VIEW_HOSPITALITY";
     public static final String MANAGE_HOSPITALITY = "MANAGE_HOSPITALITY";
     public static final String VIEW_ACTIVITY_LOG = "VIEW_ACTIVITY_LOG";
+
+    public static final String SUPERADMIN = "SUPERADMIN";
+    public static final String SALES = "SALES";
 
 }

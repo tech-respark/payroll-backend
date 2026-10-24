@@ -2,7 +2,7 @@
 
 > **Audience:** Backend developers  
 > **Purpose:** Show where to look before changing a feature  
-> **Last verified:** 2026-10-20  
+> **Last verified:** 2026-10-24  
 > **Source of truth:** `src/main/java/com/relfor/pcs/payroll`
 
 The base package is `com.relfor.pcs.payroll`. The application entry point is `PayrollManagementApplication`, which enables scheduling and async execution.
@@ -38,6 +38,7 @@ The base package is `com.relfor.pcs.payroll`. The application entry point is `Pa
 | Leave policy | `LeavePlanAdminController` | Leave repositories and ledger service |
 | Holidays | `StoreHolidayController` | `StoreHolidayService` |
 | Salary and payslips | `SalaryCalculationController` | `SalaryCalculation`, `VelocityService`, `PayslipExcelGenerationService` |
+| Pay run, claims, loans, settlements, filings, TOTP | `controller.payroll.PayrollController` | `PayRunService`, `PayrollOpsService`, `TotpLoginService` |
 | Hospitality payroll | `HospitalityController` | `HospitalityService` |
 | Manual payroll jobs | `PayrollTriggerController` | `PayrollTriggerService` |
 | External staff import | `StaffSyncController` | `ExternalStaffSyncService` |

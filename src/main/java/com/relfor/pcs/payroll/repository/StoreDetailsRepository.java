@@ -26,4 +26,7 @@ public interface StoreDetailsRepository extends JpaRepository<StoreDetails,Long>
 			+ "WHERE tcm.tenant_id = :tenantId "
 			+ "AND (:storeId = 0 OR sd.store_id = :storeId)", nativeQuery = true)
 	List<StoreDetails> fetchStoreDetailListForTenant(@Param("tenantId") Long tenantId, @Param("storeId") Long storeId);
+
+	@Query("SELECT COALESCE(MAX(s.storeId), 0) FROM StoreDetails s")
+	Long findMaxStoreId();
 }

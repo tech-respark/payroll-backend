@@ -160,7 +160,8 @@ public class LeaveManagementService {
         }
 
         if (!rule.isAllowNegativeBalance()) {
-            BigDecimal currentBalance = ledgerService.getAvailableBalance(staffId, type.getId(), LocalDate.now());
+            BigDecimal currentBalance = ledgerService.getOrAllocateBalance(
+                    tenantId, storeId, staffId, type, rule.getAnnualAllotment(), LocalDate.now(), rule.getAccrualFrequency());
             if (currentBalance.compareTo(requestedDuration) < 0) {
                 throw new IllegalStateException("Insufficient leave balance. You have " + currentBalance + " days remaining.");
             }

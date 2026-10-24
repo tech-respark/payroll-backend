@@ -2,6 +2,7 @@ package com.relfor.pcs.payroll.config;
 
 import com.relfor.pcs.payroll.activity.ActivityRequestFilter;
 import com.relfor.pcs.payroll.security.JwtAuthFilter;
+import com.relfor.pcs.payroll.security.OpsPrincipalFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +30,9 @@ public class SecurityConfig {
     private JwtAuthFilter jwtAuthFilter;
 
     @Autowired
+    private OpsPrincipalFilter opsPrincipalFilter;
+
+    @Autowired
     private ActivityRequestFilter activityRequestFilter;
 
     @Value("${cors.allowed-origins:http://127.0.0.1:5174,http://localhost:5174}")
@@ -51,7 +55,13 @@ public class SecurityConfig {
                 }))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() // Allow CORS preflight
-                        .requestMatchers("/payroll-management/v1/login", "/payroll-management/v1/forgot-password/**", "/actuator/health").permitAll()
+                        .requestMatchers(
+                                "/payroll-management/v1/login",
+                                "/payroll-management/v1/login/verify-2fa",
+                                "/payroll-management/v1/ops/login",
+                                "/payroll-management/v1/ops/support-handoff/**",
+                                "/payroll-management/v1/forgot-password/**",
+                                "/actuator/health").permitAll()
                         .anyRequest().authenticated() // Require JWT for everything else
                 )
                 .exceptionHandling(ex -> ex
@@ -63,6 +73,7 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(opsPrincipalFilter, JwtAuthFilter.class)
                 .addFilterAfter(activityRequestFilter, JwtAuthFilter.class)
                 .build();
     }

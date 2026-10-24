@@ -27,6 +27,8 @@ public class TenantCompanyMapping {
 	private Boolean isPaidLeaveApplicable;
 	private String externalSoftwareUrl;
 	private String externalAppName;
+	@Column(name = "product_id")
+	private Long productId;
 
 	public String getExternalSoftwareUrl() {
 		return externalSoftwareUrl;
@@ -162,5 +164,13 @@ public class TenantCompanyMapping {
 
 	public void setVendorUrl(String vendorUrl) {
 		this.vendorUrl = vendorUrl;
+	}
+
+	public Long getProductId() {
+		return productId;
+	}
+
+	public void setProductId(Long productId) {
+		this.productId = productId;
 	}
 }

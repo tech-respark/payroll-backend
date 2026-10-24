@@ -12,6 +12,8 @@ import com.relfor.pcs.payroll.dto.SalaryComponentResponseDTO;
 import com.relfor.pcs.payroll.dto.SalaryComponentsDTO;
 import com.relfor.pcs.payroll.entity.*;
 import com.relfor.pcs.payroll.repository.*;
+import com.relfor.pcs.payroll.service.payroll.CorePayslipEnricher;
+import com.relfor.pcs.payroll.service.payroll.PayrollMonths;
 import org.apache.commons.lang3.StringUtils;
 import org.mvel2.MVEL;
 import org.slf4j.Logger;
@@ -25,6 +27,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.*;
@@ -53,6 +56,8 @@ public class SalaryCalculation {
     private  PersonnelPayslipHistoryRepository personnelPayslipHistoryRepository;
     @Autowired
     private HospitalityService hospitalityService;
+    @Autowired
+    private CorePayslipEnricher corePayslipEnricher;
     @Autowired
     private ActivityRecorder activityRecorder;
 
@@ -249,8 +254,19 @@ public class SalaryCalculation {
 
     @Transactional
     public ResponseModel processSalary(Long staffId, String  month, Long year, Long tenantId, Long storeId) {
+        return processSalary(staffId, month, year, tenantId, storeId, true);
+    }
+
+    @Transactional
+    public ResponseModel processSalary(Long staffId, String month, Long year, Long tenantId, Long storeId, boolean notify) {
         ResponseModel responseModel = new ResponseModel();
         try {
+            PersonnelDetails staff = personnelDetailsRepository.findById(staffId).orElse(null);
+            if (staff != null && Boolean.TRUE.equals(staff.getSkipPayroll())) {
+                responseModel.setCode(HttpStatus.OK);
+                responseModel.setMessage("Skipped");
+                return responseModel;
+            }
             MonthWiseAttendanceSummary staffMonthWiseSummary = monthWiseAttendanceSummaryRepository.getSummaryByStaffIdAndMonth(staffId, month, year);
             List<SalaryComponentDefinitions> salaryComponentDefinitionsList = definitionsRepository.findByTenantIdAndStoreId(tenantId, storeId);
             if (ObjectUtils.isEmpty(salaryComponentDefinitionsList)) {
@@ -263,7 +279,14 @@ public class SalaryCalculation {
                 if (hospitalityPayslip != null) {
                     responseData = hospitalityPayslip;
                 }
-                hospitalityService.notifyPayslip(staffId, month, year != null ? year.intValue() : null);
+                PersonnelPayslipHistory corePayslip = corePayslipEnricher.apply(
+                        staffId, month, year != null ? year.intValue() : null, tenantId, storeId);
+                if (corePayslip != null) {
+                    responseData = corePayslip;
+                }
+                if (notify) {
+                    hospitalityService.notifyPayslip(staffId, month, year != null ? year.intValue() : null);
+                }
             }
             responseModel.setCode(HttpStatus.OK);
             if(!ObjectUtils.isEmpty(responseData)) {
@@ -297,6 +320,12 @@ public class SalaryCalculation {
                         this.calculateSalaryComponents(monthWiseAttendanceSummary, salaryComponentDefinitionsList, monthWiseAttendanceSummary.getStaffId(), storeDetailsListForMonthlySummary);
                         if (monthWiseAttendanceSummary.getSalaryMonth() != null && monthWiseAttendanceSummary.getSalaryYear() != null) {
                             hospitalityService.applyToPayslip(
+                                    monthWiseAttendanceSummary.getStaffId(),
+                                    monthWiseAttendanceSummary.getSalaryMonth(),
+                                    monthWiseAttendanceSummary.getSalaryYear(),
+                                    monthWiseAttendanceSummary.getTenantId(),
+                                    monthWiseAttendanceSummary.getStoreId());
+                            corePayslipEnricher.apply(
                                     monthWiseAttendanceSummary.getStaffId(),
                                     monthWiseAttendanceSummary.getSalaryMonth(),
                                     monthWiseAttendanceSummary.getSalaryYear(),
@@ -449,9 +478,11 @@ public class SalaryCalculation {
             Optional<StoreDetails> storeDetailsOptional;
             if (!ObjectUtils.isEmpty(storeDetailsListForMonthlySummary)) {
                 storeDetailsOptional = storeDetailsListForMonthlySummary.stream().filter(
-                        storeDetails -> (StringUtils.equalsIgnoreCase(storeDetails.getTenantCompanyMapping().getApplicationName(), attendanceSummary.getApplicationName()))
-                                && (Objects.equals(storeDetails.getTenantCompanyMapping().getTenantId(), attendanceSummary.getTenantId()))
-                                && (Objects.equals(storeDetails.getStoreId(), attendanceSummary.getStoreId()))).findFirst();
+                        storeDetails -> (Objects.equals(storeDetails.getTenantCompanyMapping().getTenantId(), attendanceSummary.getTenantId()))
+                                && (Objects.equals(storeDetails.getStoreId(), attendanceSummary.getStoreId()))
+                                && (attendanceSummary.getApplicationName() == null
+                                || attendanceSummary.getApplicationName().isBlank()
+                                || StringUtils.equalsIgnoreCase(storeDetails.getTenantCompanyMapping().getApplicationName(), attendanceSummary.getApplicationName()))).findFirst();
             } else {
                 storeDetailsOptional = storeDetailsRepository.fetchStoreAndTenantDetails(attendanceSummary.getTenantId(), attendanceSummary.getStoreId());
             }
@@ -469,7 +500,14 @@ public class SalaryCalculation {
             LocalDate salaryDate;
             if (offset != null && startDay != null) {
                 int effectiveSalaryDay = (startDay == 1) ? offset : (startDay - 1 + offset);
-                salaryDate = LocalDate.of(zonedDateTime.getYear(), zonedDateTime.getMonth(), effectiveSalaryDay);
+                YearMonth salaryMonth = YearMonth.of(zonedDateTime.getYear(), zonedDateTime.getMonth());
+                int lastDay = salaryMonth.lengthOfMonth();
+                if (effectiveSalaryDay < 1) {
+                    effectiveSalaryDay = 1;
+                } else if (effectiveSalaryDay > lastDay) {
+                    effectiveSalaryDay = lastDay;
+                }
+                salaryDate = salaryMonth.atDay(effectiveSalaryDay);
             } else {
                 salaryDate = zonedDateTime.toLocalDate();
             }
@@ -728,9 +766,32 @@ public class SalaryCalculation {
         List<SalaryComponentDTO> earningsList = null;
         List<SalaryComponentDTO> deductionsList = null;
         if (personnelPayslipHistoryOptional.isPresent()) {
-            earningsList = personnelPayslipHistoryOptional.get().getEarnings();
-            deductionsList = personnelPayslipHistoryOptional.get().getDeductions();
-            payslipHistory.setId(personnelPayslipHistoryOptional.get().getId());
+            PersonnelPayslipHistory existing = personnelPayslipHistoryOptional.get();
+            earningsList = existing.getEarnings();
+            deductionsList = existing.getDeductions();
+            payslipHistory.setId(existing.getId());
+            payslipHistory.setPersonnelName(existing.getPersonnelName());
+            payslipHistory.setSalaryDate(existing.getSalaryDate());
+            payslipHistory.setEmployeeCode(existing.getEmployeeCode());
+            payslipHistory.setStoreName(existing.getStoreName());
+            payslipHistory.setDesignation(existing.getDesignation());
+            payslipHistory.setSalaryPeriod(existing.getSalaryPeriod());
+            payslipHistory.setBankName(existing.getBankName());
+            payslipHistory.setAccountNumber(existing.getAccountNumber());
+            payslipHistory.setIfscCode(existing.getIfscCode());
+            payslipHistory.setPanNo(existing.getPanNo());
+            payslipHistory.setUanNumber(existing.getUanNumber());
+            payslipHistory.setTotalDays(existing.getTotalDays());
+            payslipHistory.setTotalWorkingDays(existing.getTotalWorkingDays());
+            payslipHistory.setAbsentDays(existing.getAbsentDays());
+            payslipHistory.setPenaltyAbsentDays(existing.getPenaltyAbsentDays());
+            payslipHistory.setTotalHolidays(existing.getTotalHolidays());
+            payslipHistory.setTotalweeklyOff(existing.getTotalweeklyOff());
+            payslipHistory.setTotalPaidLeaves(existing.getTotalPaidLeaves());
+            payslipHistory.setTotalPaidDays(existing.getTotalPaidDays());
+            if (existing.getSalaryMonth() != null) {
+                payslipHistory.setSalaryMonth(existing.getSalaryMonth());
+            }
             if (!ObjectUtils.isEmpty(salaryComponent.getEarningsList())) {
                 for (SalaryComponentDTO salaryComponentDTO: salaryComponent.getEarningsList()) {
                     Optional<SalaryComponentDTO> salaryComponentDTOOptional = earningsList.stream().filter(history -> Objects.equals(history.getSalaryComponentDefinitionsId(), salaryComponentDTO.getSalaryComponentDefinitionsId())).findFirst();
@@ -807,7 +868,13 @@ public class SalaryCalculation {
 
     public ResponseModel getPayslipData(Long staffId, String month, Integer year) {
         ResponseModel responseModel = new ResponseModel();
-        Optional<PersonnelPayslipHistory> personnelPayslipHistory = personnelPayslipHistoryRepository.findByStaffIdAndSalaryMonthAndSalaryYear(staffId, month, year);
+        String normalized = PayrollMonths.monthName(month);
+        Optional<PersonnelPayslipHistory> personnelPayslipHistory = personnelPayslipHistoryRepository
+                .findByStaffIdAndSalaryMonthAndSalaryYear(staffId, normalized, year);
+        if (personnelPayslipHistory.isEmpty() && month != null && !month.equals(normalized)) {
+            personnelPayslipHistory = personnelPayslipHistoryRepository
+                    .findByStaffIdAndSalaryMonthAndSalaryYear(staffId, month, year);
+        }
 
         responseModel.setCode(HttpStatus.OK);
         if(personnelPayslipHistory.isPresent()){
@@ -815,7 +882,7 @@ public class SalaryCalculation {
             responseModel.setData(salarySlip);
             responseModel.setMessage(SUCCESS);
         } else {
-            responseModel.setMessage("No Data Found");
+            responseModel.setMessage("No payslip has been saved for this person and month.");
         }
 
         return responseModel;
@@ -977,7 +1044,7 @@ public class SalaryCalculation {
     }
 
     private Map<String, BigDecimal> convertListToMap(List<SalaryComponentDTO> components) {
-        Map<String, BigDecimal> result = new HashMap<>();
+        Map<String, BigDecimal> result = new LinkedHashMap<>();
         if(!ObjectUtils.isEmpty(components)) {
             for(SalaryComponentDTO dto : components) {
                 result.put(dto.getComponentName(), dto.getMonthlyValue());

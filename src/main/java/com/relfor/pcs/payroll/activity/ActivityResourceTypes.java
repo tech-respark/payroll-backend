@@ -18,6 +18,9 @@ public final class ActivityResourceTypes {
     public static final String SHIFT_SLOT = "SHIFT_SLOT";
     public static final String STORE = "STORE";
     public static final String PAYROLL_RUN = "PAYROLL_RUN";
+    public static final String CLAIM = "CLAIM";
+    public static final String DECLARATION = "DECLARATION";
+    public static final String LOAN = "LOAN";
     public static final String ATTENDANCE_SUMMARY = "ATTENDANCE_SUMMARY";
     public static final String ADVANCE = "ADVANCE";
     public static final String COMMISSION_PLAN = "COMMISSION_PLAN";

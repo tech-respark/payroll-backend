@@ -47,6 +47,8 @@ public class ResparkInOutHistoryService {
 	@Autowired
 	SStaffShiftsRepository staffShiftsRepository;
 	@Autowired
+	StaffIdentityService staffIdentityService;
+	@Autowired
 	com.relfor.pcs.payroll.repository.LeaveApplicationRepository leaveApplicationRepository;
 	@Autowired
 	StoreHolidayRepository storeHolidayRepository;
@@ -316,8 +318,12 @@ public class ResparkInOutHistoryService {
 								personnel.getDesignation(), personnel.getPersonnelMobileNumber());
 						
 						List<ResparkDayWiseAttendanceDTO> dayWiseAttendanceList = new ArrayList<>();
-						List<SStaffShifts> shifts = staffShiftsRepository.findByTenantIdAndStoreIdAndStaffIdAndShiftDateBetween(
-								inOutHistoryInputModel.getTenantId(), inOutHistoryInputModel.getStoreId(), personnel.getId(), 
+						List<Long> rosterKeys = staffIdentityService.rosterKeysForStaffId(personnel.getId());
+						if (rosterKeys.isEmpty()) {
+							rosterKeys = List.of(personnel.getId());
+						}
+						List<SStaffShifts> shifts = staffShiftsRepository.findByTenantIdAndStoreIdAndStaffIdInAndShiftDateBetween(
+								inOutHistoryInputModel.getTenantId(), inOutHistoryInputModel.getStoreId(), rosterKeys,
 								inOutHistoryInputModel.getFromDate(), inOutHistoryInputModel.getToDate());
 						
 						List<com.relfor.pcs.payroll.entity.LeaveApplication> approvedLeaves = leaveApplicationRepository.findOverlappingApprovedLeaves(
@@ -367,7 +373,11 @@ public class ResparkInOutHistoryService {
 					.collect(Collectors.groupingBy(PersonnelAttendanceProjectionForInOutHistory::getAttendanceDate));
 			List<ResparkDayWiseAttendanceDTO> dayWiseAttendanceList = new ArrayList<>();
 			if (!dateWisePersonnelAttendance.isEmpty()) {
-			    List<SStaffShifts> shifts = staffShiftsRepository.findByTenantIdAndStoreIdAndStaffIdAndShiftDateBetween(tenantId, storeId, staffId, fromDate, toDate);
+			    List<Long> rosterKeys = staffIdentityService.rosterKeysForStaffId(staffId);
+			    if (rosterKeys.isEmpty()) {
+			        rosterKeys = List.of(staffId);
+			    }
+			    List<SStaffShifts> shifts = staffShiftsRepository.findByTenantIdAndStoreIdAndStaffIdInAndShiftDateBetween(tenantId, storeId, rosterKeys, fromDate, toDate);
 			    List<com.relfor.pcs.payroll.entity.LeaveApplication> approvedLeaves = leaveApplicationRepository.findOverlappingApprovedLeaves(
 			            staffId, fromDate, toDate);
 			    
@@ -421,8 +431,8 @@ public class ResparkInOutHistoryService {
 		ResparkDayWiseAttendanceDTO dayAttendance = new ResparkDayWiseAttendanceDTO();
 		dayAttendance.setDateOfAttendance(dateOfAttendance);
 		
-		String shiftStart = "09:30";
-		String shiftEnd = "18:30";
+		String shiftStart = null;
+		String shiftEnd = null;
 		if (shiftRecord != null && shiftRecord.getSlot() != null && shiftRecord.getSlot().contains("-")) {
 		    String[] parts = shiftRecord.getSlot().split("-");
 		    if (parts.length == 2) {
@@ -459,6 +469,7 @@ public class ResparkInOutHistoryService {
 			        dayAttendance.setLastOutTime(outTime);
 			    }
 			    
+			    if (shiftStart != null) {
 			    int shiftStartMins = toMins(shiftStart);
 			    int inMins = toMins(inTime);
 			    if (inMins > shiftStartMins) {
@@ -466,8 +477,10 @@ public class ResparkInOutHistoryService {
 			    } else {
 			        dayAttendance.setLateInMinutes(0);
 			    }
+			    }
 			    
 			    if (outTime != null) {
+			        if (shiftEnd != null) {
 			        int shiftEndMins = toMins(shiftEnd);
 			        int outMins = toMins(outTime);
 			        if (outMins < shiftEndMins) {
@@ -475,8 +488,9 @@ public class ResparkInOutHistoryService {
 			        } else {
 			            dayAttendance.setEarlyOutMinutes(0);
 			        }
+			        }
 			        
-			        int dur = outMins - inMins;
+			        int dur = toMins(outTime) - toMins(inTime);
 			        if (dur > 0) {
 			            dayAttendance.setTotalDurationMinutes(dur);
 			        }
@@ -515,6 +529,8 @@ public class ResparkInOutHistoryService {
 		    } else {
 		        dayAttendance.setCurrentStatus("Absent");
 		    }
+		} else if (shiftRecord == null) {
+		    dayAttendance.setCurrentStatus("Unrostered");
 		} else {
 		    dayAttendance.setCurrentStatus("Absent");
 		}

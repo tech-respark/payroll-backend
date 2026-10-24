@@ -44,10 +44,17 @@ public class AttendanceManagementService {
 	@Autowired
 	MonthWiseAttendanceSummaryRepository monthWiseAttendanceSummaryRepository;
 	@Autowired
+	StoreDetailsRepository storeDetailsRepository;
+	@Autowired
 	SalaryCalculation salaryCalculation;
 	
 	@Autowired
 	private PasswordEncoder passwordEncoder;
+	@Autowired
+	private com.relfor.pcs.payroll.service.ops.OpsLicenseGuard opsLicenseGuard;
+
+	@Autowired
+	private PlatformUserRepository platformUserRepository;
 
 	@Autowired
 	private ActivityRecorder activityRecorder;
@@ -70,9 +77,26 @@ public class AttendanceManagementService {
 				previousWeeklyOff = personnelDetails.getWeeklyOff();
 			} else {
 				personnelDetails = new PersonnelDetails();
+				if (staffDTO.getTenantId() != null) {
+					try {
+						opsLicenseGuard.assertCanAddStaff(staffDTO.getTenantId());
+					} catch (com.relfor.pcs.payroll.service.ops.OpsException ex) {
+						responseModel.setCode(ex.getStatus());
+						responseModel.setMessage(ex.getMessage());
+						return responseModel;
+					}
+				}
 			}
 
 			if (staffDTO.getUsername() != null && !staffDTO.getUsername().isEmpty()) {
+				String username = staffDTO.getUsername().trim();
+				String normalized = username.toLowerCase();
+				if ("superadmin".equals(normalized) || "sales".equals(normalized)
+						|| platformUserRepository.findByUsernameIgnoreCase(username).isPresent()) {
+					responseModel.setCode(org.springframework.http.HttpStatus.BAD_REQUEST);
+					responseModel.setMessage("That username is reserved.");
+					return responseModel;
+				}
 				Optional<PersonnelDetails> existing = personnelDetailsRepository.findByUsername(staffDTO.getUsername());
 				if (existing.isPresent()) {
 					if (staffDTO.getId() == null || !existing.get().getId().equals(staffDTO.getId())) {
@@ -211,6 +235,25 @@ public class AttendanceManagementService {
 			}
 			personnelDetails.setEsiNumber(staffDTO.getPersonnelJoiningDetails().getEsiNumber());
 			personnelDetails.setPanNumber(staffDTO.getPersonnelJoiningDetails().getPanNumber());
+			personnelDetails.setPfNumber(staffDTO.getPersonnelJoiningDetails().getPfNumber());
+			if (staffDTO.getPersonnelJoiningDetails().getPfApplicable() != null) {
+				personnelDetails.setPfApplicable(staffDTO.getPersonnelJoiningDetails().getPfApplicable());
+			}
+			if (staffDTO.getPersonnelJoiningDetails().getEsiApplicable() != null) {
+				personnelDetails.setEsiApplicable(staffDTO.getPersonnelJoiningDetails().getEsiApplicable());
+			}
+			if (staffDTO.getPersonnelJoiningDetails().getPtApplicable() != null) {
+				personnelDetails.setPtApplicable(staffDTO.getPersonnelJoiningDetails().getPtApplicable());
+			}
+			if (staffDTO.getPersonnelJoiningDetails().getLwfApplicable() != null) {
+				personnelDetails.setLwfApplicable(staffDTO.getPersonnelJoiningDetails().getLwfApplicable());
+			}
+			if (staffDTO.getPersonnelJoiningDetails().getTdsApplicable() != null) {
+				personnelDetails.setTdsApplicable(staffDTO.getPersonnelJoiningDetails().getTdsApplicable());
+			}
+			if (staffDTO.getPersonnelJoiningDetails().getSkipPayroll() != null) {
+				personnelDetails.setSkipPayroll(staffDTO.getPersonnelJoiningDetails().getSkipPayroll());
+			}
 		}
 
 		if (!ObjectUtils.isEmpty(staffDTO.getPersonnelBankAccountDetails())) {
@@ -345,6 +388,13 @@ public class AttendanceManagementService {
 		personnelJoiningDetailsDTO.setOvertimeMultiplier(personnelDetails.getOvertimeMultiplier());
 		personnelJoiningDetailsDTO.setEsiNumber(personnelDetails.getEsiNumber());
 		personnelJoiningDetailsDTO.setPanNumber(personnelDetails.getPanNumber());
+		personnelJoiningDetailsDTO.setPfNumber(personnelDetails.getPfNumber());
+		personnelJoiningDetailsDTO.setPfApplicable(personnelDetails.getPfApplicable());
+		personnelJoiningDetailsDTO.setEsiApplicable(personnelDetails.getEsiApplicable());
+		personnelJoiningDetailsDTO.setPtApplicable(personnelDetails.getPtApplicable());
+		personnelJoiningDetailsDTO.setLwfApplicable(personnelDetails.getLwfApplicable());
+		personnelJoiningDetailsDTO.setTdsApplicable(personnelDetails.getTdsApplicable());
+		personnelJoiningDetailsDTO.setSkipPayroll(personnelDetails.getSkipPayroll());
 		staffDTO.setPersonnelJoiningDetails(personnelJoiningDetailsDTO);
 
 		staffDTO.setActive(personnelDetails.getActive() != null && personnelDetails.getActive() ? 1 : 0);
@@ -678,6 +728,19 @@ public class AttendanceManagementService {
 			}
 		}
 		monthWiseAttendanceSummaryRepository.saveAll(monthWiseAttendanceSummaryList);
+		if (!monthWiseAttendanceSummaryList.isEmpty()) {
+			int nowYear = Year.now().getValue();
+			for (StoreDetails storeDetails : storeDetailsListForMonthlySummary) {
+				if (year < nowYear) {
+					continue;
+				}
+				Integer existing = storeDetails.getRecentSummaryCalculatedMonth();
+				if (year == nowYear && (existing == null || monthValue >= existing)) {
+					storeDetails.setRecentSummaryCalculatedMonth(monthValue);
+					storeDetailsRepository.save(storeDetails);
+				}
+			}
+		}
 	}
 
 	public void constructMonthlySummaryAndAddToList(List<MonthWiseAttendanceSummary> monthWiseAttendanceSummaryList,

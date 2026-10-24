@@ -2,7 +2,7 @@
 
 > **Audience:** New backend developers  
 > **Purpose:** Run the API against a local MySQL database  
-> **Last verified:** 2026-10-20  
+> **Last verified:** 2026-10-23  
 > **Source of truth:** `pom.xml`, `application.properties`, and `PayrollManagementApplication`
 
 ## Prerequisites
@@ -71,7 +71,7 @@ QA and production deployment, secret injection, reverse proxy, and acceptance ch
 
 ## Frontend connection
 
-Start the frontend with `npm run dev` in `payroll-frontend`. Open `http://localhost:5174/login`. Vite forwards `/payroll-management/v1` to `https://localhost:8092` and disables certificate verification for that local proxy only.
+Start the frontend with `npm run dev` in `payroll-frontend`. Open `http://localhost:5174/login` for client staff or `http://localhost:5174/ops/login` for the internal console. Vite forwards `/payroll-management/v1` to `https://localhost:8092` and disables certificate verification for that local proxy only. The first boot seeds a master platform user when `platform_user` is empty.
 
 ## Optional dependencies
 

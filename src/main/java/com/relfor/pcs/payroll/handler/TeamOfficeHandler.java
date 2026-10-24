@@ -203,7 +203,6 @@ public class TeamOfficeHandler implements AttendanceRetrievalHandlerService{
 				isLastMonthsSummaryCalculated = recentMonth.equals(expectedLastMonth);
 			}
 			if (isWithinCutoff && !isLastMonthsSummaryCalculated) {
-				storeDetails.setRecentSummaryCalculatedMonth(expectedLastMonth != null ? expectedLastMonth : (currentMonth == 1 ? 12 : currentMonth -1));
 				storeDetailsListForMonthlySummary.add(storeDetails);
 			}
 		}

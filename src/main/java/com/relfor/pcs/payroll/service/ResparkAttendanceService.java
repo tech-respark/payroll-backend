@@ -169,7 +169,8 @@ public class ResparkAttendanceService {
 		personnelAttendance.setCreatedTimestamp(Instant.now());
 		personnelAttendance.setModifiedBy(individualPunch.getCreatedBy());
 		personnelAttendance.setModifiedTimestamp(Instant.now());
-		personnelAttendance.setCurrentStatus(resolveRegularizationStatus(individualPunch.getCurrentStatus()));
+		personnelAttendance.setCurrentStatus(resolveRegularizationStatus(
+				individualPunch.getCurrentStatus(), attendanceRegularizationInputModel.getStaffId()));
 		personnelAttendance.setStaffId(attendanceRegularizationInputModel.getStaffId());
 		personnelAttendance.setPunchTimestamp(this.getPunchTimestamp(individualPunch, dateOfAttendance, zoneId));
 		personnelAttendance.setPunchEvent(individualPunch.getPunchEvent());
@@ -202,7 +203,9 @@ public class ResparkAttendanceService {
 			personnelAttendanceOptional.get().setPunchEvent(individualPunch.getPunchEvent());
 			personnelAttendanceOptional.get().setModifiedBy(individualPunch.getCreatedBy());
 			personnelAttendanceOptional.get().setModifiedTimestamp(Instant.now());
-			personnelAttendanceOptional.get().setCurrentStatus(resolveRegularizationStatus(individualPunch.getCurrentStatus()));
+			personnelAttendanceOptional.get().setRemark(individualPunch.getRemark());
+			personnelAttendanceOptional.get().setCurrentStatus(resolveRegularizationStatus(
+					individualPunch.getCurrentStatus(), personnelAttendanceOptional.get().getStaffId()));
 
 			logger.info("Updating existing punch while regularizing: {}", personnelAttendanceOptional.get().toLogString());
 			personnelAttendanceListToBeSaved.add(personnelAttendanceOptional.get());
@@ -216,9 +219,11 @@ public class ResparkAttendanceService {
 		}
 	}
 
-	private String resolveRegularizationStatus(String requestedStatus) {
+	private String resolveRegularizationStatus(String requestedStatus, Long targetStaffId) {
+		Long actorStaffId = SecurityUtils.getStaffId();
+		boolean ownDay = actorStaffId != null && targetStaffId != null && actorStaffId.equals(targetStaffId);
 		boolean canManage = SecurityUtils.hasAuthority(Permissions.MANAGE_ATTENDANCE);
-		if (!canManage) {
+		if (!canManage || ownDay) {
 			return RegularizationRequestStatuses.PENDING.name();
 		}
 		if (StringUtils.isBlank(requestedStatus)) {
@@ -246,7 +251,9 @@ public class ResparkAttendanceService {
 				String code = employee.getEmployeeCode();
 				String appNumber = personnelAttendance.getId() != null ? String.valueOf(personnelAttendance.getId()) : "N/A";
 				String appDate = LocalDate.now().toString();
-				String reason = personnelAttendance.getPunchEvent() != null ? personnelAttendance.getPunchEvent() : "Regularization";
+				String reason = StringUtils.isNotBlank(personnelAttendance.getRemark())
+						? personnelAttendance.getRemark()
+						: (personnelAttendance.getPunchEvent() != null ? personnelAttendance.getPunchEvent() : "Regularization");
 				String date = personnelAttendance.getAttendanceDate() != null ? personnelAttendance.getAttendanceDate().toString() : "";
 				String timeStr = personnelAttendance.getPunchTimestamp() != null ? personnelAttendance.getPunchTimestamp().toString() : "";
 				String remark = personnelAttendance.getRemark() != null ? personnelAttendance.getRemark() : "";

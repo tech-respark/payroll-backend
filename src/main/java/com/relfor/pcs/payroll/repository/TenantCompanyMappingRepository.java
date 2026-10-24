@@ -21,4 +21,9 @@ public interface TenantCompanyMappingRepository extends JpaRepository<TenantComp
 	Optional<TenantStoreProjection> getTenantStoreMapping(Long tenantId, Long storeId);
 
 	Optional<TenantCompanyMapping> findByTenantId(Long tenantId);
+
+	@Query("SELECT COALESCE(MAX(t.tenantId), 0) FROM TenantCompanyMapping t")
+	Long findMaxTenantId();
+
+	long countByProductId(Long productId);
 }

@@ -2,7 +2,7 @@
 
 > **Audience:** Backend developers  
 > **Purpose:** Explain how an HTTP call becomes a database change  
-> **Last verified:** 2026-10-20  
+> **Last verified:** 2026-10-24  
 > **Source of truth:** `SecurityConfig`, `JwtAuthFilter`, controllers, and `ExceptionAdvisor`
 
 ## Path
@@ -31,7 +31,9 @@ Public routes:
 
 Every other route requires `Authorization: Bearer <token>`.
 
-`JwtUtil` signs tokens with HS256 for 10 hours and stores `tenantId` and `storeId` as claims. The signing secret is currently compiled into `JwtUtil`; treat that as a defect to externalize, and do not copy the value into docs or tickets.
+`JwtUtil` signs tokens with HS256 for 10 hours and stores `tenantId` and `storeId` as claims. The signing secret is `jwt.secret` / `JWT_SECRET` (minimum 32 bytes) and startup fails closed if it is missing. Do not copy the value into docs or tickets.
+
+`GET /session` returns the current staff, tenant/store, and database roles for the JWT. The UI calls it on load and when the tab becomes visible so cached `user.roles` stay current. `JwtAuthFilter` already reloads `UserDetails` on every request.
 
 `CustomUserDetailsService` loads the user and active store-role rows. Authorities are `ROLE_<ROLE_NAME>` plus each comma-separated permission on those roles.
 

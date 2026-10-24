@@ -62,7 +62,9 @@ public class RoleController {
     @PreAuthorize("hasAnyAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ROLES, T(com.relfor.pcs.payroll.security.Permissions).MANAGE_STAFF)")
     public ResponseEntity<Map<String, Object>> getAllRoles(@RequestParam Long tenantId) {
         tenantId = SecurityUtils.getTenantId(tenantId);
-        List<Role> roles = roleRepository.findByActiveAndTenantId(1, tenantId);
+        List<Role> roles = roleRepository.findByActiveAndTenantId(1, tenantId).stream()
+                .filter(role -> !isHiddenPlatformRoleName(role.getName()))
+                .toList();
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", roles);
@@ -74,6 +76,12 @@ public class RoleController {
     public ResponseEntity<Map<String, Object>> createRole(@RequestBody RoleCreateRequest request) {
         request.setTenantId(SecurityUtils.getTenantId(request.getTenantId()));
         request.setStoreId(SecurityUtils.getStoreId(request.getStoreId()));
+        if (isHiddenPlatformRoleName(request.getName())) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", false);
+            response.put("message", "That role name is reserved.");
+            return ResponseEntity.badRequest().body(response);
+        }
         Role newRole = new Role();
         newRole.setName(request.getName());
         newRole.setDescription(request.getDescription());
@@ -124,6 +132,11 @@ public class RoleController {
         }
 
         if (request.getName() != null) {
+            if (isHiddenPlatformRoleName(request.getName()) || isHiddenPlatformRoleName(existingRole.getName())) {
+                response.put("success", false);
+                response.put("message", "That role name is reserved.");
+                return ResponseEntity.badRequest().body(response);
+            }
             existingRole.setName(request.getName());
         }
         if (request.getDescription() != null) {
@@ -235,5 +248,13 @@ public class RoleController {
             response.put("message", "No active role found");
         }
         return ResponseEntity.ok(response);
+    }
+
+    private boolean isHiddenPlatformRoleName(String name) {
+        if (name == null) {
+            return false;
+        }
+        String normalized = name.trim().toLowerCase();
+        return "superadmin".equals(normalized) || "sales".equals(normalized);
     }
 }

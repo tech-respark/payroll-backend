@@ -2,7 +2,7 @@
 
 > **Audience:** Backend developers and operators  
 > **Purpose:** Navigate service-specific documentation  
-> **Last verified:** 2026-10-20  
+> **Last verified:** 2026-10-24  
 > **Source of truth:** This repository's current code
 
 ## Pages

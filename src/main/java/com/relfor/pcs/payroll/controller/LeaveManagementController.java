@@ -121,12 +121,7 @@ public class LeaveManagementController {
                 LeaveType type = rule.getLeaveType();
                 Long typeId = type.getId();
                 
-                BigDecimal balance;
-                if (tenantId != null && storeId != null) {
-                    balance = leaveLedgerService.getOrAllocateBalance(tenantId, storeId, staffId, type, rule.getAnnualAllotment(), LocalDate.now(), rule.getAccrualFrequency());
-                } else {
-                    balance = leaveLedgerService.getAvailableBalance(staffId, typeId, LocalDate.now());
-                }
+                BigDecimal balance = leaveLedgerService.getAvailableBalance(staffId, typeId, LocalDate.now());
                 
                 balances.add(Map.of(
                     "typeId", typeId,

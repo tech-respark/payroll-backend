@@ -42,6 +42,9 @@ public class ExternalStaffSyncService {
     @Autowired
     private ActivityRecorder activityRecorder;
 
+    @Autowired
+    private com.relfor.pcs.payroll.service.ops.OpsLicenseGuard opsLicenseGuard;
+
     private final SecureRandom secureRandom = new SecureRandom();
 
     public void syncStaff(Long tenantId) {
@@ -107,9 +110,21 @@ public class ExternalStaffSyncService {
                             PersonnelDetails pd = null;
                             boolean creatingStaff = false;
                             List<PersonnelDetails> matches = personnelRepo.getPersonnelByEmployeeCode(tenant.getTenantId(), Collections.singletonList(staffDto.getExternalStaffId()));
+                            String syncUsername = staffDto.getEmail();
+                            if (syncUsername != null) {
+                                String normalized = syncUsername.trim().toLowerCase();
+                                if ("superadmin".equals(normalized) || "sales".equals(normalized)) {
+                                    continue;
+                                }
+                            }
                             if (!matches.isEmpty()) {
                                 pd = matches.get(0);
                             } else {
+                                try {
+                                    opsLicenseGuard.assertCanAddStaff(tenant.getTenantId());
+                                } catch (com.relfor.pcs.payroll.service.ops.OpsException ex) {
+                                    continue;
+                                }
                                 creatingStaff = true;
                                 pd = new PersonnelDetails();
                                 pd.setEmployeeCode(staffDto.getExternalStaffId());

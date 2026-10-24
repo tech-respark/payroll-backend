@@ -811,7 +811,6 @@ public class HospitalityService {
 
         BigDecimal advance = recoverAdvance(tenantId, storeId, staffId, salaryMonth, year);
         addDeduction(deductions, "Advance Recovery", advance);
-        statutoryDeductions(tenantId, storeId, payslip, earnings).forEach((name, amount) -> addDeduction(deductions, name, amount));
 
         payslip.setEarnings(earnings);
         payslip.setDeductions(deductions);

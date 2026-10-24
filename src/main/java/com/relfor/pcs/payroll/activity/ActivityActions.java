@@ -13,6 +13,7 @@ public final class ActivityActions {
     public static final String AUTH_LOGIN_FAILURE = "auth.login.failure";
     public static final String AUTH_PASSWORD_RESET = "auth.password.reset";
     public static final String AUTH_PASSWORD_UPDATED = "auth.password.updated";
+    public static final String AUTH_SUPPORT_SESSION = "auth.support_session";
 
     public static final String STAFF_CREATED = "staff.created";
     public static final String STAFF_UPDATED = "staff.updated";
@@ -51,6 +52,24 @@ public final class ActivityActions {
     public static final String PAYROLL_CALCULATED = "payroll.calculated";
     public static final String PAYROLL_APPLIED = "payroll.hospitality.applied";
     public static final String PAYROLL_COMPONENTS_SAVED = "payroll.components.saved";
+    public static final String PAYROLL_RUN_CALCULATED = "payroll.run.calculated";
+    public static final String PAYROLL_RUN_SUBMITTED = "payroll.run.submitted";
+    public static final String PAYROLL_RUN_APPROVED = "payroll.run.approved";
+    public static final String PAYROLL_RUN_PUBLISHED = "payroll.run.published";
+    public static final String PAYROLL_RUN_LOCKED = "payroll.run.locked";
+    public static final String PAYROLL_STATUTORY_SAVED = "payroll.statutory.saved";
+    public static final String PAYROLL_CLAIM_CREATED = "payroll.claim.created";
+    public static final String PAYROLL_CLAIM_APPROVED = "payroll.claim.approved";
+    public static final String PAYROLL_CLAIM_REJECTED = "payroll.claim.rejected";
+    public static final String PAYROLL_DECLARATION_SAVED = "payroll.declaration.saved";
+    public static final String PAYROLL_DECLARATION_APPROVED = "payroll.declaration.approved";
+    public static final String PAYROLL_DECLARATION_REJECTED = "payroll.declaration.rejected";
+    public static final String PAYROLL_LOAN_CREATED = "payroll.loan.created";
+    public static final String PAYROLL_LOAN_CLOSED = "payroll.loan.closed";
+    public static final String PAYROLL_REVISION_SAVED = "payroll.revision.saved";
+    public static final String PAYROLL_FNF_CREATED = "payroll.fnf.created";
+    public static final String PAYROLL_FNF_SETTLED = "payroll.fnf.settled";
+    public static final String PAYROLL_LOGO_SAVED = "payroll.logo.saved";
 
     public static final String HOSPITALITY_ADVANCE_CREATED = "hospitality.advance.created";
     public static final String HOSPITALITY_ADVANCE_CLOSED = "hospitality.advance.closed";
@@ -79,6 +98,7 @@ public final class ActivityActions {
                 def(AUTH_LOGIN_FAILURE, ActivityModule.AUTH, "Sign-in failed"),
                 def(AUTH_PASSWORD_RESET, ActivityModule.AUTH, "Reset password"),
                 def(AUTH_PASSWORD_UPDATED, ActivityModule.AUTH, "Updated password"),
+                def(AUTH_SUPPORT_SESSION, ActivityModule.AUTH, "Minted support session"),
                 def(STAFF_CREATED, ActivityModule.STAFF, "Created staff"),
                 def(STAFF_UPDATED, ActivityModule.STAFF, "Updated staff"),
                 def(ROLE_CREATED, ActivityModule.ROLES, "Created role"),
@@ -111,6 +131,24 @@ public final class ActivityActions {
                 def(PAYROLL_CALCULATED, ActivityModule.PAYROLL, "Calculated payroll"),
                 def(PAYROLL_APPLIED, ActivityModule.PAYROLL, "Applied hospitality payroll"),
                 def(PAYROLL_COMPONENTS_SAVED, ActivityModule.PAYROLL, "Updated salary components"),
+                def(PAYROLL_RUN_CALCULATED, ActivityModule.PAYROLL, "Calculated pay run"),
+                def(PAYROLL_RUN_SUBMITTED, ActivityModule.PAYROLL, "Submitted pay run"),
+                def(PAYROLL_RUN_APPROVED, ActivityModule.PAYROLL, "Approved pay run"),
+                def(PAYROLL_RUN_PUBLISHED, ActivityModule.PAYROLL, "Published pay run"),
+                def(PAYROLL_RUN_LOCKED, ActivityModule.PAYROLL, "Locked pay run"),
+                def(PAYROLL_STATUTORY_SAVED, ActivityModule.PAYROLL, "Saved statutory configuration"),
+                def(PAYROLL_CLAIM_CREATED, ActivityModule.PAYROLL, "Submitted reimbursement"),
+                def(PAYROLL_CLAIM_APPROVED, ActivityModule.PAYROLL, "Approved reimbursement"),
+                def(PAYROLL_CLAIM_REJECTED, ActivityModule.PAYROLL, "Rejected reimbursement"),
+                def(PAYROLL_DECLARATION_SAVED, ActivityModule.PAYROLL, "Submitted IT declaration"),
+                def(PAYROLL_DECLARATION_APPROVED, ActivityModule.PAYROLL, "Approved IT declaration"),
+                def(PAYROLL_DECLARATION_REJECTED, ActivityModule.PAYROLL, "Rejected IT declaration"),
+                def(PAYROLL_LOAN_CREATED, ActivityModule.PAYROLL, "Created loan"),
+                def(PAYROLL_LOAN_CLOSED, ActivityModule.PAYROLL, "Closed loan"),
+                def(PAYROLL_REVISION_SAVED, ActivityModule.PAYROLL, "Saved salary revision"),
+                def(PAYROLL_FNF_CREATED, ActivityModule.PAYROLL, "Drafted settlement"),
+                def(PAYROLL_FNF_SETTLED, ActivityModule.PAYROLL, "Settled full and final"),
+                def(PAYROLL_LOGO_SAVED, ActivityModule.PAYROLL, "Updated payslip logo"),
                 def(HOSPITALITY_ADVANCE_CREATED, ActivityModule.HOSPITALITY, "Issued advance"),
                 def(HOSPITALITY_ADVANCE_CLOSED, ActivityModule.HOSPITALITY, "Closed advance"),
                 def(HOSPITALITY_COMMISSION_SAVED, ActivityModule.HOSPITALITY, "Saved commission plan"),

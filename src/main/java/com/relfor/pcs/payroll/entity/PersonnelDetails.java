@@ -7,6 +7,7 @@ import org.hibernate.annotations.GenericGenerator;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -93,6 +94,26 @@ public class PersonnelDetails extends BaseEntity{
 	private String esiNumber;
 	@Column(length = 20)
 	private String panNumber;
+	@Column(length = 30)
+	private String pfNumber;
+	@ColumnDefault("true")
+	private Boolean pfApplicable = true;
+	@ColumnDefault("true")
+	private Boolean esiApplicable = true;
+	@ColumnDefault("true")
+	private Boolean ptApplicable = true;
+	@ColumnDefault("true")
+	private Boolean lwfApplicable = true;
+	@ColumnDefault("true")
+	private Boolean tdsApplicable = true;
+	@ColumnDefault("false")
+	private Boolean skipPayroll = false;
+	@ColumnDefault("false")
+	private Boolean totpEnabled = false;
+	@Column(length = 64)
+	private String totpSecret;
+	@Column(name = "last_login_at")
+	private Instant lastLoginAt;
 
 	public String getPassword() {
 		return password;
@@ -508,5 +529,85 @@ public class PersonnelDetails extends BaseEntity{
 
 	public void setPanNumber(String panNumber) {
 		this.panNumber = panNumber;
+	}
+
+	public String getPfNumber() {
+		return pfNumber;
+	}
+
+	public void setPfNumber(String pfNumber) {
+		this.pfNumber = pfNumber;
+	}
+
+	public Boolean getPfApplicable() {
+		return pfApplicable;
+	}
+
+	public void setPfApplicable(Boolean pfApplicable) {
+		this.pfApplicable = pfApplicable;
+	}
+
+	public Boolean getEsiApplicable() {
+		return esiApplicable;
+	}
+
+	public void setEsiApplicable(Boolean esiApplicable) {
+		this.esiApplicable = esiApplicable;
+	}
+
+	public Boolean getPtApplicable() {
+		return ptApplicable;
+	}
+
+	public void setPtApplicable(Boolean ptApplicable) {
+		this.ptApplicable = ptApplicable;
+	}
+
+	public Boolean getLwfApplicable() {
+		return lwfApplicable;
+	}
+
+	public void setLwfApplicable(Boolean lwfApplicable) {
+		this.lwfApplicable = lwfApplicable;
+	}
+
+	public Boolean getTdsApplicable() {
+		return tdsApplicable;
+	}
+
+	public void setTdsApplicable(Boolean tdsApplicable) {
+		this.tdsApplicable = tdsApplicable;
+	}
+
+	public Boolean getSkipPayroll() {
+		return skipPayroll;
+	}
+
+	public void setSkipPayroll(Boolean skipPayroll) {
+		this.skipPayroll = skipPayroll;
+	}
+
+	public Boolean getTotpEnabled() {
+		return totpEnabled;
+	}
+
+	public void setTotpEnabled(Boolean totpEnabled) {
+		this.totpEnabled = totpEnabled;
+	}
+
+	public String getTotpSecret() {
+		return totpSecret;
+	}
+
+	public void setTotpSecret(String totpSecret) {
+		this.totpSecret = totpSecret;
+	}
+
+	public Instant getLastLoginAt() {
+		return lastLoginAt;
+	}
+
+	public void setLastLoginAt(Instant lastLoginAt) {
+		this.lastLoginAt = lastLoginAt;
 	}
 }

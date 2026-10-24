@@ -22,7 +22,12 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringWriter;
-//import java.math.BigDecimal;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 
@@ -60,13 +65,15 @@ public class VelocityService {
 			SalaryComponentsDTO salarySlip = salaryCalculation.convertToSalaryComponentDTO(personnelPayslipHistory.get());
 
 			Optional<StoreProfileConfig> configOpt = storeProfileConfigRepository.findByTenantIdAndStoreId(paySlipData.getTenantId(), paySlipData.getStoreId());
+			billDetails = new PrintBillDetailsDTO();
 			if (configOpt.isPresent()) {
 				StoreProfileConfig config = configOpt.get();
-				billDetails = new PrintBillDetailsDTO();
 				billDetails.setLogoPath(config.getLogoPath());
 				billDetails.setAddress(config.getAddress());
-			} else {
-				billDetails = new PrintBillDetailsDTO();
+				billDetails.setCompanyName(config.getCompanyName());
+			}
+			if (billDetails.getCompanyName() == null || billDetails.getCompanyName().isBlank()) {
+				billDetails.setCompanyName(paySlipData.getStoreName());
 			}
 
 			VelocityContext context = buildPayslipContext(salarySlip, billDetails);
@@ -86,48 +93,146 @@ public class VelocityService {
 	public static VelocityContext buildPayslipContext(SalaryComponentsDTO dto, PrintBillDetailsDTO billDetails) {
 		VelocityContext context = new VelocityContext();
 
-		context.put("tenantId", dto.getTenantId());
-		context.put("storeId", dto.getStoreId());
-		context.put("staffId", dto.getStaffId());
-		context.put("personnelName", dto.getPersonnelName());
-		context.put("salaryDate", dto.getSalaryDate());
-		context.put("employeeCode", dto.getEmployeeCode());
-		context.put("storeName", dto.getStoreName());
-		context.put("designation", dto.getDesignation());
-		context.put("salaryPeriod", dto.getSalaryPeriod());
-		context.put("salaryMonth", dto.getSalaryMonth());
-		context.put("salaryYear", dto.getSalaryYear());
+		context.put("personnelName", blankToDash(dto.getPersonnelName()));
+		context.put("employeeCode", blankToDash(dto.getEmployeeCode()));
+		context.put("storeName", blankToDash(dto.getStoreName()));
+		context.put("designation", blankToDash(dto.getDesignation()));
+		context.put("bankName", blankToDash(dto.getBankName()));
+		context.put("IfscCode", dto.getIfscCode() == null ? "" : dto.getIfscCode());
+		context.put("panNo", dto.getPanNo() == null ? "" : dto.getPanNo());
+		context.put("uanNumber", dto.getUanNumber() == null ? "" : dto.getUanNumber());
+		context.put("maskedAccount", maskAccount(dto.getAccountNumber()));
+		context.put("hasBank", notBlank(dto.getBankName()) || notBlank(dto.getAccountNumber()));
+		context.put("hasIfsc", notBlank(dto.getIfscCode()));
+		context.put("hasPan", notBlank(dto.getPanNo()));
+		context.put("hasUan", notBlank(dto.getUanNumber()));
 
-		context.put("bankName", dto.getBankName());
-		context.put("accountNumber", dto.getAccountNumber());
-		context.put("IfscCode", dto.getIfscCode());
-		context.put("panNo", dto.getPanNo());
-		context.put("uanNumber", dto.getUanNumber());
+		context.put("totalDays", days(dto.getTotalDays()));
+		context.put("totalWorkingDays", days(dto.getTotalWorkingDays()));
+		context.put("absentDays", days(dto.getAbsentDays()));
+		context.put("penaltyAbsentDays", days(dto.getPenaltyAbsentDays()));
+		context.put("totalHolidays", days(dto.getTotalHolidays()));
+		context.put("totalweeklyOff", days(dto.getTotalweeklyOff()));
+		context.put("totalPaidLeaves", days(dto.getTotalPaidLeaves()));
+		context.put("totalPaidDays", days(dto.getTotalPaidDays()));
 
-		context.put("totalDays", dto.getTotalDays());
-		context.put("totalWorkingDays", dto.getTotalWorkingDays());
-		context.put("absentDays", dto.getAbsentDays());
-		context.put("penaltyAbsentDays", dto.getPenaltyAbsentDays());
-		context.put("totalHolidays", dto.getTotalHolidays());
-		context.put("totalweeklyOff", dto.getTotalweeklyOff());
-		context.put("totalPaidLeaves", dto.getTotalPaidLeaves());
-		context.put("totalPaidDays", dto.getTotalPaidDays());
+		List<String> earningNames = new ArrayList<>();
+		List<String> earningAmounts = new ArrayList<>();
+		if (dto.getEarnings() != null) {
+			dto.getEarnings().forEach((name, amount) -> {
+				earningNames.add(name);
+				earningAmounts.add(money(amount));
+			});
+		}
+		List<String> deductionNames = new ArrayList<>();
+		List<String> deductionAmounts = new ArrayList<>();
+		if (dto.getDeductions() != null) {
+			dto.getDeductions().forEach((name, amount) -> {
+				deductionNames.add(name);
+				deductionAmounts.add(money(amount));
+			});
+		}
+		int earningSize = earningNames.size();
+		int deductionSize = deductionAmounts.size();
+		int maxRows = Math.max(earningSize, deductionSize);
+		context.put("earningNames", earningNames);
+		context.put("earningAmounts", earningAmounts);
+		context.put("deductionNames", deductionNames);
+		context.put("deductionAmounts", deductionAmounts);
+		context.put("earningSize", earningSize);
+		context.put("deductionSize", deductionSize);
+		context.put("maxRows", maxRows);
+		context.put("loopEnd", Math.max(maxRows - 1, 0));
 
-		context.put("earnings", dto.getEarnings());
-		context.put("deductions", dto.getDeductions());
-		context.put("totalEarning", dto.getTotalEarning());
-		context.put("totalDeduction", dto.getTotalDeduction());
-		context.put("salaryAmount", dto.getSalaryAmount());
-		context.put("salaryAmountInWords", convert(dto.getSalaryAmount().intValue()));
+		context.put("totalEarning", money(dto.getTotalEarning()));
+		context.put("totalDeduction", money(dto.getTotalDeduction()));
+		context.put("salaryAmount", money(dto.getSalaryAmount()));
+		context.put("salaryAmountInWords", amountInWords(dto.getSalaryAmount()));
+		context.put("monthTitle", monthTitle(dto.getSalaryMonth(), dto.getSalaryYear()));
+		context.put("periodLabel", prettyPeriod(dto.getSalaryPeriod()));
 
-
-		context.put("logo", billDetails.getLogoPath());
-		context.put("address", billDetails.getAddress());
-
-		String billHeader = "Payslip for the Month of " + dto.getSalaryMonth() + " " + dto.getSalaryYear();
-		context.put("billInvoice", billHeader);
+		String logo = billDetails.getLogoPath();
+		String address = billDetails.getAddress();
+		String companyName = billDetails.getCompanyName();
+		context.put("logo", logo == null ? "" : logo);
+		context.put("address", address == null ? "" : address);
+		context.put("companyName", companyName == null || companyName.isBlank()
+				? blankToDash(dto.getStoreName())
+				: companyName);
 
 		return context;
+	}
+
+	private static String money(BigDecimal value) {
+		BigDecimal amount = value == null ? BigDecimal.ZERO : value.setScale(2, RoundingMode.HALF_UP);
+		DecimalFormat format = new DecimalFormat("#,##,##0.00", new DecimalFormatSymbols(new Locale("en", "IN")));
+		return format.format(amount);
+	}
+
+	private static String days(Number value) {
+		if (value == null) {
+			return "0";
+		}
+		double raw = value.doubleValue();
+		if (Math.abs(raw - Math.rint(raw)) < 0.0001) {
+			return String.valueOf((int) Math.rint(raw));
+		}
+		return new DecimalFormat("0.##").format(raw);
+	}
+
+	private static String monthTitle(String month, Integer year) {
+		String label = month == null ? "" : month.trim();
+		if (!label.isEmpty()) {
+			label = label.substring(0, 1).toUpperCase(Locale.ENGLISH) + label.substring(1).toLowerCase(Locale.ENGLISH);
+		}
+		return (label + " " + (year == null ? "" : year)).trim();
+	}
+
+	private static String prettyPeriod(String raw) {
+		if (raw == null || raw.isBlank()) {
+			return "";
+		}
+		String[] parts = raw.split("(?i)\\s+to\\s+");
+		DateTimeFormatter out = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
+		try {
+			if (parts.length == 2) {
+				return LocalDate.parse(parts[0].trim()).format(out) + " – " + LocalDate.parse(parts[1].trim()).format(out);
+			}
+		} catch (Exception ignored) {
+			return raw;
+		}
+		return raw;
+	}
+
+	private static String maskAccount(String value) {
+		if (value == null) {
+			return "";
+		}
+		String digits = value.replaceAll("\\s+", "");
+		if (digits.length() <= 4) {
+			return digits;
+		}
+		int hidden = Math.min(digits.length() - 4, 8);
+		return "•".repeat(hidden) + digits.substring(digits.length() - 4);
+	}
+
+	private static String amountInWords(BigDecimal value) {
+		BigDecimal amount = value == null ? BigDecimal.ZERO : value.setScale(2, RoundingMode.HALF_UP);
+		int rupees = amount.setScale(0, RoundingMode.DOWN).intValue();
+		int paise = amount.remainder(BigDecimal.ONE).movePointRight(2).setScale(0, RoundingMode.HALF_UP).intValue();
+		String words = convert(rupees) + " Rupees";
+		if (paise > 0) {
+			words += " and " + convert(paise) + " Paise";
+		}
+		return words + " Only";
+	}
+
+	private static boolean notBlank(String value) {
+		return value != null && !value.isBlank();
+	}
+
+	private static String blankToDash(String value) {
+		return notBlank(value) ? value : "—";
 	}
 
 	public static String htmlToXhtml(String html) {

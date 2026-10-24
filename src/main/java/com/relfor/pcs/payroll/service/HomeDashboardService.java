@@ -49,8 +49,9 @@ public class HomeDashboardService {
     private final LeaveLedgerService leaveLedgerService;
     private final StoreDetailsRepository storeDetailsRepository;
     private final HRDashboardService hrDashboardService;
+    private final com.relfor.pcs.payroll.repository.PersonnelPayslipHistoryRepository personnelPayslipHistoryRepository;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public StaffHomeDTO staffHome(Long tenantId, Long storeId) {
         Long staffId = SecurityUtils.getStaffId();
         if (staffId == null) {
@@ -155,21 +156,38 @@ public class HomeDashboardService {
         return StaffHomeDTO.Balance.builder()
                 .id(type.getId())
                 .type(type.getLeaveName())
-                .available(leaveLedgerService.getOrAllocateBalance(
-                        tenantId, storeId, staffId, type, rule.getAnnualAllotment(), today, rule.getAccrualFrequency()))
+                .available(leaveLedgerService.getAvailableBalance(staffId, type.getId(), today))
                 .build();
     }
 
     private StaffHomeDTO.Pay payMonth(Long tenantId, Long storeId) {
-        Integer month = storeDetailsRepository.fetchStoreAndTenantDetails(tenantId, storeId)
-                .map(StoreDetails::getRecentSummaryCalculatedMonth)
-                .orElse(null);
-        if (month == null || month < 1 || month > 12) {
+        List<Object[]> rows = personnelPayslipHistoryRepository.findLatestMonth(tenantId, storeId);
+        if (rows == null || rows.isEmpty() || rows.get(0) == null) {
             return null;
         }
+        Object[] row = rows.get(0);
+        String monthName = row.length > 0 && row[0] != null ? String.valueOf(row[0]) : null;
+        Integer year = row.length > 1 && row[1] != null ? ((Number) row[1]).intValue() : null;
+        Integer monthNumber = null;
+        String display = null;
+        if (monthName != null) {
+            try {
+                Month parsed = Month.valueOf(monthName.trim().toUpperCase(Locale.ROOT));
+                monthNumber = parsed.getValue();
+                display = parsed.getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+            } catch (Exception ignored) {
+                display = monthName;
+            }
+        }
+        if (display == null) {
+            return null;
+        }
+        if (year != null) {
+            display = display + " " + year;
+        }
         return StaffHomeDTO.Pay.builder()
-                .lastCalculatedMonthNumber(month)
-                .lastCalculatedMonth(Month.of(month).getDisplayName(TextStyle.FULL, Locale.ENGLISH))
+                .lastCalculatedMonthNumber(monthNumber)
+                .lastCalculatedMonth(display)
                 .build();
     }
 

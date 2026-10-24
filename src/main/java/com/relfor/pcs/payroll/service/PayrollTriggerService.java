@@ -135,6 +135,17 @@ public class PayrollTriggerService {
 			if (!monthWiseAttendanceSummaryList.isEmpty()) {
 				monthWiseAttendanceSummaryRepository.saveAll(monthWiseAttendanceSummaryList);
 				outputList.add(String.format("No of month wise records updated plus newly created: %d",monthWiseAttendanceSummaryList.size()));
+				int nowYear = java.time.Year.now().getValue();
+				for (StoreDetails storeDetails : storeDetailsList) {
+					Integer existing = storeDetails.getRecentSummaryCalculatedMonth();
+					if (year < nowYear) {
+						continue;
+					}
+					if (year == nowYear && (existing == null || monthValue >= existing)) {
+						storeDetails.setRecentSummaryCalculatedMonth(monthValue);
+						storeDetailsRepository.save(storeDetails);
+					}
+				}
 			}
 		}
 		responseModel.setData(outputList);
@@ -230,8 +241,14 @@ public class PayrollTriggerService {
 					}
 				}
 				if (!skipCurrentStore) {
-					PersonnelPayslipHistory personnelPayslipHistory = salaryCalculationService.calculateSalaryComponents(monthWiseAttendanceSummary, salaryComponentDefinitionsList, monthWiseAttendanceSummary.getStaffId(), storeDetailsList);
-					if (personnelPayslipHistory != null) {
+					var result = salaryCalculationService.processSalary(
+							monthWiseAttendanceSummary.getStaffId(),
+							monthWiseAttendanceSummary.getSalaryMonth(),
+							monthWiseAttendanceSummary.getSalaryYear() != null ? monthWiseAttendanceSummary.getSalaryYear().longValue() : null,
+							monthWiseAttendanceSummary.getTenantId(),
+							monthWiseAttendanceSummary.getStoreId(),
+							false);
+					if (result.getData() != null) {
 						outputList.add(String.format("Processed salary calculation for store: %d and staff: %d", currentStoreId, monthWiseAttendanceSummary.getStaffId()));
 					} else {
 						outputList.add(String.format("Salary details not found for store: %d and staff: %d", currentStoreId, monthWiseAttendanceSummary.getStaffId()));

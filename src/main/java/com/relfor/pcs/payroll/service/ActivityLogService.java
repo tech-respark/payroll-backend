@@ -232,7 +232,7 @@ public class ActivityLogService implements ActivityRecorder {
                 .map(ActivityActions.ActionDef::label)
                 .findFirst()
                 .orElse(row.getAction());
-        Map<String, Object> context = row.getContextJson() == null ? Map.of() : row.getContextJson();
+        Map<String, Object> context = ActivityRedactor.redact(row.getContextJson());
         return new ActivityLogDTO(
                 row.getId(),
                 row.getOccurredAt(),

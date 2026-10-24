@@ -6,6 +6,7 @@ import com.relfor.pcs.payroll.entity.AttendanceRegularizationRequest;
 import com.relfor.pcs.payroll.service.AttendanceRegularizationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -15,6 +16,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/payroll-management/v1/regularizations")
+@PreAuthorize("hasAuthority(T(com.relfor.pcs.payroll.security.Permissions).MANAGE_ATTENDANCE)")
 @RequiredArgsConstructor
 public class AttendanceRegularizationController {
 

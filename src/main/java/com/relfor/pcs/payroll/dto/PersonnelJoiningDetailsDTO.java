@@ -17,6 +17,13 @@ public class PersonnelJoiningDetailsDTO {
 	private java.math.BigDecimal overtimeMultiplier;
 	private String esiNumber;
 	private String panNumber;
+	private String pfNumber;
+	private Boolean pfApplicable;
+	private Boolean esiApplicable;
+	private Boolean ptApplicable;
+	private Boolean lwfApplicable;
+	private Boolean tdsApplicable;
+	private Boolean skipPayroll;
 
 	public String getEmployeeCode() {
 		return employeeCode;
@@ -82,6 +89,20 @@ public class PersonnelJoiningDetailsDTO {
 	public void setEsiNumber(String esiNumber) { this.esiNumber = esiNumber; }
 	public String getPanNumber() { return panNumber; }
 	public void setPanNumber(String panNumber) { this.panNumber = panNumber; }
+	public String getPfNumber() { return pfNumber; }
+	public void setPfNumber(String pfNumber) { this.pfNumber = pfNumber; }
+	public Boolean getPfApplicable() { return pfApplicable; }
+	public void setPfApplicable(Boolean pfApplicable) { this.pfApplicable = pfApplicable; }
+	public Boolean getEsiApplicable() { return esiApplicable; }
+	public void setEsiApplicable(Boolean esiApplicable) { this.esiApplicable = esiApplicable; }
+	public Boolean getPtApplicable() { return ptApplicable; }
+	public void setPtApplicable(Boolean ptApplicable) { this.ptApplicable = ptApplicable; }
+	public Boolean getLwfApplicable() { return lwfApplicable; }
+	public void setLwfApplicable(Boolean lwfApplicable) { this.lwfApplicable = lwfApplicable; }
+	public Boolean getTdsApplicable() { return tdsApplicable; }
+	public void setTdsApplicable(Boolean tdsApplicable) { this.tdsApplicable = tdsApplicable; }
+	public Boolean getSkipPayroll() { return skipPayroll; }
+	public void setSkipPayroll(Boolean skipPayroll) { this.skipPayroll = skipPayroll; }
 
 	@Override
 	public String toString() {

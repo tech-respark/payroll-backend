@@ -54,19 +54,49 @@ public class JwtUtil {
         return extractExpiration(token).before(new Date());
     }
 
-    public String generateToken(CustomUserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("tenantId", userDetails.getTenantId());
-        claims.put("storeId", userDetails.getStoreId());
-        return createToken(claims, userDetails.getUsername());
+    public String extractPrincipalType(String token) {
+        String value = extractClaim(token, claims -> claims.get("principalType", String.class));
+        return value == null || value.isBlank() ? CustomUserDetails.PRINCIPAL_CLIENT : value;
     }
 
-    private String createToken(Map<String, Object> claims, String subject) {
+    public String generateToken(CustomUserDetails userDetails) {
+        return generateToken(userDetails, expirationTime);
+    }
+
+    public String generateToken(CustomUserDetails userDetails, long expirationMs) {
+        return generateToken(userDetails, expirationMs, Map.of());
+    }
+
+    public String generateToken(CustomUserDetails userDetails, long expirationMs, Map<String, Object> extraClaims) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("principalType", CustomUserDetails.PRINCIPAL_CLIENT);
+        claims.put("tenantId", userDetails.getTenantId());
+        claims.put("storeId", userDetails.getStoreId());
+        if (extraClaims != null) {
+            claims.putAll(extraClaims);
+        }
+        return createToken(claims, userDetails.getUsername(), expirationMs);
+    }
+
+    public String extractSupportSessionId(String token) {
+        return extractClaim(token, claims -> claims.get("supportSessionId", String.class));
+    }
+
+    public String generatePlatformToken(CustomUserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("principalType", CustomUserDetails.PRINCIPAL_PLATFORM);
+        if (userDetails.getOpsRole() != null) {
+            claims.put("opsRole", userDetails.getOpsRole().name());
+        }
+        return createToken(claims, userDetails.getUsername(), expirationTime);
+    }
+
+    private String createToken(Map<String, Object> claims, String subject, long expirationMs) {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(key)
                 .compact();
     }

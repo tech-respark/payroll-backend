@@ -79,6 +79,8 @@ public class StaffShiftsService {
 	AttendanceManagementService attendanceManagementService;
 	@Autowired
 	ActivityRecorder activityRecorder;
+	@Autowired
+	StaffIdentityService staffIdentityService;
 
 	public List<SStaffShifts> createStaffShiftNewInput(CreateStaffShiftInput createStaffShiftInput) {
 
@@ -2011,6 +2013,10 @@ public class StaffShiftsService {
 			String toDate) {
 
 		List<AttendanceDetailDto> resultShifts = new ArrayList<>();
+		List<Long> staffKeys = staffIdentityService.rosterKeysForStaffId(staffId);
+		if (staffKeys.isEmpty()) {
+			staffKeys = List.of(staffId);
+		}
 
 		try {
 			String query = "SELECT ss.day, DATE_FORMAT(ss.shift_date,'%d/%b/%Y') AS shift_date, ss.slot, ss.on_leave, " +
@@ -2021,22 +2027,22 @@ public class StaffShiftsService {
 					"DATE_FORMAT(pa.last_punch,'%H:%i') AS check_out, " +
 					"ss.weekly_off, dwas.is_holiday, ss.shift_date as shiftDate, sd.date_format " +
 					"FROM staff_shifts ss " +
-					"JOIN tenant_company_mapping tcm ON tcm.tenant_id=ss.tenant_id AND tcm.application_name='RESPARK' " +
-					"JOIN store_details sd ON sd.tenant_company_mapping_id=tcm.id AND sd.store_id=ss.store_id " +
-					"LEFT JOIN day_wise_attendance_summary dwas ON dwas.staff_id=ss.staff_id AND dwas.attendance_date=ss.shift_date AND dwas.application_name='RESPARK' " +
+					"LEFT JOIN store_details sd ON sd.store_id = ss.store_id " +
+					"LEFT JOIN tenant_company_mapping tcm ON tcm.id = sd.tenant_company_mapping_id AND tcm.tenant_id = ss.tenant_id " +
+					"LEFT JOIN day_wise_attendance_summary dwas ON dwas.staff_id IN (:staffIds) AND dwas.attendance_date=ss.shift_date " +
 					"LEFT JOIN (SELECT staff_id, attendance_date, MIN(punch_timestamp) AS first_punch, MAX(punch_timestamp) AS last_punch " +
 					"FROM personnel_attendance " +
-					"WHERE staff_id=:staffId AND attendance_date BETWEEN :fromDate AND :toDate " +
+					"WHERE staff_id IN (:staffIds) AND attendance_date BETWEEN :fromDate AND :toDate " +
 					"GROUP BY staff_id, attendance_date) pa " +
 					"ON pa.staff_id=ss.staff_id AND pa.attendance_date=ss.shift_date " +
-					"WHERE ss.staff_id=:staffId " +
+					"WHERE ss.staff_id IN (:staffIds) " +
 					"AND ss.tenant_id=:tenantId " +
 					"AND ss.store_id=:storeId " +
 					"AND ss.shift_date BETWEEN :fromDate AND :toDate " +
 					"ORDER BY ss.shift_date";
 
 			Query nativeQuery = entityManager.createNativeQuery(query);
-			nativeQuery.setParameter("staffId", staffId);
+			nativeQuery.setParameter("staffIds", staffKeys);
 			nativeQuery.setParameter("tenantId", tenantId);
 			nativeQuery.setParameter("storeId", storeId);
 			nativeQuery.setParameter("fromDate", fromDate);
@@ -2115,6 +2121,7 @@ public class StaffShiftsService {
 
 		} catch (Exception e) {
 			logger.error("Failed to fetch detailed attendance for staffId={}, tenantId={}, storeId={}, fromDate={}, toDate={}", staffId, tenantId, storeId, fromDate, toDate, e);
+			throw new IllegalStateException("Unable to load the detailed attendance report for this person and date range.", e);
 		}
 
 		return resultShifts;

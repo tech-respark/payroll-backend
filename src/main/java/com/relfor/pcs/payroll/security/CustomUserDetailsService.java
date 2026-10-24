@@ -48,6 +48,6 @@ public class CustomUserDetailsService implements UserDetailsService {
             }
         }
 
-        return new CustomUserDetails(personnel, authorities);
+        return CustomUserDetails.fromPersonnel(personnel, authorities);
     }
 }
